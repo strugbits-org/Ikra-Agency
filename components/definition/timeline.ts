@@ -46,41 +46,42 @@ import { CLOSE_VH, HERO_GRAY_TAIL_VH } from "../hero/timeline";
  *             tall viewport, which is why the landing is not a constant. Eased at
  *             both ends (MARK_SLIDE_EASE); see MARK_APPROACH_FRAC for why the span
  *             is at its ceiling and for the two vh-window versions that failed.
- *   50–220vh  the definition travels up the right-hand side, from below the fold
+ *   50–140vh  the definition travels up the right-hand side, from below the fold
  *             to clear off the top. No fade — a pure move, and the window still
  *             being longer than the distance is what keeps it from rushing —
  *             but only by 20% now rather than 70% (DICT_VH). Shortening it costs
  *             the settled side-by-side composition first, since the wordmark's
  *             cue cannot fire until the definition has climbed most of the way
  *             up; 28–51vh of that beat is left, by viewport.
- *  173–195vh  the wordmark alone — what is left of the hold that used to sit
- *             here, now a consequence of the two windows rather than a phase.
- *  195–245vh  the wordmark dissolves where it stands, starting at 85% of the
- *             climb above so the two overlap (LOGO_FADE_FRAC) rather than queue —
- *             the letterforms are going while the last of the definition is still
- *             leaving. Its three dots are separate solid elements standing on the
- *             artwork's own, so the letterforms thin out from under them and the
- *             dots are left hanging in mid-air.
- *      245vh  the tail is cued — the dots let go here, and this is as early as
- *             that can be: it is the end of the dissolve, because the dots have
- *             to outlast the wordmark rather than leave while it is still there.
- *             Everything past this point comes off the
- *             scrub. Crossing the mark starts a timed gesture that runs to
- *             completion whether or not the scrolling continues, and rewinds if
- *             it is crossed back. See TAIL_AT for why this one stretch cannot be
- *             scroll-driven: every earlier phase holds a pose when the scroll
- *             stops, and a thrown ball does not.
- *      0–0.9s the camera pans down the track onto the footer. Nothing there
- *             moves under its own power: it is already sitting in the layout,
- *             and this is the page arriving at it.
- *   ~0.5–2.8s its contents resolve from transparent — all of it as one, over
+ *   measured  the tail is cued, and the wordmark's dissolve is its first beat. The
+ *             mark is a *condition*, not an offset: it fires once the definition
+ *             stands LOGO_FADE_ABOVE_FRAC of its own height above the top edge, which
+ *             lands at 121–129vh across the viewports measured, with LOGO_FADE_AT
+ *             (131vh) as a constant backstop so PIN_VH stays constant. Everything
+ *             past this point comes off the scrub: crossing it starts a timed
+ *             gesture that runs to completion whether or not the scrolling
+ *             continues, and rewinds if it is crossed back. See TAIL_AT for why this
+ *             one stretch cannot be scroll-driven — every earlier phase holds a pose
+ *             when the scroll stops, and a thrown ball does not, and neither does a
+ *             half-dissolved wordmark under three solid dots.
+ *      0–0.8s the wordmark dissolves where it stands. Its three dots are separate
+ *             solid elements standing on the artwork's own, so the letterforms thin
+ *             out from under them and the dots are left hanging in mid-air. On this
+ *             clock rather than the scrub precisely so the letterforms can never be
+ *             found parked at 15% with the dots already solid on top of them.
+ *    0.8–1.7s the camera pans down the track onto the footer — after the dissolve,
+ *             not across it (PAN_AT): the wordmark rides the track and the dots do
+ *             not, so panning early would slide the letterforms out from under their
+ *             own dots. Nothing in the footer moves under its own power; it is
+ *             already sitting in the layout, and this is the page arriving at it.
+ *   ~1.6–3.6s its contents resolve from transparent — all of it as one, over
  *             exactly the span the dots are in the air, so the falls and the
  *             footer are one gesture with one ending. No stagger, deliberately:
  *             staggering guarantees frames where part of the footer has resolved
  *             and part has not. Most of it plays after the camera has stopped,
  *             which is the point — a fade that fits inside the pan is spent
  *             while the footer is still rising.
- *   ~0.7–2.8s the dots fall — all three released together, on a moment solved
+ *   ~1.6–3.6s the dots fall — all three released together, on a moment solved
  *             per viewport (see `measure`) so the beat before it is only as long
  *             as the camera needs. Not an interpolation with a bounce ease on
  *             it: the vertical is a solved ballistic trajectory — thrown up as
@@ -91,12 +92,11 @@ import { CLOSE_VH, HERO_GRAY_TAIL_VH } from "../hero/timeline";
  *             endpoints are fixed points on screen with the camera in neither,
  *             so the dots hang in the viewport and fall through it while the
  *             page pans behind them.
- *  245–269vh  the last of the scroll, and all the gesture gets (TAIL_VH). It drives
- *             none of it. Deliberately shorter than the ~2.8s it takes, because
- *             this is the end of the page: the reader reaches the bottom and the
- *             dots land there, rather than landing early and leaving a screen of
- *             finished footer to scroll through. See TAIL_VH for why losing the pin
- *             mid-flight costs nothing while this section is last.
+ *  131–155vh  the last of the scroll, and all the gesture gets (TAIL_VH). It drives
+ *             none of it, and is deliberately shorter than the ~3.6s it takes: the
+ *             reader who stops to watch gets the gesture free, and every vh here is
+ *             finished footer they then have to grind through before CaseStudies.
+ *             See TAIL_VH for the trade, which was made in that reader's favour.
  */
 
 /** The statement slides up and out of frame, fading as it goes. */
@@ -279,9 +279,11 @@ export const FADE_VH = GROW_VH / 2;
  * off. That is the floor.
  *
  * Most of what the old length used to buy is recovered elsewhere rather than
- * given up: the 30vh hold that followed it is gone, and the wordmark's dissolve
- * now overlaps its last 15% (LOGO_FADE_FRAC), so the stretch from the statement
- * leaving to the dots letting go is 145vh rather than 280.
+ * given up: the 30vh hold that followed it is gone, and the wordmark's dissolve no
+ * longer costs scroll at all — it is a beat of the tail's own clock now
+ * (LOGO_FADE_ABOVE_FRAC), cued off this block's measured position rather than
+ * scrubbed across the 30vh in front of it. So the stretch from the statement leaving
+ * to the dots letting go is 71–79vh rather than 280.
  *
  * Shortening it squeezes the composition as well, since the wordmark's slide is
  * measured against this window — see MARK_APPROACH_FRAC. The settled side-by-side beat
@@ -381,53 +383,73 @@ export const MARK_SLIDE_EASE = gsap.parseEase("sine.inOut");
  * in mid-air. Nothing is masked or cut out; the dots simply outlast the thing
  * they came from.
  *
- * This is where the dots begin — the dissolve is what puts them there — so where
- * it is cued is where the whole footer gesture is cued. It is now a fraction of
- * the definition's climb rather than a mark after it, which used to be
- * `DICT_AT + DICT_VH + 30`: the definition had to be entirely gone, and then a
- * further 30vh of hold had to pass, before anything else would move. Reading it
- * off the climb instead ties the two together — the letterforms start going as
- * the definition is on its way out, and the beat between them is a chosen
- * overlap rather than a leftover gap.
+ * Two things about it changed together, and they are the same change: the dissolve
+ * is **cued off where the definition actually is** rather than off a mark in vh, and
+ * it is the **first beat of the tail's timeline** rather than a scrubbed phase in
+ * front of it. Neither works without the other.
  *
- * Below 1, so the dissolve starts while the definition is still on its way out
- * rather than after it: at 0.85 the block still has its last 15% of climb to make,
- * which puts it above the frame's top edge with only a band of its own tail still
- * showing. It was 0.95, and the letterforms now start going about 17vh earlier.
+ * ## Where it starts: a measured condition, not a fraction of the climb
  *
- * There is a hard floor under this, and it is a paint-order one rather than a
- * matter of taste. The dots are children of the stage, so they paint above the
- * frame's entire contents including the definition, and `lit` turns them on at
- * exactly this mark — set it while the definition is still crossing the wordmark
- * and they would show through the text. That crossing finishes between 71% and
- * 77% of the climb depending on the viewport (latest on a short one, where the
- * block is tallest relative to the screen), so **0.78 is the floor** and 0.85
- * leaves about 13vh of margin at the worst viewport.
+ * The brief is "start the dissolve once the definition is 30–40% above the top of
+ * the screen", and a point in the climb cannot say that. The share of the block
+ * standing above the fold at climb fraction F is `F − (1 − F)·H/D` — it depends on
+ * the viewport's height against the block's own, and `H/D` measures 2.0–4.2 across
+ * 1024–2560 because `dictHeight` is pinned near 344px while H is not. So the old
+ * LOGO_FADE_FRAC of 0.85 left anywhere from **22% to 54%** of the block above the
+ * fold: 46% at 1440, 25% at 1024×1366. One number, five different pictures.
  *
- * There is a second, softer margin behind it: paintDots does not ramp a dot's
- * opacity up from this mark but from 20% into the dissolve, so for the first
- * fifth of it the dots are switched on and still fully transparent. Going under
- * the floor would therefore not show anything immediately — which is exactly why
- * the floor is written down here rather than left to be discovered.
+ * LOGO_FADE_ABOVE_FRAC states the picture instead, and ./sequence reads it per frame
+ * off the definition's own rendered `y`. Measured, it holds 0.31–0.34 everywhere.
  *
- * LOGO_FADE_VH is the dissolve's own length, and it is what gates the dots
- * *leaving*: TAIL_AT sits at the end of it, so the fall cannot be cued any earlier
- * than the letterforms are gone. That ordering is not negotiable — the whole read
- * is that the dots outlast the thing they came from, and a dot that detaches from
- * a wordmark still visible underneath it is just a dot sliding off a logo.
+ * ## The cap, and why there is one
  *
- * So bringing the fall earlier means making the dissolve quicker, not overlapping
- * it, and 92 came down to 50 for that reason. It was close to a full viewport of
- * scrolling to fade one element out — three or four seconds at a reading pace,
- * most of it spent below 10% opacity where there is nothing left to watch. At 50
- * it is under two seconds and the fall is cued 42vh sooner. The two ratios
- * paintDots reads off this (the 20% lead and the 80% span of the dots' own
- * crossfade) are fractions, so they follow it down and the crossfade stays in
- * proportion.
+ * PIN_VH is the section's CSS `height`, so it has to be a constant — nothing
+ * measured can size it, and a cue with no upper bound could in principle sit past
+ * the end of the pin. LOGO_FADE_CAP_FRAC bounds it, and LOGO_FADE_AT is that bound
+ * expressed in vh: the cue fires at whichever comes first. It is a backstop and not
+ * a beat — it binds on no viewport that has been measured (the condition lands at
+ * 0.79–0.88 of the climb, against a cap of 0.9), and if it ever does bind, the
+ * dissolve is merely a little late rather than wrong.
+ *
+ * ## The floor under it is paint order, and it is asserted
+ *
+ * The dots are children of the stage, so they paint above the frame's entire
+ * contents including the definition, and they are lit as this cue fires — so the
+ * cue must land *after* the definition's bottom edge has cleared the wordmark's top,
+ * or the dots show through the body text. That crossing completes at
+ * `(H + D − markTop)/(H + D)` of the climb: measured, 0.63–0.74 (an earlier note here
+ * claimed 0.71–0.77, which was wrong in the unsafe direction). Against a cue at
+ * 0.79–0.88 the worst margin is 4.1vh, at 1920×700. Both sides are computed from the
+ * real boxes in ./measure and the assertion there fires if they ever cross.
+ *
+ * ## Why it is on the tail's clock: the "only dots" state
+ *
+ * As a scrubbed phase this had a length in vh (30), and a scrub freezes wherever the
+ * reader stops. Stop a fifth of the way in and the composition is letterforms at 15%
+ * with three fully solid dots standing on them; stop later and it is three solid
+ * orange dots alone on flat gray, which reads as a bug rather than as a beat. There
+ * is no retiming that removes it, because the state is the scrub.
+ *
+ * So the dissolve is the tail's first beat (see TAIL_AT), and the run from the first
+ * letterform going to the last dot landing is **one clock, one gesture** — it plays
+ * out whether or not the reader keeps scrolling, and rewinds as one if they turn
+ * round. That also retires the two-clock patch paintDots used to need: with the
+ * dissolve and the fall on the same clock the dots' crossfade is a plain function of
+ * `t`, with nothing to keep in sync.
+ *
+ * LOGO_FADE_SECONDS is its length on that clock; DOT_CROSSFADE_LEAD is how far into
+ * it the dots begin coming up. They lag deliberately — each dot is a solid element
+ * standing on the artwork's own, and the two together must always paint one solid
+ * dot, so the overlay comes up across the back of the artwork's fade rather than
+ * snapping on (which made the second and third appear to jump, on any sub-pixel
+ * difference in size). A fraction rather than a duration, so retiming the dissolve
+ * carries it along.
  */
-export const LOGO_FADE_FRAC = 0.85;
-export const LOGO_FADE_AT = DICT_AT + DICT_VH * LOGO_FADE_FRAC;
-export const LOGO_FADE_VH = 30;
+export const LOGO_FADE_ABOVE_FRAC = 0.35;
+export const LOGO_FADE_CAP_FRAC = 0.9;
+export const LOGO_FADE_AT = DICT_AT + DICT_VH * LOGO_FADE_CAP_FRAC;
+export const LOGO_FADE_SECONDS = 0.8;
+export const DOT_CROSSFADE_LEAD = 0.2;
 
 /**
  * The tail — the camera onto the footer, and the dots' fall — is the one thing
@@ -451,39 +473,61 @@ export const LOGO_FADE_VH = 30;
  * Relative timings are carried over unchanged — the pan is the same fraction of
  * the gesture it used to be of the scroll, and so is every fall — so this is the
  * same animation on a different clock, not a new one.
+ *
+ * **The wordmark's dissolve is now inside it too**, which is why this mark is the
+ * dissolve's own and not a mark after it. It used to sit at `LOGO_FADE_AT +
+ * LOGO_FADE_VH`: the letterforms faded on the scrub, and only once they were gone
+ * did the tail begin. That ordering was right — the dots have to outlast the thing
+ * they came from — but paying for it with a scrubbed dissolve bought a resting state
+ * with no reading, three solid dots on flat gray (see LOGO_FADE_ABOVE_FRAC). Pulling
+ * the dissolve inside keeps the ordering *by construction*, on one clock, and costs
+ * the reader nothing: the fade is a beat of the gesture rather than a stretch of
+ * scroll in front of it, so the whole tail is cued LOGO_FADE_VH's old 30vh earlier
+ * and PIN_VH comes down with it.
+ *
+ * ./sequence fires this on `dictAbove >= LOGO_FADE_ABOVE_FRAC || vh >= TAIL_AT` — the
+ * measured condition, with this mark as the backstop. Either way it is one boolean
+ * through one latch, so both directions still go through `runTail`.
  */
-export const TAIL_AT = LOGO_FADE_AT + LOGO_FADE_VH;
+export const TAIL_AT = LOGO_FADE_AT;
 
 /**
  * Pinned scroll the gesture is given. Not a scrub: the animation is over in
- * TAIL_SECONDS (~2.8s) whatever happens here. It is only the room that keeps an
- * ordinary scroll from outrunning it — cross this faster than
- * TAIL_VH/TAIL_SECONDS and the pin releases while the dots are still in the air.
+ * TAIL_SECONDS whatever happens here. It is only the room that keeps an ordinary
+ * scroll from outrunning it — cross this faster than TAIL_VH/TAIL_SECONDS and the pin
+ * releases while the dots are still in the air.
  *
  * 24, down from 180 by way of 80 — and small enough that it is no longer really a
  * guard. That is deliberate, because as a guard it could never have worked: the
  * gesture is on a clock and this is scroll, so a reader who crosses TAIL_AT and stops
  * gets the animation for free and still has every remaining vh of this to grind
- * through on a finished footer. At 180 that was up to ~170vh of nothing, at the very
- * end of the page. The buffer only ever helped the reader who kept moving, and
- * punished the one who stopped to watch.
+ * through on a finished footer. At 180 that was up to ~170vh of nothing. The buffer
+ * only ever helped the reader who kept moving, and punished the one who stopped to
+ * watch.
  *
- * Being outrun is close to harmless *here specifically*, which is what makes the guard
- * dispensable. The pin ends at `bottom bottom`, and since this section is last in the
- * document that instant is also the end of the scroll: the unpinned stage sits exactly
- * where the pinned one did, so there is no jump and nothing beneath is uncovered, and
- * the tail plays out in full view on its own clock — `tailTween` paints through
- * `renderTail`, not through the ScrollTrigger, so losing the pin does not stop it.
- * The reader simply arrives at the bottom of the page and watches the dots land.
+ * **The invariant this number is held against is the wait *after* the gesture, not the
+ * section's total length.** CaseStudies follows this section now, so being outrun is
+ * no longer free the way it was when nothing did: the stage scrolls away and uncovers
+ * the next section while the dots are still falling and the photographs still merging.
+ * Covering the ~3.6s gesture against an ordinary 54vh/s scroll wants ~150 here — and
+ * that was tried, and rejected on report: it puts ~53vh of finished footer between the
+ * dots landing and CaseStudies arriving, in both directions, which is exactly the
+ * grind the drop from 180 was meant to remove. The reader who stops to watch is the
+ * one being optimised for, and they are the one that length punishes.
+ *
+ * So the trade is taken the other way, knowingly. Nothing tears when the pin releases
+ * mid-flight: the dots and the footer are both inside the stage, so the composition
+ * leaves as one piece and the fall still completes correctly relative to it —
+ * `tailTween` paints through `renderTail` rather than through the ScrollTrigger, so
+ * losing the pin does not stop the clock. A fast reader may simply scroll past the end
+ * of it.
  *
  * `scrub: 1` helps rather than hurts at this length: it lags the cue by up to a
  * second, so the gesture tends to fire right as the scroll runs out, which is where it
  * wants to be seen.
  *
- * All of that is load-bearing and conditional — it holds while nothing follows this
- * section. `Footer` is currently commented out in app/page.tsx; if it comes back, the
- * stage will scroll away and uncover it mid-flight, and this has to go back up toward
- * a rate no gesture can beat (~180).
+ * This is the only consumer of PIN_VH's slack, so it is also the one knob for the
+ * hand-off to CaseStudies. Raising it delays that hand-off vh for vh.
  */
 export const TAIL_VH = 24;
 
@@ -500,6 +544,22 @@ export const TAIL_VH = 24;
  * one is a dot landing on a moving floor.
  */
 export const PAN_SECONDS = 0.9;
+
+/**
+ * When the camera starts, on the tail's clock — after the dissolve, not over it.
+ *
+ * Serial rather than overlapped, and this is a paint-order constraint like the one
+ * under LOGO_FADE_ABOVE_FRAC rather than a matter of pacing. The dots are children of
+ * the *stage* and the wordmark is inside the *track*, which is the thing the camera
+ * moves. Pan while the letterforms are still visible and they slide up out from under
+ * their own dots — the one composition this whole arrangement exists to protect.
+ *
+ * It costs the gesture LOGO_FADE_SECONDS of length, which TAIL_SECONDS picks up
+ * below, and it buys back more than that in scroll: the dissolve used to be 30vh of
+ * scrubbing in front of the tail and is now 0.8s inside it.
+ */
+export const PAN_AT = LOGO_FADE_SECONDS;
+export const PAN_END = PAN_AT + PAN_SECONDS;
 
 /**
  * The longest fall. Every other dot's flight is a fraction of this, in
@@ -538,19 +598,28 @@ export const DROP_LEAD_MIN = 0.11;
 /**
  * The gesture's length, derived: the latest a release can be placed, plus the
  * longest fall that then has to play out from it.
+ *
+ * From PAN_END rather than PAN_SECONDS, so it carries the dissolve the camera now
+ * waits behind. That is the whole of what pulling the dissolve inside the tail costs.
  */
 export const TAIL_SECONDS =
-  PAN_SECONDS + DROP_MARGIN_SECONDS - DROP_LEAD_MIN * DROP_SECONDS +
+  PAN_END + DROP_MARGIN_SECONDS - DROP_LEAD_MIN * DROP_SECONDS +
   DROP_SECONDS;
 
 /**
  * Rewinding is quicker than playing, on the same reasoning as HeroNarrative's
- * wash: scrolling back up, this is racing the wordmark fading in underneath it,
- * and the dots have to be home before it arrives. Rate is held constant either
- * way — a reversal from halfway takes half as long — so the gesture always moves
- * at one speed rather than at whatever speed the interruption implies.
+ * wash: the reader has turned round and wants the previous composition back, not a
+ * replay. Rate is held constant either way — a reversal from halfway takes half as
+ * long — so the gesture always moves at one speed rather than at whatever speed the
+ * interruption implies.
+ *
+ * It is no longer racing the wordmark's fade, which is the reason it can stay at
+ * roughly 2.5× play speed now that TAIL_SECONDS has grown: the dissolve is *inside*
+ * this timeline, so rewinding brings the letterforms back as part of the same run
+ * rather than against it. Held at the ratio rather than the number for that reason —
+ * 1.1 against the old 2.8s.
  */
-export const TAIL_BACK_SECONDS = 1.1;
+export const TAIL_BACK_SECONDS = 1.4;
 
 /**
  * The three photographs above the footer's columns, and their merge into one.

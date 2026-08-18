@@ -219,8 +219,8 @@ export function Composition({
 /**
  * The falling dots. Children of the stage rather than the track so the camera does
  * not move them, and outside the frame so its clip cannot cut them off. Sized by
- * `measure`, and hidden until the wordmark begins to dissolve — see LOGO_FADE_FRAC
- * for why that is not optional.
+ * `measure`, and hidden until the wordmark begins to dissolve — see
+ * LOGO_FADE_ABOVE_FRAC for why that is not optional.
  */
 export function FallingDots({
   dotRefs,

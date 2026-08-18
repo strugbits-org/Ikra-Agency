@@ -2,12 +2,15 @@ import type { RefObject } from "react";
 import { gsap } from "@/lib/gsap";
 import { DOT_PHYSICS, LOGO_DOTS, planFall, type Fall } from "./dots";
 import {
+  DICT_VH,
   DROP_LEAD_MIN,
   DROP_MARGIN_SECONDS,
   DROP_SECONDS,
   IMAGE_ANCHOR,
   IMAGE_SEAM_BLEED_PX,
-  PAN_SECONDS,
+  LOGO_FADE_ABOVE_FRAC,
+  LOGO_FADE_CAP_FRAC,
+  PAN_END,
 } from "./timeline";
 
 /** The elements the composition is measured against. */
@@ -132,7 +135,7 @@ export function createMeasure(els: MeasureEls, refs: MeasureRefs) {
     markCentreY: 0,
     dictHeight: 0,
     camEnd: 0,
-    releaseAt: PAN_SECONDS + DROP_MARGIN_SECONDS,
+    releaseAt: PAN_END + DROP_MARGIN_SECONDS,
     images: [],
     slots: [],
     dots: [],
@@ -207,6 +210,49 @@ export function createMeasure(els: MeasureEls, refs: MeasureRefs) {
             markW: m.markW,
             padLeft,
           },
+        );
+      }
+    }
+
+    // The tail's other hard requirement, and the one under the dissolve's cue: the
+    // dots are children of the stage, so they paint above the frame's whole contents
+    // including the definition — and they are lit as the cue fires. So the cue must
+    // land *after* the definition's bottom edge has cleared the wordmark's top, or
+    // three solid dots show through the body text on its way past.
+    //
+    // Both sides are solved from the measured boxes rather than stated, because both
+    // move with the viewport. The block travels H + its own height D over the climb,
+    // so its bottom edge clears a line at `markTop` when `(H + D − markTop)/(H + D)`
+    // of that is done; and the cue's condition — `f` of the block standing above the
+    // fold — is met at `(f + H/D)/(1 + H/D)`, capped by LOGO_FADE_CAP_FRAC.
+    //
+    // Measured, the crossing lands at 0.63–0.74 against a cue at 0.79–0.88, worst
+    // margin 4.1vh at 1920×700. A docblock here once put the crossing at 0.71–0.77,
+    // which was wrong in the unsafe direction — hence computing it rather than
+    // writing it down.
+    if (
+      process.env.NODE_ENV !== "production" &&
+      dict &&
+      dict.offsetWidth > 0 &&
+      m.dictHeight > 0
+    ) {
+      const H = window.innerHeight;
+      const D = m.dictHeight;
+      const markTop = m.markY - m.markToMiddle;
+      const crossP = (H + D - markTop) / (H + D);
+      const cueP = Math.min(
+        LOGO_FADE_CAP_FRAC,
+        (LOGO_FADE_ABOVE_FRAC + H / D) / (1 + H / D),
+      );
+      if (cueP <= crossP) {
+        console.error(
+          "[DefinitionSection] the tail would be cued while the definition is still " +
+          `crossing the wordmark: the cue lands at ${cueP.toFixed(3)} of the climb ` +
+          `and the crossing only finishes at ${crossP.toFixed(3)}, so the dots would ` +
+          `be lit ${((crossP - cueP) * DICT_VH).toFixed(1)}vh early and paint over ` +
+          "the body text. Lower LOGO_FADE_ABOVE_FRAC, or raise LOGO_FADE_CAP_FRAC if " +
+          "that is what is binding.",
+          { cueP, crossP, H, dictHeight: D, markTop },
         );
       }
     }
@@ -347,9 +393,11 @@ export function createMeasure(els: MeasureEls, refs: MeasureRefs) {
         d ? (DROP_SECONDS * d.fall.land) / longest : Infinity,
       ),
     );
+    // From PAN_END, not PAN_SECONDS: the camera now sits behind the wordmark's
+    // dissolve (see PAN_AT), so the moment it stops is that much later.
     m.releaseAt = Math.max(
       0,
-      PAN_SECONDS +
+      PAN_END +
       DROP_MARGIN_SECONDS -
       (Number.isFinite(lead) ? lead : DROP_LEAD_MIN * DROP_SECONDS),
     );

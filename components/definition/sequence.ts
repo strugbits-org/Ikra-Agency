@@ -15,21 +15,23 @@ import { createMeasure } from "./measure";
 import {
   DICT_AT,
   DICT_VH,
+  DOT_CROSSFADE_LEAD,
   DROP_SECONDS,
   FADE_AT,
   FADE_VH,
   FOOTER_REVEAL_EASE,
   GROW_AT,
   GROW_VH,
-  LOGO_FADE_AT,
+  LOGO_FADE_ABOVE_FRAC,
   LOGO_FADE_EASE,
-  LOGO_FADE_VH,
+  LOGO_FADE_SECONDS,
   IMAGE_IN,
   IMAGE_IN_EASE,
   IMAGE_MERGE_EASE,
   MARK_APPROACH_FRAC,
   MARK_CLEAR_PX,
   MARK_SLIDE_EASE,
+  PAN_AT,
   PAN_EASE,
   PAN_SECONDS,
   PIN_VH,
@@ -164,14 +166,9 @@ export function createDefinitionSequence(
     // inline in the trigger because it has to be callable after a re-measure:
     // waiting for the next scroll event would leave the photo visibly out of
     // register in the meantime.
-    // The scroll clock's last reading, kept because `paintDots` is driven from
-    // both clocks and only one of its two callers has this to hand.
-    let vhNow = 0;
-
     function render(progress: number) {
       // Progress as real scroll distance through the pin, in vh.
       const vh = progress * PIN_VH;
-      vhNow = vh;
       const W = document.documentElement.clientWidth;
       const H = window.innerHeight;
       // Exact farthest-corner distance from the circle's true centre rather
@@ -228,9 +225,9 @@ export function createDefinitionSequence(
       // Computed before the wordmark, even though it happens after it on
       // screen, because the wordmark's cue derives from where this has got to.
       const dictP = gsap.utils.clamp(0, 1, (vh - DICT_AT) / DICT_VH);
-      gsap.set(refs.dictionary.current, {
-        y: gsap.utils.interpolate(H, -m.dictHeight, dictP),
-      });
+      // Kept, because the tail's cue is read back off it — see below.
+      const dictY = gsap.utils.interpolate(H, -m.dictHeight, dictP);
+      gsap.set(refs.dictionary.current, { y: dictY });
 
       // --- Phase 4: the wordmark slides aside, and is *finished* doing so before
       // the definition reaches it ---
@@ -301,28 +298,33 @@ export function createDefinitionSequence(
         gsap.utils.clamp(0, 1, (dictP - (touchP - markSpan)) / markSpan),
       );
 
-      // --- Phase 7: the wordmark dissolves (330 – 422vh) ---
-      // In place, not away: it does not move, shrink or rise, it just stops
-      // being there. The three dots are separate elements standing on top of
-      // the artwork's own at full opacity, so the letterforms thin out from
-      // under them and leave the dots hanging. Nothing is masked and nothing
-      // is cut out of the PNG — the dots are simply the part that does not
-      // fade.
-      const markFadeP = LOGO_FADE_EASE(
-        gsap.utils.clamp(0, 1, (vh - LOGO_FADE_AT) / LOGO_FADE_VH),
-      );
+      // The slide, and *only* the slide. The dissolve used to be written here as
+      // well, in the same call — it is a beat of the tail's timeline now, so
+      // `opacity` belongs to renderTail and nothing else may touch it. Splitting the
+      // two across writers is safe in the one direction that matters: GSAP rebuilds
+      // the whole `transform` per write, so `x`/`y` cannot be shared, but `opacity`
+      // is a separate CSS property and can be.
       gsap.set(refs.mark.current, {
         x: -m.markToLeft * markP,
         y: -m.markToMiddle * markP,
-        opacity: 1 - markFadeP,
       });
 
-      paintDots();
-
-      // --- Phase 8: the tail is cued, and from here it is on its own clock.
-      // A threshold rather than a span, crossed in either direction, latched
-      // inside runTail — so this is the last thing scroll has any say over.
-      runTail(vh >= TAIL_AT);
+      // --- Phase 7: the tail is cued, and from here it is on its own clock ---
+      //
+      // A threshold rather than a span, crossed in either direction, latched inside
+      // runTail — so this is the last thing scroll has any say over.
+      //
+      // The threshold is a *measured condition*: how much of the definition is
+      // standing above the top of the screen, as a share of its own height. A mark in
+      // vh cannot express that, and the fraction of the climb it replaces could not
+      // either — the share above the fold at climb fraction F is `F − (1 − F)·H/D`,
+      // and H/D runs 2.0–4.2 across the viewports measured, so the old fixed 0.85
+      // meant 22% of the block on one screen and 54% on another. Read off the
+      // rendered `y` it is the same picture everywhere. TAIL_AT is a constant
+      // backstop behind it, because PIN_VH is the section's CSS height and so cannot
+      // depend on anything measured.
+      const dictAbove = m.dictHeight > 0 ? -dictY / m.dictHeight : 0;
+      runTail(dictAbove >= LOGO_FADE_ABOVE_FRAC || vh >= TAIL_AT);
     }
 
     /**
@@ -339,8 +341,34 @@ export function createDefinitionSequence(
      * scroll budget.
      */
     function renderTail(t: number) {
-      // --- the camera pans onto the footer (0 – 0.9s) ---
-      const panP = PAN_EASE(gsap.utils.clamp(0, 1, t / PAN_SECONDS));
+      // --- the wordmark dissolves, in place (0 – 0.8s) ---
+      //
+      // In place, not away: it does not move, shrink or rise, it just stops being
+      // there. The three dots are separate elements standing on top of the artwork's
+      // own, so the letterforms thin out from under them and leave the dots hanging.
+      // Nothing is masked and nothing is cut out of the PNG — the dots are simply the
+      // part that does not fade.
+      //
+      // On this clock rather than the scrub, which is the whole of the fix. A scrub
+      // freezes by definition, and the poses this one froze into had no reading:
+      // letterforms at 15% under three fully solid dots, and past that, three orange
+      // dots alone on flat gray. The scroll only cues it now, so the run from the
+      // first letterform going to the last dot landing is one gesture that always
+      // completes — at any scroll speed, and in either direction.
+      const markFadeP = LOGO_FADE_EASE(
+        gsap.utils.clamp(0, 1, t / LOGO_FADE_SECONDS),
+      );
+      gsap.set(refs.mark.current, { opacity: 1 - markFadeP });
+
+      // --- the camera pans onto the footer (0.8 – 1.7s) ---
+      //
+      // Behind the dissolve rather than across it (PAN_AT). The wordmark is inside
+      // the track and the dots are children of the stage, so a camera that moves
+      // while the letterforms are still visible slides them up out from under their
+      // own dots. `panRaw` is kept uneased for the photographs below, which are timed
+      // as a fraction of the pan.
+      const panRaw = gsap.utils.clamp(0, 1, (t - PAN_AT) / PAN_SECONDS);
+      const panP = PAN_EASE(panRaw);
       gsap.set(track, { y: panP * m.camEnd });
 
       // --- and its contents resolve in, over exactly the dots' flight ---
@@ -371,7 +399,7 @@ export function createDefinitionSequence(
       // continuous photograph in three panels rather than a stack. The middle one
       // is the anchor and its `dx` is 0, so the row closes inward symmetrically
       // and the finished image stays centred over the columns.
-      const imageInP = IMAGE_IN_EASE(spanP(t / PAN_SECONDS, IMAGE_IN));
+      const imageInP = IMAGE_IN_EASE(spanP(panRaw, IMAGE_IN));
       const mergeP = IMAGE_MERGE_EASE(
         gsap.utils.clamp(0, 1, (t - m.releaseAt) / DROP_SECONDS),
       );
@@ -457,58 +485,50 @@ export function createDefinitionSequence(
         });
       }
 
-      // Presence depends on this clock as well as the scroll's, and this one
-      // keeps running after the scrolling stops — so it has to be rewritten
-      // here too, or a dot would hold whatever opacity the last scroll event
-      // left it at while it flew.
+      // Presence is on this clock too, and only this one — the dissolve it
+      // crossfades against is a beat of this timeline now, so `render` has no say in
+      // it and does not call this at all.
       paintDots();
     }
 
     /**
      * The dots' *presence* — visibility and opacity — as opposed to their
-     * movement. It reads from both clocks, and that is the whole point.
+     * movement. One clock now, and that is the whole simplification.
      *
-     * The crossfade belongs to the scrubbed dissolve: each dot is a solid
-     * element standing on the artwork's own, and it fades up across the back
-     * of the wordmark's fade so the two together always paint one solid dot.
-     * Snapping it on at full opacity instead made the second and third glitch
-     * — any sub-pixel difference in size between overlay and artwork reads as
-     * the dot jumping just as the letterforms start to go.
+     * The crossfade belongs to the dissolve: each dot is a solid element standing on
+     * the artwork's own, and it fades up across the back of the wordmark's fade so
+     * the two together always paint one solid dot. Snapping it on at full opacity
+     * instead made the second and third glitch — any sub-pixel difference in size
+     * between overlay and artwork reads as the dot jumping just as the letterforms
+     * start to go. DOT_CROSSFADE_LEAD is how far into the dissolve it waits before
+     * starting, so the artwork's dots are unambiguously in charge at the front of it.
      *
-     * But that crossfade only means anything while a dot is still *on* the
-     * wordmark. Once it has let go it has to be solid, and putting it on the
-     * scroll clock alone got that wrong in one direction: scrolling back up,
-     * the fade runs home across 74vh of scroll while the flight home takes a
-     * fixed TAIL_BACK_SECONDS, so anything faster than about 67vh per second
-     * faded the dot out from under itself and it arrived invisible. `detached`
-     * holds it opaque for exactly as long as it is away, and hands it back to
-     * the dissolve as it lands — continuously, since the two agree at t = 0.
+     * This used to read from *two* clocks and interpolate between them, because the
+     * dissolve was scrubbed and the flight was not: on the scroll clock alone the
+     * fade ran home across 74vh while the flight home took a fixed
+     * TAIL_BACK_SECONDS, so above ~67vh/s a dot faded out from under itself and
+     * arrived invisible, and `detached` existed to hold it opaque for exactly as long
+     * as it was away. With the dissolve inside this same timeline there is nothing
+     * left to reconcile — both directions are the one `t`, and a dot in flight is
+     * necessarily past the crossfade because the fall starts a full second after it
+     * ends.
      *
-     * Scrolling *down* this changes nothing at all: the dissolve is already
-     * complete at the moment the tail is cued, so both terms are 1 throughout.
+     * `lit` still needs `tailOn` as well as `t`, and only for the first frame: the
+     * latch flips before the tween has advanced the clock off zero, and without it
+     * the dots would be hidden on the frame the dissolve opens.
      */
     function paintDots() {
-      const detached =
-        m.releaseAt > 0
-          ? gsap.utils.clamp(0, 1, tail.t / m.releaseAt)
-          : Number(tail.t > 0);
-      const opacity = gsap.utils.interpolate(
-        gsap.utils.clamp(
-          0,
-          1,
-          (vhNow - (LOGO_FADE_AT + LOGO_FADE_VH * 0.2)) /
-          (LOGO_FADE_VH * 0.8),
-        ),
+      const opacity = gsap.utils.clamp(
+        0,
         1,
-        detached,
+        (tail.t - LOGO_FADE_SECONDS * DOT_CROSSFADE_LEAD) /
+        (LOGO_FADE_SECONDS * (1 - DOT_CROSSFADE_LEAD)),
       );
-      // Hidden before the dissolve begins — these are children of the stage,
-      // so they paint above the frame's entire contents, including the
-      // definition, which has to pass *over* the wordmark where the two
-      // overlap on a phone. `tail.t` keeps them alive through a fast scroll
-      // back up, which can cross that mark while they are still on their way
-      // home.
-      const lit = vhNow >= LOGO_FADE_AT || tail.t > 0;
+      // Hidden before the dissolve begins — these are children of the stage, so they
+      // paint above the frame's entire contents, including the definition, which has
+      // to pass *over* the wordmark where the two overlap. That is the floor under
+      // the cue, and it is asserted in ./measure.
+      const lit = tailOn || tail.t > 0;
       for (const dot of refs.dots.current) {
         if (!dot) continue;
         gsap.set(dot, { visibility: lit ? "visible" : "hidden", opacity });

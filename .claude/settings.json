@@ -79,7 +79,14 @@
       "Bash(git --no-pager status --short)",
       "Bash(git --no-pager diff --cached --stat)",
       "PowerShell($env:PLAYWRIGHT_BROWSERS_PATH = \"C:\\\\Users\\\\dell\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\g--strugbits-Ikra\\\\4365f673-4af0-481c-8d64-b05ca03cf725\\\\scratchpad\\\\pw\\\\browsers\"; node \"C:\\\\Users\\\\dell\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\g--strugbits-Ikra\\\\4365f673-4af0-481c-8d64-b05ca03cf725\\\\scratchpad\\\\pw\\\\mark.js\")",
-      "PowerShell($env:PLAYWRIGHT_BROWSERS_PATH = \"C:\\\\Users\\\\dell\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\g--strugbits-Ikra\\\\4365f673-4af0-481c-8d64-b05ca03cf725\\\\scratchpad\\\\pw\\\\browsers\"; node \"C:\\\\Users\\\\dell\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\g--strugbits-Ikra\\\\4365f673-4af0-481c-8d64-b05ca03cf725\\\\scratchpad\\\\pw\\\\slide.js\")"
+      "PowerShell($env:PLAYWRIGHT_BROWSERS_PATH = \"C:\\\\Users\\\\dell\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\g--strugbits-Ikra\\\\4365f673-4af0-481c-8d64-b05ca03cf725\\\\scratchpad\\\\pw\\\\browsers\"; node \"C:\\\\Users\\\\dell\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\g--strugbits-Ikra\\\\4365f673-4af0-481c-8d64-b05ca03cf725\\\\scratchpad\\\\pw\\\\slide.js\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000)",
+      "Bash(PLAYWRIGHT_BROWSERS_PATH=\"C:/Users/dell/AppData/Local/Temp/claude/g--strugbits-Ikra/4365f673-4af0-481c-8d64-b05ca03cf725/scratchpad/browsers\" node cue.js)",
+      "Bash(PLAYWRIGHT_BROWSERS_PATH=\"C:/Users/dell/AppData/Local/Temp/claude/g--strugbits-Ikra/4365f673-4af0-481c-8d64-b05ca03cf725/scratchpad/pw/browsers\" node cue.js)",
+      "Bash(PLAYWRIGHT_BROWSERS_PATH=\"C:/Users/dell/AppData/Local/Temp/claude/g--strugbits-Ikra/4365f673-4af0-481c-8d64-b05ca03cf725/scratchpad/pw/browsers\" node len.js)",
+      "Bash(export PLAYWRIGHT_BROWSERS_PATH=\"C:/Users/dell/AppData/Local/Temp/claude/g--strugbits-Ikra/4365f673-4af0-481c-8d64-b05ca03cf725/scratchpad/pw/browsers\")",
+      "Bash(node rev.js)",
+      "Bash(node rate.js)"
     ],
     "additionalDirectories": [
       "d:\\tanzeel\\ikra-backups\\case-studies-v1-stack"
