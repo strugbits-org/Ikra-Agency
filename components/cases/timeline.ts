@@ -93,10 +93,14 @@ export const TRACK_TAIL_VW = (100 - CELL_VW) / 2;
  * How far a cell's content starts below its resting place, as a percentage of that
  * content's own height.
  *
- * `yPercent`, not a px figure, and that is what the reference's own numbers point at: the
- * fitted rise for a card was 634px against a measured content block of 667px. Writing it as
- * a fraction of the block means the heading cell — a much shorter block — rises
+ * A fraction of the block, not a px figure, and that is what the reference's own numbers
+ * point at: the fitted rise for a card was 634px against a measured content block of 667px.
+ * Writing it as a fraction of the block means the heading cell — a much shorter block — rises
  * proportionally rather than by a card's distance, which is what the capture shows it doing.
+ *
+ * The paint resolves this against each block's measured height and writes plain `y`; it is
+ * deliberately *not* handed to GSAP as `yPercent`, which silently no-ops here. See
+ * `CaseMeasure.contentH` in ./measure for why.
  *
  * The fit is a `power3.out` over the span below; residuals against 17 measured samples of
  * the second card were under 5px except at two points, where the frame-edge detection is

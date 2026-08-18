@@ -60,6 +60,9 @@ export type CaseRefs = {
 
 const clamp01 = gsap.utils.clamp(0, 1);
 
+/** RISE_PCT is written as a percentage of the content block; the paint wants the fraction. */
+const RISE_FRAC = RISE_PCT / 100;
+
 export function createCaseSequence(refs: CaseRefs) {
   const mm = gsap.matchMedia();
 
@@ -105,8 +108,14 @@ export function createCaseSequence(refs: CaseRefs) {
         // The lesser of the two is in charge. Before the pin the track cannot move, so the
         // cells already on screen would read a finished horizontal approach and appear with
         // no entrance at all; after it, `vertical` is 1 and the traverse has sole charge.
+        //
+        // Plain `y` against the measured block height, not `yPercent` — the rise is still a
+        // fraction of the cell's own content, but resolved here rather than by the renderer.
+        // See CaseMeasure.contentH: GSAP 3.15 drops a percentage translate when it is the
+        // only transform on the element, so the `yPercent` form wrote translate3d(0,0,0) on
+        // every frame and the entrance never ran at all.
         gsap.set(contents[i], {
-          yPercent: RISE_PCT * (1 - rise(Math.min(horizontal, vertical))),
+          y: RISE_FRAC * m.contentH[i] * (1 - rise(Math.min(horizontal, vertical))),
           force3D: true,
         });
       }

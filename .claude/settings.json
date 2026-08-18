@@ -67,7 +67,17 @@
       "PowerShell(node \"C:\\\\Users\\\\Tanzeel\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--tanzeel-Ikra-Agency\\\\d75866c2-e6f2-4523-a529-7287fab511e7\\\\scratchpad\\\\cases-v3-sim.mjs\")",
       "Bash(node cases-h-sim.mjs)",
       "Bash(ffprobe -v error -show_entries format=duration,size -show_entries stream=width,height,r_frame_rate,nb_frames,codec_name -of default=noprint_wrappers=1 \"C:/Users/Tanzeel/Videos/Captures/TRIONN _ AI-Powered Creative Design & Development Studio in India - Google Chrome 2026-08-17 20-08-05.mp4\")",
-      "Bash(node cases-vs-video.mjs)"
+      "Bash(node cases-vs-video.mjs)",
+      "PowerShell($p=\"C:\\\\Users\\\\dell\\\\Videos\\\\Screen Recordings\\\\Trion.mp4\"; if \\(Test-Path $p\\) { \\(Get-Item $p\\) | Select-Object Name,Length,LastWriteTime | Format-List } else { \"MISSING\" }; $ff=\\(Get-Command ffmpeg -ErrorAction SilentlyContinue\\); if \\($ff\\) { \"ffmpeg: \" + $ff.Source } else { \"ffmpeg: NOT FOUND\" }; $fp=\\(Get-Command ffprobe -ErrorAction SilentlyContinue\\); if \\($fp\\) { \"ffprobe: \" + $fp.Source } else { \"ffprobe: NOT FOUND\" })",
+      "PowerShell(& \"C:\\\\Users\\\\dell\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\g--strugbits-Ikra\\\\4365f673-4af0-481c-8d64-b05ca03cf725\\\\scratchpad\\\\measure.ps1\")",
+      "PowerShell(& \"C:\\\\Users\\\\dell\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\g--strugbits-Ikra\\\\4365f673-4af0-481c-8d64-b05ca03cf725\\\\scratchpad\\\\measure2.ps1\")",
+      "PowerShell(& \"C:\\\\Users\\\\dell\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\g--strugbits-Ikra\\\\4365f673-4af0-481c-8d64-b05ca03cf725\\\\scratchpad\\\\geom.ps1\")",
+      "PowerShell(& \"C:\\\\Users\\\\dell\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\g--strugbits-Ikra\\\\4365f673-4af0-481c-8d64-b05ca03cf725\\\\scratchpad\\\\entry.ps1\")",
+      "Bash(node -p \"require\\('./node_modules/gsap/package.json'\\).version\")",
+      "Bash(git --no-pager diff --stat)",
+      "Bash(git --no-pager diff -- components/cases/sequence.ts)",
+      "Bash(git --no-pager status --short)",
+      "Bash(git --no-pager diff --cached --stat)"
     ],
     "additionalDirectories": [
       "d:\\tanzeel\\ikra-backups\\case-studies-v1-stack"

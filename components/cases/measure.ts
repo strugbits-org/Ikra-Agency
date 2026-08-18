@@ -22,6 +22,24 @@ export type CaseMeasure = {
   distance: number;
   /** Per cell, in DOM order: its resting left edge within the track. */
   cellLeft: number[];
+  /**
+   * Per cell, in DOM order: its content block's laid-out height, in px.
+   *
+   * The rise is a fraction of the block's own height (see RISE_PCT) so that the heading cell
+   * — a much shorter block — travels proportionally rather than by a card's distance. That
+   * reads naturally as `yPercent`, and it was written that way first, but GSAP 3.15 drops the
+   * percentage term when it is the only transform on the element: the cache takes `NaN`, the
+   * renderer's `if (xPercent || yPercent)` sees a falsy value and emits a bare
+   * `translate3d(0px, 0px, 0px)`. The whole rise silently did nothing — the track traversed,
+   * every cell stayed at rest, and nothing threw. Resolving the fraction against a measured
+   * height here and writing plain `y` keeps the identical motion on the path that the track's
+   * own `x` already proves works.
+   *
+   * `offsetHeight` for the same reason `offsetLeft` is used below: it is a layout value and
+   * ignores the transform the rise itself is writing, so re-measuring mid-scroll cannot feed
+   * the current pose back into the geometry.
+   */
+  contentH: number[];
 };
 
 /**
@@ -41,13 +59,14 @@ export function measureCases(refs: CaseRefs): CaseMeasure {
   const track = refs.track.current;
   const viewportW = document.documentElement.clientWidth;
 
-  if (!track) return { viewportW, distance: 0, cellLeft: [] };
+  if (!track) return { viewportW, distance: 0, cellLeft: [], contentH: [] };
 
   const cellLeft = refs.cells.current.map((el) => el?.offsetLeft ?? 0);
+  const contentH = refs.contents.current.map((el) => el?.offsetHeight ?? 0);
 
   // `scrollWidth` rather than `offsetWidth`: the track is `w-max`, so the two agree, but
   // scrollWidth is the one that stays honest if a cell ever overflows it.
   const distance = Math.max(0, track.scrollWidth - viewportW);
 
-  return { viewportW, distance, cellLeft };
+  return { viewportW, distance, cellLeft, contentH };
 }
