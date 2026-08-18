@@ -77,7 +77,9 @@
       "Bash(git --no-pager diff --stat)",
       "Bash(git --no-pager diff -- components/cases/sequence.ts)",
       "Bash(git --no-pager status --short)",
-      "Bash(git --no-pager diff --cached --stat)"
+      "Bash(git --no-pager diff --cached --stat)",
+      "PowerShell($env:PLAYWRIGHT_BROWSERS_PATH = \"C:\\\\Users\\\\dell\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\g--strugbits-Ikra\\\\4365f673-4af0-481c-8d64-b05ca03cf725\\\\scratchpad\\\\pw\\\\browsers\"; node \"C:\\\\Users\\\\dell\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\g--strugbits-Ikra\\\\4365f673-4af0-481c-8d64-b05ca03cf725\\\\scratchpad\\\\pw\\\\mark.js\")",
+      "PowerShell($env:PLAYWRIGHT_BROWSERS_PATH = \"C:\\\\Users\\\\dell\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\g--strugbits-Ikra\\\\4365f673-4af0-481c-8d64-b05ca03cf725\\\\scratchpad\\\\pw\\\\browsers\"; node \"C:\\\\Users\\\\dell\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\g--strugbits-Ikra\\\\4365f673-4af0-481c-8d64-b05ca03cf725\\\\scratchpad\\\\pw\\\\slide.js\")"
     ],
     "additionalDirectories": [
       "d:\\tanzeel\\ikra-backups\\case-studies-v1-stack"

@@ -29,6 +29,7 @@ import {
   IMAGE_MERGE_EASE,
   MARK_APPROACH_FRAC,
   MARK_CLEAR_PX,
+  MARK_SLIDE_EASE,
   PAN_EASE,
   PAN_SECONDS,
   PIN_VH,
@@ -287,8 +288,18 @@ export function createDefinitionSequence(
       );
       // The stretch of that approach the slide occupies, guarded against a zero
       // span on a viewport where the two are already in contact at dictP 0.
+      //
+      // Eased rather than linear, and the ease is doing the same job the fraction
+      // is. The approach is a short slice of the climb — touchP measures 0.268 on a
+      // 1440 desktop — so at MARK_APPROACH_FRAC 0.5 the whole slide ran inside
+      // ~12vh, roughly one wheel notch, at 3–4× the page's own speed, and the
+      // wordmark read as flung rather than moved. The fraction is at its ceiling of
+      // 1 now and MARK_SLIDE_EASE takes the snap off both ends; neither touches an
+      // endpoint, so the slide still lands exactly as the definition arrives.
       const markSpan = Math.max(1e-4, touchP * MARK_APPROACH_FRAC);
-      const markP = gsap.utils.clamp(0, 1, (dictP - (touchP - markSpan)) / markSpan);
+      const markP = MARK_SLIDE_EASE(
+        gsap.utils.clamp(0, 1, (dictP - (touchP - markSpan)) / markSpan),
+      );
 
       // --- Phase 7: the wordmark dissolves (330 – 422vh) ---
       // In place, not away: it does not move, shrink or rise, it just stops

@@ -40,9 +40,12 @@ import { CLOSE_VH, HERO_GRAY_TAIL_VH } from "../hero/timeline";
  *             right half for the definition. The only phase with no vh window of
  *             its own, and it must stay that way: it is driven off the definition's
  *             *position*, spread over the last MARK_APPROACH_FRAC of that block's
- *             run at it and finishing as it arrives. Lands around 62–66vh, later
- *             on a tall viewport, which is why it is not a constant. See
- *             MARK_APPROACH_FRAC for the two vh-window versions that failed.
+ *             run at it and finishing as it arrives. At the current fraction of 1
+ *             that is the whole approach, so it opens with the climb at 50vh and
+ *             lands at 73.5–75.4vh on a desktop, 81.7 at 1024×1366 — later on a
+ *             tall viewport, which is why the landing is not a constant. Eased at
+ *             both ends (MARK_SLIDE_EASE); see MARK_APPROACH_FRAC for why the span
+ *             is at its ceiling and for the two vh-window versions that failed.
  *   50–220vh  the definition travels up the right-hand side, from below the fold
  *             to clear off the top. No fade — a pure move, and the window still
  *             being longer than the distance is what keeps it from rushing —
@@ -315,19 +318,61 @@ export const DICT_VH = 90;
  * own progress can be read directly, so it is.
  *
  * MARK_APPROACH_FRAC is the share of the definition's run at the wordmark — from
- * clearing the bottom of the screen to touching it — that the slide is spread over. At
- * 0.5 the wordmark holds still for the first half of the climb and then moves aside
- * over the second, finishing exactly as the definition arrives. Raise it and the
- * wordmark reacts from further away; lower it and it leaves the move later and
- * quicker. It cannot be raised into trouble: at 1 the slide starts on the frame the
- * definition does, never before.
+ * clearing the bottom of the screen to touching it — that the slide is spread over.
+ * Raise it and the wordmark reacts from further away; lower it and it leaves the move
+ * later and quicker. Whatever it is set to, the slide still finishes exactly as the
+ * definition arrives.
+ *
+ * **1 is the ceiling, and it is at it, because the rate at 0.5 was indefensible.** That
+ * approach is a far smaller slice of the climb than it reads as: measured, touchP is
+ * 0.261–0.282 across 1280–1920 desktops, because the definition starts a whole frame
+ * below the fold and first touches the wordmark while it is still low on the screen. At
+ * 0.5 the entire slide therefore had 11.8–12.7vh of scroll — roughly one wheel notch —
+ * to carry 293px (1280) to 524px (1920) of travel, i.e. **3.1× to 3.8× the page's own
+ * speed**. That is what made the wordmark read as flung aside rather than moved.
+ *
+ * At 1 it gets the whole approach, which halves it to 1.54–1.91× average, and
+ * MARK_SLIDE_EASE takes the ends off at a 1.57× peak — so the worst instant of the new
+ * curve (2.42× at 1280/1440/1600, 3.00× at 1920) is still below the *constant* rate of
+ * the old one. Slower at every point, not merely on average. 1024×1366 is the easy case
+ * either way and always was: a 240px-floored wordmark has only 216px to go and touchP is
+ * 0.353 there, so it ran at 1.0× before and peaks at 0.78× now.
+ *
+ * Above 1 it *can* be raised into trouble, which is the one thing the old note here had
+ * backwards: the span outruns the approach, `touchP − markSpan` goes negative, and
+ * `markP` is already positive at `dictP` 0 — so the wordmark would be part-slid on the
+ * frame the phase opens. At exactly 1 the slide starts on the frame the definition does,
+ * never before.
+ *
+ * **So this knob is spent, and the next one is DICT_VH.** The span is `touchP · DICT_VH`
+ * with touchP measured off the boxes, so the only way left to slow the slide is to
+ * lengthen the climb — and that retimes LOGO_FADE_AT, TAIL_AT and PIN_VH with it, and
+ * slows the definition itself from 0.86× page speed toward 0.6×. It is a section-wide
+ * decision rather than a tweak to this move, which is why it is not made here. Wide
+ * viewports are what would want it: the travel grows with the width while the span is
+ * near-constant in vh, so 1920 stays the worst case at any fraction.
  *
  * MARK_CLEAR_PX is the gap the definition's top edge keeps from the wordmark's bottom
  * edge on the frame the slide completes. In px rather than vh because it is a gap
- * between two boxes, not a beat.
+ * between two boxes, not a beat. Note it works against the span: a larger clearance is
+ * an earlier touch, so it shortens the slide as well as raising it.
  */
-export const MARK_APPROACH_FRAC = 0.5;
+export const MARK_APPROACH_FRAC = 1;
 export const MARK_CLEAR_PX = 24;
+
+/**
+ * Soft at both ends. The slide is a *response* rather than a transition — it should
+ * neither snap into motion on the frame the definition appears at the bottom edge nor
+ * stop dead on the frame it arrives — and the ends are where a linear ramp reads as
+ * jerk. Endpoints are unchanged by it, so the landing that MARK_APPROACH_FRAC exists to
+ * guarantee is untouched.
+ *
+ * `sine.inOut` and not a power curve: its peak rate is 1.57× the average against 2× for
+ * `power1.inOut`. With the span already at its ceiling the middle of the curve is the
+ * only place left that can give speed back, so the gentler peak is the whole reason to
+ * pick it.
+ */
+export const MARK_SLIDE_EASE = gsap.parseEase("sine.inOut");
 
 /**
  * The wordmark dissolves in place — letterforms only. The three dots are
