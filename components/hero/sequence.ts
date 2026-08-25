@@ -13,7 +13,8 @@ import { createFlooredCue } from "./flooredCue";
 import { heroWash } from "./handoff";
 import { STACK_IN, STACK_OUT, leadSeat, leapSeat, stackSeat } from "./seats";
 import {
-  BAND_CLEAR_AT,
+  // ── RESTORE THE WAVE — step 5 of 5 ── uncomment with `bandClear` below.
+  // BAND_CLEAR_AT,
   BAND_CLOSE_AT,
   BAND_DRAW_AT,
   BAND_DRAW_SECONDS,
@@ -536,10 +537,14 @@ export function createHeroSequence(
             : BAND_UNDRAWN,
       );
 
-      // The wipe, eased, and how much ribbon that leaves on screen. `bandVis` is what
-      // the closing line is gated on below.
+      // The wipe, eased, and how much ribbon that leaves on screen.
+      //
+      // ── RESTORE THE WAVE — step 5 of 5 ── uncomment `bandVis` here and the
+      // `bandClear` gate further down, and put `bandClear` back inside the `Math.min`
+      // on the closing line's arrival. While the ribbon is commented out there is no
+      // wave in that seat to keep the line off, and the gate would only hold it back.
       const wipe = band.w < 0 ? BAND_IN(1 + band.w) - 1 : BAND_OUT(band.w);
-      const bandVis = 1 - Math.abs(wipe);
+      // const bandVis = 1 - Math.abs(wipe);
       if (refs.ribbon.current) {
         gsap.set(refs.ribbon.current, { clipPath: bandClip(wipe) });
       }
@@ -605,12 +610,18 @@ export function createHeroSequence(
       // `BAND_CLEAR_AT` rather than `1 - bandVis` because they share one seat: a line at
       // half strength under a wave that is half gone is still two things in one place.
       // The gate stays shut until the wave is most of the way out, then opens quickly.
-      const bandClear = ramp(1 - bandVis, BAND_CLEAR_AT);
+      //
+      // ── RESTORE THE WAVE — step 5 of 5 ── uncomment `bandClear` and wrap the
+      // arrival back in `Math.min(..., bandClear)`. Everything the two paragraphs
+      // above describe is about sharing the seat with a wave; with the ribbon
+      // commented out the seat is the line's alone, and the arrival is now the copy
+      // family's own (see LEAP_AT). The exit below is untouched either way.
+      // const bandClear = ramp(1 - bandVis, BAND_CLEAR_AT);
       gsap.set(
         refs.leap.current,
         leapSeat(
           H,
-          Math.min(STACK_IN(ramp(vh, [LEAP_AT, LEAP_AT + LEAP_IN_VH])), bandClear),
+          STACK_IN(ramp(vh, [LEAP_AT, LEAP_AT + LEAP_IN_VH])),
           gsap.utils.clamp(0, 1, closeP / CLOSE_SEALED_P),
         ),
       );

@@ -8,6 +8,7 @@ import {
   RISE_END_VW,
   RISE_PCT,
   SCRUB,
+  TRAVEL_PER_SCROLL,
 } from "./timeline";
 
 /**
@@ -22,9 +23,10 @@ import {
  *
  * Unlike the hero and the definition section this uses `pin: true` with GSAP's own pin
  * *spacing* rather than `pinSpacing: false` against a hand-written section height. Both are
- * correct; this one belongs here because the pin's length is not a design figure at all — it
- * is the track's measured overflow, so letting ScrollTrigger reserve exactly that keeps one
- * source of truth in `end` instead of splitting it between a trigger and a stylesheet.
+ * correct; this one belongs here because the pin's length is not a hand-written figure at
+ * all — it is the track's measured overflow over TRAVEL_PER_SCROLL, so letting ScrollTrigger
+ * reserve exactly that keeps one source of truth in `end` instead of splitting it between a
+ * trigger and a stylesheet.
  *
  * ## Two clocks, and they cannot be collapsed
  *
@@ -172,11 +174,16 @@ export function createCaseSequence(refs: CaseRefs) {
       ScrollTrigger.create({
         trigger: stage,
         start: "top top",
-        // The track's overflow, in px, so one px of scrolling is one px of travel — the
-        // reference's own relation. A function, so a resize, a rotation or a collapsing
-        // mobile URL bar reserves the right distance on the next refresh;
-        // `onRefreshInit` below re-reads `m` before ScrollTrigger evaluates this.
-        end: () => `+=${m.distance}`,
+        // The track's overflow divided by the pace — reserve less scroll than the track
+        // has travel and each px of scrolling moves the track TRAVEL_PER_SCROLL px. At 1
+        // this is the reference's own relation, px for px; it ships at 1.5. That is the
+        // whole of the speed control, and it is the only thing it touches: `traverse` is
+        // still 0→1 across the pin, so the paint below is unchanged.
+        //
+        // A function, so a resize, a rotation or a collapsing mobile URL bar reserves the
+        // right distance on the next refresh; `onRefreshInit` below re-reads `m` before
+        // ScrollTrigger evaluates this.
+        end: () => `+=${m.distance / TRAVEL_PER_SCROLL}`,
         pin: true,
         pinSpacing: true,
         scrub: SCRUB,

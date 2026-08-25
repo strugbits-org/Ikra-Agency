@@ -45,32 +45,39 @@ import { DOOR_SEALED_AT } from "./doors";
  *              growing out of the centre point the panels part from with its width
  *              locked to the gap's in constant proportion (see leadSeat), so it
  *              reaches full size on the frame the panels stop.
- *   ≤53vh      where that lands, which depends on how far the reader travelled
- *              during the 1.5s: ~17vh at a reading pace, 53 at a flick. 53 is the
+ *   ≤75vh      where that lands, which depends on how far the reader travelled
+ *              during the 1.5s: ~17vh at a reading pace, 75 at a flick. 75 is the
  *              ceiling and not a preference — past it the scroll floor has taken
  *              over and the doors are open regardless (see OPEN_VH). Everything
  *              below is written against the ceiling, so none of it moves.
- *   53–65vh    the line holds at full size, doors at rest, nothing else moving —
+ *   75–87vh    the line holds at full size, doors at rest, nothing else moving —
  *              longer than 12vh for anyone whose doors landed early (LEAD_HOLD_VH).
- *   65–95vh    it climbs away, shrinking and blurring out — an ordinary exit.
- *   80–125vh   "between who you've become" rises into the seat as the lead line
+ *   87–117vh   it climbs away, shrinking and blurring out — an ordinary exit.
+ *  102–147vh   "between who you've become" rises into the seat as the lead line
  *              leaves it; the overlap is what makes an exchange one gesture rather
  *              than a swap. 45vh of arrival — about one scroll gesture (COPY_IN_VH).
- *  125–133vh   it holds.
- *  133–163vh   it climbs away.
- *  148–193vh   "how the world sees you" rises in behind it, on the same overlap.
- *  193–201vh   it holds.
- *  201–231vh   it climbs away, clearing the stage — and from 0.7 of the way through
- *              that exit the wave is already coming in under it (BAND_DRAW_AT).
- *  222–282vh   (cue, both ends) the wavy ribbon draws in right-to-left (a clip,
- *              not a fade), bridging the two wedges, then closes the same way
- *              round — see BAND_DRAW_AT.
- *  282–314vh   "until you make the leap" fades up into the space the ribbon is
- *              vacating, at the same seat and sized to the same span — beginning on
- *              the very instant the wave starts to close, so the wedges are never
- *              bare between them (see LEAP_AT).
- *  314–352vh   it holds.
- *     352vh    (cue) the doors close over 0.95s, retracing their opening exactly, and
+ *  147–155vh   it holds.
+ *  155–185vh   it climbs away.
+ *  170–215vh   "how the world sees you" rises in behind it, on the same overlap.
+ *  215–223vh   it holds.
+ *  223–253vh   it climbs away.
+ *  238–283vh   "holding your business back" rises in behind *it*, on the same
+ *              overlap again. It was the ribbon's marqueeing copy until the wave was
+ *              commented out — see RESTORE THE WAVE in ./BandLayer.
+ *  283–291vh   it holds.
+ *  291–321vh   it climbs away, clearing the stage — and from 0.7 of the way through
+ *              that exit the wave would be coming in under it (BAND_DRAW_AT).
+ *  312–372vh   (cue, both ends) where the wavy ribbon drew in right-to-left (a clip,
+ *              not a fade), bridging the two wedges, then closed the same way round.
+ *              The ribbon's markup is commented out, so nothing is drawn across this
+ *              stretch now and nothing reads it either — the sweep runs invisibly and
+ *              reaches only itself (see RESTORE THE WAVE in ./BandLayer).
+ *  306–351vh   "until you make the leap" rises into the seat, on the copy's own
+ *              cadence and with the copy's own arrival: it starts as the line above it
+ *              is halfway out, exactly like the three hand-overs before it, so the
+ *              wedges are never bare between them (see LEAP_AT).
+ *  351–389vh   it holds.
+ *     389vh    (cue) the doors close over 1.15s, retracing their opening exactly, and
  *              the third scroll is the whole of it. The line recedes on the same
  *              progress, scaling to nothing at full opacity and never fading,
  *              reaching zero exactly as the panels meet — 72% of the way through the
@@ -82,7 +89,7 @@ import { DOOR_SEALED_AT } from "./doors";
  *              (cue) the moment the panels meet, the sealed orange washes over to
  *              the next section's gray, off the close's progress rather than a mark
  *              of its own so nothing can open a flat-orange stall between the two.
- *  369–373vh   the last 4vh of the pin, and all that is left of it. The wash
+ *  414–434vh   the last 20vh of the pin, and all that is left of it. The wash
  *              is playing, DefinitionSection's veil is fading in over it to the
  *              same gray, and its statement is resolving below the fold — all
  *              three cued off this one instant (see HERO_GRAY_TAIL_VH). The pin
@@ -296,10 +303,18 @@ const follower = (text: string, n: number): GapLine => {
 };
 
 /**
- * The gap copy: three lines that each pass through the same centre seat, one at a
+ * The gap copy: four lines that each pass through the same centre seat, one at a
  * time. Words and timing are one table on purpose — they were two parallel lists,
  * which is an invitation to add a line without a window or retime a window
- * against the wrong words. A fourth line is `follower(text, 2)`.
+ * against the wrong words. A fifth line is `follower(text, 3)`.
+ *
+ * ── RESTORE THE WAVE — step 3 of 5 ── delete the fourth entry below.
+ *
+ * "holding your business back" used to be the *ribbon's* copy, marqueeing along the
+ * wave rather than passing through this seat. It joined the family when the wave was
+ * commented out (steps 1 and 2 are in ./BandLayer). It is the one thing here that does
+ * not simply come back with the ribbon — put the wave back and the line is being said
+ * twice — so it has to be deleted at the same time.
  */
 export const GAP_LINES: GapLine[] = [
   {
@@ -309,6 +324,7 @@ export const GAP_LINES: GapLine[] = [
   },
   follower("between who you've become", 0),
   follower("how the world sees you", 1),
+  follower("holding your business back", 2),
 ];
 
 const LAST_LINE = GAP_LINES[GAP_LINES.length - 1];
@@ -378,6 +394,15 @@ export const BAND_DRAW_AT = LAST_LINE.out[0] + COPY_OUT_VH * BAND_OVERLAP;
  */
 const BAND_UP_LEAD_VH = 24;
 export const BAND_UNDRAW_AT = LAST_LINE.out[1] + BAND_UP_LEAD_VH;
+
+/**
+ * How long the drawn ribbon holds the seat before it closes again.
+ *
+ * Inert while the wave is off: the ribbon is not drawn and the closing line no longer
+ * waits on it (see LEAP_AT), so the whole sweep runs invisibly and this number reaches
+ * nothing on screen. Left at its own value so the beat is unchanged the moment the
+ * markup comes back.
+ */
 const BAND_HOLD_VH = 60;
 export const BAND_CLOSE_AT = BAND_DRAW_AT + BAND_HOLD_VH;
 export const BAND_DRAW_SECONDS = 0.9;
@@ -419,8 +444,29 @@ export const BAND_REVERSE_SPEED = 2.5;
  * The pass back up is the case this shape gives away, the same one BAND_OVERLAP does:
  * the ribbon's 0.9s draw now runs against the line receding rather than after it.
  */
-export const LEAP_AT = BAND_CLOSE_AT;
-export const LEAP_IN_VH = 32;
+/**
+ * ── RESTORE THE WAVE — step 4 of 5 ── swap the two live lines below for the two
+ * commented ones, which are the wave-driven form everything above describes.
+ *
+ * With the ribbon commented out there is no wave for the closing line to wait behind,
+ * and waiting for one anyway is exactly the fault the paragraphs above were written
+ * against: BAND_CLOSE_AT sits a whole BAND_HOLD_VH past the copy, so the line began
+ * 51vh after the last one had cleared and the wedges stood bare between them.
+ *
+ * So while the wave is off the closing line is simply the next member of the copy
+ * family. `LAST_LINE.out[0] + COPY_OUT_VH / 2` is the cadence every follower already
+ * arrives on — it starts as the line above it is halfway out — and COPY_IN_VH is that
+ * family's arrival, so the hand-over into it is the same gesture as the three before
+ * it rather than a different one that happens to land nearby.
+ *
+ * Only the arrival moves. The exit is untouched: it is still the doors' own close
+ * rescaled to reach 1 at the seal (see leapSeat and CLOSE_SEALED_P), with no window
+ * of its own in vh.
+ */
+// export const LEAP_AT = BAND_CLOSE_AT;
+// export const LEAP_IN_VH = 32;
+export const LEAP_AT = LAST_LINE.out[0] + COPY_OUT_VH / 2;
+export const LEAP_IN_VH = COPY_IN_VH;
 
 /**
  * How much of the wave has to be gone before the closing line may take the seat, as a
@@ -437,6 +483,10 @@ export const LEAP_IN_VH = 32;
  * is still two things in the same place. Shut until the ribbon is 55% cleared, fully
  * open at 90%, and the last 10% is left to the line's own ease so the two are never
  * both moving hard at once.
+ *
+ * ── RESTORE THE WAVE — part of step 5 ── this cap is read in ./sequence, where it is
+ * commented out along with the `bandVis` it reads. Nothing consumes it while the wave
+ * is off; it is kept here so restoring is an uncommenting rather than a rewrite.
  */
 export const BAND_CLEAR_AT = [0.55, 0.9] as const;
 const LEAP_HOLD_VH = 38;

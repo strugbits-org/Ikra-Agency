@@ -12,10 +12,10 @@ export type CaseMeasure = {
   /** The viewport's width in px — the frame the track travels across. */
   viewportW: number;
   /**
-   * The track's overflow, and therefore the pin's whole length: scroll this many pixels and
-   * the track's right edge arrives at the viewport's right edge. One px of scrolling is one
-   * px of horizontal travel, which is the reference's own relation and what makes the cells
-   * move at the speed of the reader's hand rather than at some multiple of it.
+   * The track's overflow: translate the track this many pixels and its right edge arrives at
+   * the viewport's right edge. A distance in *track* px, not in scroll px — the sequence
+   * divides it by TRAVEL_PER_SCROLL to get the pin's length, so at the shipped 1.5 the
+   * reader covers this much travel in two thirds as much scrolling.
    *
    * `0` when the track fits the viewport, which the sequence treats as "nothing to do".
    */

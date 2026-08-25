@@ -14,6 +14,10 @@
  *   image aspect        801:552  → 1.451
  *   travel              1px of scroll per 1px of track, i.e. `scrollWidth − innerWidth`
  *
+ * The one figure that is now a preference rather than a transcription is the last of
+ * those: TRAVEL_PER_SCROLL below deliberately runs the track faster than the reference
+ * did. It is the only knob for the section's pace.
+ *
  * ## The only per-cell animation is the rise, and that is the whole of it
  *
  * Frame analysis ruled out everything else the previous build had. Tracking the reference's
@@ -87,6 +91,27 @@ export const IMAGE_MAX_VH = 62;
  */
 export const TRACK_TAIL_VW = (100 - CELL_VW) / 2;
 
+/**
+ * ## The pace knob — the one number to change if the section feels slow or frantic
+ *
+ * Pixels of horizontal travel per pixel of vertical scroll.
+ *
+ *   1     the reference's own relation: the cells move at the speed of the reader's
+ *         hand, and the pin is exactly as long as the track's overflow.
+ *   1.5   what ships. The pin reserves `overflow / 1.5`, so a third less scrolling
+ *         carries the reader through the same track and every cell crosses the screen
+ *         half again as fast.
+ *   2     twice the speed, half the scroll. Past about here the traverse starts to
+ *         outrun SCRUB's 1s of catch-up and the track visibly lags the wheel — raise
+ *         this and SCRUB together, or the section stops feeling attached to the hand.
+ *
+ * Nothing else has to move with it. The rise is keyed to where a cell *is* on screen
+ * rather than to how much has been scrolled (see RISE_END_VW), so it still begins and
+ * ends at the same two positions and simply reaches them sooner; the dev assertion on
+ * TRACK_TAIL_VW below is in the same terms and holds unchanged.
+ */
+export const TRAVEL_PER_SCROLL = 1.5;
+
 /* ── the rise ────────────────────────────────────────────────────────────────── */
 
 /**
@@ -145,6 +170,10 @@ export const PRE_STAGGER = 0.07;
  * Not an ease and not a delay: the track still lands exactly where the scroll says, this
  * only takes a moment to get there. Note that a numeric scrub only does anything when the
  * trigger has an `animation` to drive — see the proxy tween in ./sequence.
+ *
+ * Paired with TRAVEL_PER_SCROLL: the catch-up is a fixed second of *time*, so the faster
+ * the track runs the further behind the wheel it is during that second. At 1.5 the lag is
+ * not readable; well past 2 it is, and this comes down with it.
  */
 export const SCRUB = 1;
 

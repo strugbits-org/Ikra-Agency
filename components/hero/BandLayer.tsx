@@ -3,7 +3,23 @@
 import type { RefObject } from "react";
 import { gsap } from "@/lib/gsap";
 import { BAND_CLIP_UNDRAWN, LEAP_GAP, type BandGeometry } from "./band";
-import WavyBand from "./WavyBand";
+// ── RESTORE THE WAVE — step 1 of 5 ── uncomment the import below.
+//
+// The wave is off. Bringing it back is five edits, every one of them tagged
+// "RESTORE THE WAVE" — grep for it — and they have to be done together:
+//
+//   1. this import;
+//   2. the <WavyBand> element further down this file;
+//   3. in ./timeline.ts, delete the fourth GAP_LINES entry — "holding your business
+//      back" is the ribbon's own copy and joined the gap copy only because the ribbon
+//      went away, so with the wave back it would otherwise be said twice;
+//   4. in ./timeline.ts, LEAP_AT and LEAP_IN_VH back to their wave-driven form, so the
+//      closing line waits for the ribbon to clear the seat again instead of arriving on
+//      the copy's cadence;
+//   5. in ./sequence.ts, `bandVis` / `bandClear` and the BAND_CLEAR_AT import, which
+//      are the gate that keeps the line and the wave out of that shared seat.
+//
+// import WavyBand from "./WavyBand";
 
 // How many ems wide the closing line is, so its size can be solved from the span
 // between the wedges rather than picked — widen the wedges and the line shrinks to
@@ -94,7 +110,13 @@ export default function BandLayer({
           clipPath: reducedMotion ? undefined : BAND_CLIP_UNDRAWN,
         }}
       >
-        <WavyBand g={band} animate={!reducedMotion} />
+        {/* ── RESTORE THE WAVE — step 2 of 5 ── uncomment the element below.
+
+            Nothing else about this wrapper changes. It carries no colour of its
+            own — the orange is the SVG's path — so with the element commented out
+            it renders nothing at all, while `sequence` goes on driving its clip and
+            the closing line below goes on arriving off the wave's own progress. */}
+        {/* <WavyBand g={band} animate={!reducedMotion} /> */}
       </div>
 
       {/* Centred on the stage rather than boxed inside the band's inset: sized to

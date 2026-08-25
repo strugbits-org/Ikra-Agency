@@ -96,7 +96,20 @@ export function Statement({
             }
         }
       >
-        <p className="max-w-4xl text-[26px] leading-[1.3] font-normal text-ink md:text-[35px]">
+        {/* Four lines from `lg` up, and kept to the left half of the screen.
+            `max-w-4xl` was 896px, which is three lines at 35px and a block that
+            runs 112–432px past the middle of the screen at every width below
+            2560. 42rem is the width 1024 already had — where this wrapped to four
+            lines and nothing else about it was wrong — so pinning it there makes
+            every viewport from `lg` up read the same way.
+
+            The negative margin is the other half of it: a 672px block still
+            crosses the centre line when it starts at the frame's own 176px
+            gutter, so from `lg` the paragraph alone steps out into that gutter.
+            It is deliberately not a change to the frame's padding — `measure`
+            reads `paddingLeft` to place the wordmark's slide, so moving the frame
+            would move the logo's resting position with it. */}
+        <p className="max-w-4xl text-[26px] leading-[1.3] font-normal text-ink md:text-[35px] lg:-ml-20 lg:max-w-[42rem]">
           We are rebranding agency for the most discerning ambitions.
           Our work transforms a simple idea into an experience of true
           rarity and prestige.
