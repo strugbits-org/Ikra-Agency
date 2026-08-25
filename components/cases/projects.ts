@@ -13,7 +13,11 @@
  * tag row and no per-project accent colour; earlier versions of this file carried all three
  * and they were inventions. They are gone rather than hidden.
  *
- * ## The imagery and copy are placeholder, and knowingly so
+ * ## One study is real; the rest are placeholder, and knowingly so
+ *
+ * The first entry is Café Technica, and it is the only one with a `link` — it points at
+ * `app/work/cafe-technica`, which is a full page built from the client's own material. The
+ * two below it are still stand-ins.
  *
  * `public/` holds no case-study photography — every image in it is caviar or coastal stock,
  * and most is already in use: `hero-bg.jpg` is the hero's backdrop, `section2-vertical.mp4`
@@ -44,13 +48,13 @@ export type CaseProject = {
 
 export const CASE_PROJECTS: CaseProject[] = [
   {
-    id: "maison-noir",
-    title: "Maison Noir",
+    id: "cafe-technica",
+    title: "Café Technica",
     description:
-      "Heritage house repositioned for a generation that had stopped noticing it.",
-    imageSrc: "/img/delicious-black-caviar-as-background-closeup.jpg",
-    link: null,
-    focus: "50% 50%",
+      "Naming, brand and a new website for the coffee-machine service Tasmania calls first.",
+    imageSrc: "/img/Coffee-Shop-Vibes.avif",
+    link: "/work/cafe-technica",
+    focus: "50% 45%",
   },
   {
     id: "sturia-reserve",

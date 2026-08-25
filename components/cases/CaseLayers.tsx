@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import type { ReactNode, RefObject } from "react";
 import {
   CASE_CLOSING,
@@ -46,7 +47,7 @@ import {
  */
 export type CellRegistrar = (index: number, el: HTMLElement | null) => void;
 
-/** A small caps link with the reference's underline rule. `<a>` only when there is a href. */
+/** A small caps link with the reference's underline rule. A link only when there is a href. */
 function CaseLink({
   label,
   href,
@@ -74,11 +75,15 @@ function CaseLink({
     className;
 
   // A span, not an `href="#"`: a link to nowhere is worse for a keyboard or a screen reader
-  // than no link at all. Give the project a `link` and this becomes an anchor unchanged.
+  // than no link at all. Give the project a `link` and this becomes a link unchanged.
+  //
+  // `next/link` rather than a bare anchor, so a case study opens without tearing the page
+  // down and rebuilding ScrollSmoother — see SmoothScrollProvider, which resets the
+  // smoother and refreshes every trigger when the route changes.
   return href ? (
-    <a href={href} className={cls}>
+    <Link href={href} className={cls}>
       {inner}
-    </a>
+    </Link>
   ) : (
     <span className={cls}>{inner}</span>
   );

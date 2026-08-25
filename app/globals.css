@@ -6,6 +6,23 @@
   --color-cream: #fef5f3;
   --color-gray: #dfdfdf;
   --color-white: #ffffff;
+
+  /*
+   * Case-study palette. Three fields the detail pages are built from, and none of them is
+   * reachable from the four tokens above: the work is presented on its own ground.
+   *
+   * `--color-ember` is the testimonial field. It is deliberately NOT `--color-accent`: in the
+   * reference capture the logo and the field appear in the same recording and measure
+   * differently (233,81,62) against (215,65,48), so the field is a genuinely deeper, redder
+   * orange rather than a compression artefact — a codec round-trip of a flat colour through
+   * the same encoder returns it within one count. Calibrating the field against the logo,
+   * whose true value we know is `--color-accent`, puts it at #e74b2f.
+   *
+   * `--color-paper` is the light field. Measured #f9f9f9 on one section and #f6f6f6 on the
+   * other, which is under a count of chroma noise apart; one token, set between them.
+   */
+  --color-ember: #e74b2f;
+  --color-paper: #f7f7f7;
 }
 
 @theme inline {
@@ -13,7 +30,11 @@
   --color-accent: var(--color-accent);
   --color-cream: var(--color-cream);
   --color-gray: var(--color-gray);
+  --color-ember: var(--color-ember);
+  --color-paper: var(--color-paper);
   --font-sans: var(--font-zalando);
+  /* Only the case-study routes render this; see app/fonts.ts for why it is a stand-in. */
+  --font-serif: var(--font-playfair);
 }
 
 @media (prefers-reduced-motion: reduce) {

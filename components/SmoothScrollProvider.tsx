@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { ScrollSmoother } from "@/lib/gsap";
+import { usePathname } from "next/navigation";
+import { ScrollSmoother, ScrollTrigger } from "@/lib/gsap";
 import ScrollBar from "./ScrollBar";
 
 export default function SmoothScrollProvider({
@@ -10,6 +11,9 @@ export default function SmoothScrollProvider({
   children: React.ReactNode;
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const smootherRef = useRef<ScrollSmoother | null>(null);
+  const pathname = usePathname();
+  const lastPath = useRef(pathname);
 
   useEffect(() => {
     const reduceMotion = window.matchMedia(
@@ -23,11 +27,46 @@ export default function SmoothScrollProvider({
       effects: !reduceMotion,
       normalizeScroll: true,
     });
+    smootherRef.current = smoother;
 
     return () => {
+      smootherRef.current = null;
       smoother.kill();
     };
   }, []);
+
+  /**
+   * Route changes, and the two things the smoother will not do for itself.
+   *
+   * This provider lives in the root layout, so it survives navigation — the smoother is
+   * created once and the page under it is swapped. Two consequences, and neither is
+   * hypothetical:
+   *
+   * **The scroll position does not reset.** ScrollSmoother fakes scrolling with a transform
+   * on `#smooth-content` and `normalizeScroll` takes the wheel and touch events, so Next's
+   * own scroll-to-top has nothing real to act on: opening a case study from halfway down the
+   * home page would land halfway down the case study. `scrollTo(0, false)` — no smoothing,
+   * so it is a jump rather than a visible flight back up — is what actually resets it.
+   *
+   * **Every ScrollTrigger's start and end are stale.** They were measured against the old
+   * document's height; the new route's content is a different length, and the pin on
+   * `CaseStudies` reserves its own distance on top of that. A refresh re-measures them all.
+   *
+   * Guarded on the path having actually changed, because this effect also runs on mount, and
+   * on mount a `scrollTo(0)` would fight the browser restoring the reader's position after a
+   * reload.
+   *
+   * Back and forward are not special-cased and do not need to be: the router's own scroll
+   * restoration lands after this and wins, so a `goBack` returns to where the reader was
+   * (verified: parked at 6000 on the home page, into a case study at 0, back to 6000).
+   */
+  useEffect(() => {
+    if (lastPath.current === pathname) return;
+    lastPath.current = pathname;
+
+    smootherRef.current?.scrollTo(0, false);
+    ScrollTrigger.refresh();
+  }, [pathname]);
 
   return (
     <>

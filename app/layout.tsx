@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { zalando } from "./fonts";
+import { playfair, zalando } from "./fonts";
 import SmoothScrollProvider from "@/components/SmoothScrollProvider";
 import "./globals.css";
 
@@ -15,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${zalando.variable} h-full antialiased`}>
+    <html lang="en" className={`${zalando.variable} ${playfair.variable} h-full antialiased`}>
       <body className="min-h-full">
         <SmoothScrollProvider>{children}</SmoothScrollProvider>
       </body>
