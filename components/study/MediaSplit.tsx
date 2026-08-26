@@ -22,6 +22,13 @@ import { SPLIT_BODY_GAP } from "./metrics";
  * off the media's centre line. It is also what makes the swap to a video a one-element change
  * — the box already reserves the space.
  *
+ * ## `fit` and `mediaMax` exist for artwork rather than photographs
+ *
+ * A photograph wants to fill its frame, so `cover` is the default and the frame carries the
+ * asset's own ratio. A logo does not: it has its own edges, cropping it cuts them off, and
+ * blown up to half a content box it stops reading as a mark and starts reading as a banner.
+ * `fit: "contain"` with a `mediaMax` gives it a size of its own inside the column, centred.
+ *
  * ## `cols` is three shares, and the middle one is the gap
  *
  * Written as a `fr` template on a custom property rather than a Tailwind class, for the same
@@ -37,6 +44,7 @@ export default function MediaSplit({
   aspect,
   headingClassName = "",
   fullHeight = false,
+  mediaMax,
 }: {
   content: MediaSplitContent;
   tone: Tone;
@@ -48,13 +56,15 @@ export default function MediaSplit({
   aspect: number;
   /** The identity band sets its display line in the accent; the applications band does not. */
   headingClassName?: string;
+  /** A ceiling on the media's width, for artwork that should not fill its column. */
+  mediaMax?: string;
   /**
    * Hold a viewport from `lg` up. `min-h`, never `h`: a short wide window can leave the copy
    * taller than the screen, and a fixed height would push its last paragraph under the band.
    */
   fullHeight?: boolean;
 }) {
-  const { heading, paragraphs, photo } = content;
+  const { heading, paragraphs, photo, fit = "cover" } = content;
   const lines = typeof heading === "string" ? [heading] : heading;
 
   const copy = (
@@ -79,15 +89,17 @@ export default function MediaSplit({
   const media = (
     <div
       key="media"
-      className="relative w-full overflow-hidden [aspect-ratio:var(--media-aspect)]"
-      style={{ "--media-aspect": aspect } as CSSProperties}
+      // `mx-auto` only bites once `maxWidth` is under the column, so it costs nothing on the
+      // photograph bands and centres the mark on the one that sets a cap.
+      className="relative mx-auto w-full overflow-hidden [aspect-ratio:var(--media-aspect)]"
+      style={{ "--media-aspect": aspect, maxWidth: mediaMax } as CSSProperties}
     >
       <Image
         src={photo.src}
         alt={photo.alt}
         fill
         sizes={`(min-width: 1024px) ${Math.round(cols.media)}vw, 100vw`}
-        className="object-cover"
+        className={fit === "contain" ? "object-contain" : "object-cover"}
         style={{ objectPosition: photo.focus }}
       />
     </div>

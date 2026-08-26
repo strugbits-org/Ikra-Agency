@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import Logo from "@/components/Logo";
@@ -39,6 +40,15 @@ import {
  * lockup is tight to the top edge and the row below it cannot grow without pushing the
  * intro under the fold.
  *
+ * ## The thing beside the headline is either a drawn mockup or a supplied image
+ *
+ * Cafe Technica has no capture of its own homepage, so `SitePreview` draws one inside
+ * `BrowserMock` — copy rather than a screenshot, which stays sharp at both the sizes the
+ * frame appears at. QCIF supplied a real screenshot that already carries its own browser
+ * chrome, so it is placed as-is: wrapping it would put a second frame around the first, and
+ * drawing type over it would invent copy the client did not write. Which one a study gets is
+ * decided by whether its record has a `media`.
+ *
  * ## Why the row's tracks are a CSS variable rather than a Tailwind class
  *
  * The four shares live in `HERO_ROW` so the measured figures stay in one file, which rules
@@ -48,14 +58,22 @@ import {
  * source and still lets the row collapse to a stack below `lg`.
  */
 export default function Masthead({ study }: { study: CaseStudy }) {
-  const { date, client, headline, columns } = study.masthead;
+  const {
+    date,
+    client,
+    headline,
+    columns,
+    media,
+    tone = "dark",
+    headlineClassName = "text-accent",
+  } = study.masthead;
 
   // headline | gap | mockup | the inset it keeps from the right gutter.
   const heroCols =
     `${HERO_ROW.media}fr ${HERO_ROW.gap}fr ${HERO_ROW.mock}fr ${HERO_ROW.inset}fr`;
 
   return (
-    <Band tone="dark" padTop={MASTHEAD_PAD_TOP} padBottom={MASTHEAD_PAD_BOTTOM}>
+    <Band tone={tone} padTop={MASTHEAD_PAD_TOP} padBottom={MASTHEAD_PAD_BOTTOM}>
       {/* The mark has a gutter of its own — see GUTTER_MARK — so it gets its own Measure
           rather than a negative margin inside the one below. */}
       <Measure gutter={GUTTER_MARK}>
@@ -77,7 +95,7 @@ export default function Masthead({ study }: { study: CaseStudy }) {
             } as CSSProperties
           }
         >
-          <Display className="text-accent" style={{ lineHeight: HERO_LEAD }}>
+          <Display className={headlineClassName} style={{ lineHeight: HERO_LEAD }}>
             {headline.map((line) => (
               <span key={line} className="block">
                 {line}
@@ -88,9 +106,30 @@ export default function Masthead({ study }: { study: CaseStudy }) {
           {/* Column 3 above `lg`; the source order is what a stacked phone reads, and the
               empty second and fourth tracks take care of themselves. */}
           <div className="lg:col-start-3">
-            <BrowserMock label={`The ${study.title} website`}>
-              <SitePreview preview={study.preview} />
-            </BrowserMock>
+            {media ? (
+              /* The asset's own aspect on the box, so `object-cover` has nothing to crop and
+                 the row's height is a function of the column rather than of the viewport —
+                 the same arrangement MediaSplit uses, and what makes the swap to the video
+                 this is standing in for a one-element change. */
+              <div
+                className="relative w-full overflow-hidden [aspect-ratio:var(--hero-media-aspect)]"
+                style={{ "--hero-media-aspect": media.aspect } as CSSProperties}
+              >
+                <Image
+                  src={media.src}
+                  alt={media.alt}
+                  fill
+                  sizes={`(min-width: 1024px) ${Math.round(HERO_ROW.mock)}vw, 100vw`}
+                  className="object-cover"
+                  style={{ objectPosition: media.focus }}
+                  priority
+                />
+              </div>
+            ) : study.preview ? (
+              <BrowserMock label={`The ${study.title} website`}>
+                <SitePreview preview={study.preview} />
+              </BrowserMock>
+            ) : null}
           </div>
         </div>
 

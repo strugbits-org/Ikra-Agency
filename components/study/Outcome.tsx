@@ -18,6 +18,8 @@ import { OUTCOME_BODY_GAP, OUTCOME_MOCK_WIDTH } from "./metrics";
  * the same way the two text bands above leave theirs.
  */
 export default function Outcome({ study }: { study: CaseStudy }) {
+  // Optional since the second study has no such band — see BandKey in ./content.
+  if (!study.outcome) return null;
   const { heading, paragraphs } = study.outcome;
 
   return (
@@ -44,9 +46,11 @@ export default function Outcome({ study }: { study: CaseStudy }) {
               } as CSSProperties
             }
           >
-            <BrowserMock label={`The ${study.title} website`}>
-              <SitePreview preview={study.preview} />
-            </BrowserMock>
+            {study.preview ? (
+              <BrowserMock label={`The ${study.title} website`}>
+                <SitePreview preview={study.preview} />
+              </BrowserMock>
+            ) : null}
           </div>
         </div>
       </Measure>

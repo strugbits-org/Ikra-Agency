@@ -23,6 +23,19 @@
    */
   --color-ember: #e74b2f;
   --color-paper: #f7f7f7;
+
+  /*
+   * `--color-navy` is the QCIF study's dark field, and it is the client's own colour rather
+   * than a choice: sampled off the browser chrome in `qcif-hero.jpg`, the screenshot they
+   * supplied, at seven points around the frame — #14385b #18395c #002549 #3e5064 #0e223a
+   * #082b50 #113253, mean #153352.
+   *
+   * A second study on a second field is the reason `Tone` is an enumeration rather than a
+   * className: a case study is presented on its client's ground, so a third one may well add
+   * a fourth entry here. What it must not do is reach for `--color-ink`, which is this
+   * site's own near-black and belongs to the marketing page.
+   */
+  --color-navy: #153352;
 }
 
 @theme inline {
@@ -32,6 +45,7 @@
   --color-gray: var(--color-gray);
   --color-ember: var(--color-ember);
   --color-paper: var(--color-paper);
+  --color-navy: var(--color-navy);
   --font-sans: var(--font-zalando);
   /* Only the case-study routes render this; see app/fonts.ts for why it is a stand-in. */
   --font-serif: var(--font-playfair);

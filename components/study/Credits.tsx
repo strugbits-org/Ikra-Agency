@@ -24,6 +24,8 @@ import {
  * happen to have the same number of entries.
  */
 export default function Credits({ study }: { study: CaseStudy }) {
+  // Optional since the second study has no such band — see BandKey in ./content.
+  if (!study.credits) return null;
   const { title, rows } = study.credits;
 
   // A fourth track for whatever the three shares leave, and it is load-bearing rather than

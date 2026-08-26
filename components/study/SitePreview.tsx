@@ -21,7 +21,14 @@ import type { CaseStudy } from "./content";
  * this panel in a technical monospace, and matching the *category* is what carries the
  * impression here — nobody reads a 12px caption inside a mockup, they read its texture.
  */
-export default function SitePreview({ preview }: { preview: CaseStudy["preview"] }) {
+export default function SitePreview({
+  preview,
+}: {
+  // `NonNullable`, because `preview` is optional on the record now that a study can supply a
+  // real screenshot instead — see `masthead.media`. Both call sites already guard, but the
+  // narrowing does not follow the value across a prop boundary, so it is restated here.
+  preview: NonNullable<CaseStudy["preview"]>;
+}) {
   return (
     <div className="flex h-full w-full font-mono text-black">
       {/* The white panel: 28.5% of the frame's width, measured 195px of 683. */}

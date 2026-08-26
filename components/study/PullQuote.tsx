@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { Band, Display, Measure, Prose } from "./primitives";
+import type { Tone } from "./primitives";
 import type { CaseStudy } from "./content";
 import {
   QUOTE_BODY_GAP,
@@ -26,6 +27,13 @@ import {
  * reference's are two solid teardrops, which is a shape and not a character, so it is an
  * SVG. That also keeps them off whatever the serif's own quote glyph happens to look like.
  *
+ * ## The marks come off when nobody is being quoted
+ *
+ * QCIF reuses this composition — a display line over two unequal columns — for a lead
+ * statement about what the client does. That is the studio's own sentence, so hanging
+ * quotation marks on it would attribute it to them. `marks: false` is that band; everything
+ * else about the layout is shared, which is the whole reason it is one component.
+ *
  * ## The two columns are unequal and do not reach the right gutter
  *
  * See QUOTE_COLS — 48.4% / 34% with 14.3% standing empty at the right. Both of those are
@@ -33,10 +41,11 @@ import {
  * than justified across it.
  */
 export default function PullQuote({ study }: { study: CaseStudy }) {
-  const { text, columns } = study.quote;
+  if (!study.quote) return null;
+  const { text, columns, marks = true, tone = "paper" } = study.quote;
 
   return (
-    <Band tone="paper">
+    <Band tone={tone as Tone}>
       <Measure>
         {/* The measure is the display's, not the band's — see QUOTE_MEASURE. Left to the
             full content box the quote sets as two lines instead of three. */}
@@ -58,7 +67,7 @@ export default function PullQuote({ study }: { study: CaseStudy }) {
               marks — positioned siblings paint in tree order, and both of these are
               positioned. Leave the paragraph static and the absolutely-placed marks would
               paint over the words instead. */}
-          <QuoteMark className="absolute left-0 md:left-[var(--mark-x)]" />
+          {marks && <QuoteMark className="absolute left-0 md:left-[var(--mark-x)]" />}
           <Display className="relative">{text}</Display>
         </div>
 

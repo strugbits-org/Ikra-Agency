@@ -23,8 +23,16 @@ import {
  * it. Read them here, read them in ./metrics, and they cannot disagree.
  */
 
-/** The four fields the reference alternates between. */
-export type Tone = "dark" | "paper" | "ember" | "white";
+/**
+ * The fields a case study is presented on.
+ *
+ * The first four are the Cafe Technica reference's own alternation. `navy` is the QCIF
+ * study's, sampled off that client's asset — see `--color-navy` in `app/globals.css`. This
+ * is an enumeration rather than a free className on purpose: each entry pairs a field with
+ * the ink that is legible on it, so a band cannot be given a ground without also being given
+ * a foreground.
+ */
+export type Tone = "dark" | "paper" | "ember" | "white" | "navy";
 
 const TONE: Record<Tone, string> = {
   // Measured #000000 / #ffffff and #f7f7f7 / #000000 — the reference sets pure black and
@@ -36,7 +44,28 @@ const TONE: Record<Tone, string> = {
   // The credits sit on pure white rather than on `paper` — measured, and the only place on
   // the page the two are set next to each other, which is what makes the step visible.
   white: "bg-white text-black",
+  navy: "bg-navy text-white",
 };
+
+/**
+ * How far each band overlaps the one below it, in px.
+ *
+ * Without it a hairline of the page's own background opens at the seam **while the page is
+ * scrolling** and closes again whenever it stops. ScrollSmoother translates `#smooth-content`
+ * by a fractional number of pixels, so two adjacent boxes that share an edge in layout round
+ * that edge independently when they rasterise, and a sub-pixel gap falls between them. Behind
+ * them is `--color-cream`, so on the QCIF study's navy — where two bands of the *same* colour
+ * meet and there is nothing else to explain a line — it reads as a grey rule under the
+ * masthead. Measured mid-scroll before the fix: an isolated #f0e5e3 row between two navy rows
+ * on 22 of 26 sampled frames, and none at all once the scroll settled, which is the signature.
+ *
+ * A negative margin rather than a border or an outline: it makes the boxes genuinely overlap,
+ * so the band below paints its own background across the gap whatever way the rounding goes.
+ * What it covers is the last pixel of the band's *padding*, so no copy moves and nothing is
+ * hidden. Same problem, and the same answer, as `IMAGE_SEAM_BLEED_PX` in the definition
+ * section's footer and the oversized panels in the hero's doors.
+ */
+const BAND_BLEED = "1px";
 
 /**
  * One full-bleed horizontal band.
@@ -60,7 +89,11 @@ export function Band({
   return (
     <section
       className={`w-full ${TONE[tone]} ${className}`}
-      style={{ paddingTop: padTop, paddingBottom: padBottom }}
+      style={{
+        paddingTop: padTop,
+        paddingBottom: padBottom,
+        marginBottom: `-${BAND_BLEED}`,
+      }}
     >
       {children}
     </section>

@@ -247,6 +247,63 @@ export const CARD_PAD = fluid(24, 52, 62);
 /** Panel height 824px against a 1045px width. Held so the photo crops the same way. */
 export const CARD_ASPECT = 1045 / 824;
 
+/**
+ * A ceiling on the testimonial card's height, as a share of the viewport.
+ *
+ * ## Why a ceiling is needed at all
+ *
+ * The card's height is otherwise a function of the viewport's *width* alone — a percentage
+ * of the content box, divided by a fixed aspect — and has no relationship to how tall the
+ * window is. Measured on the built page, that puts the band at 1027px whatever the height
+ * is, so it fits at 1920x1080 with 53px to spare and overflows 1920x900 by 127, 1920x860 by
+ * 167 and 2560x1080 by 277. It is the same fault `IMAGE_MAX_VH` fixes in `cases/timeline`,
+ * and it takes the same shape of answer: state the ceiling in vh, then apply it to the
+ * *width* so the aspect is never broken to satisfy it — see the `min()` in ./Testimonial.
+ *
+ * ## Why 65
+ *
+ * Read off the QCIF comp: its card measures 577px tall in an 890px window, i.e. 64.8vh, and
+ * 868 wide. At 65 with that study's aspect this build returns 867 x 578 — within a pixel of
+ * both. It also leaves the whole band comfortably inside a screen rather than exactly filling
+ * one: 2 x `BAND_PAD` is at most 232px, so even on a 700px-tall window the band lands at
+ * 98vh, and on the sizes above it lands at 80-86%.
+ *
+ * ## It is opt-in per study, and that is deliberate
+ *
+ * Cafe Technica does not set it. Its 1045 x 824 card is measured off a 1902 x 910 capture in
+ * which the band is 1018px tall — i.e. **the reference's own band does not fit its own
+ * viewport**, so "must fit a screen" is not a property of that page and imposing it would
+ * break the one measurement the band exists to reproduce. No global value can both preserve
+ * that and fix the short-window overflow, which is what makes this a record-level option
+ * rather than a constant applied everywhere.
+ */
+export const CARD_MAX_VH = 65;
+
+/**
+ * The band the greyscale photograph is compressed into before it multiplies over the field,
+ * as a pair of multipliers on that field.
+ *
+ * `1` is the field untouched; `0` is black. So `[0.5, 1]` says: the lightest the photograph
+ * may leave the card is the flat ember it sits on, and the darkest is half of it. That upper
+ * bound is the whole point of the pair — it is what makes the card *read as the field with a
+ * photograph in it* rather than as a dark panel laid on top, which is what an uncompressed
+ * multiply gives you (this shipped at `[0.3, 0.9]` first and the card came out visibly
+ * darker than the band around it).
+ *
+ * The lower bound matters for a different reason: multiplied all the way down, a photograph's
+ * shadows go to black and take the hue with them, so the card stops being orange at the
+ * bottom. Half the field keeps it warm.
+ *
+ * The CSS is derived rather than written — `contrast()` and `brightness()` in series map
+ * [0,1] onto [(0.5-0.5c)b, (0.5+0.5c)b], so `b = lo + hi` and `c = (hi - lo) / (lo + hi)`.
+ * Stating the endpoints and solving for the filter keeps the two numbers anyone would want
+ * to check — how light and how dark — at the front.
+ *
+ * Contrast is the constraint on the top end and is verified against the render, per text
+ * block, rather than predicted: see ./Testimonial.
+ */
+export const CARD_TINT_RANGE = [0.5, 1] as const;
+
 /** Copy block to the attribution: measured 60px between their line boxes. */
 export const CARD_SIGN_GAP = fluid(32, 60, 72);
 
@@ -300,6 +357,41 @@ export const IDENTITY_COLS = { copy: 48.3, gap: 6.4, media: 45 } as const;
  * of four panels and trimming any edge off it cuts a panel.
  */
 export const IDENTITY_MEDIA_ASPECT = 661 / 541;
+
+/* ── the QCIF study's own figures ────────────────────────────────────────── */
+
+/**
+ * The three shares of the brand band — copy left, the mark right.
+ *
+ * `IDENTITY_COLS` restated rather than reused: the two bands look alike and are not the same
+ * measurement, and aliasing them would mean a later retune of one silently moved the other.
+ * These are read off the QCIF comp, where the copy runs to roughly half the content box and
+ * the mark sits in the right half rather than filling it.
+ */
+export const BRAND_COLS = { copy: 48.3, gap: 6.4, media: 45 } as const;
+
+/**
+ * The mark's own aspect, and a ceiling on how wide it is drawn.
+ *
+ * 305 x 81 is what `qcif-logo.png` measures *after* being cropped to its alpha — as supplied
+ * it was a 406 x 722 canvas with the ink occupying 11.2% of the height, which in any
+ * contained box would have drawn a very small logo with a screen of transparent padding
+ * around it. `logo-white.png` in this repo is cropped the same way and for the same reason.
+ *
+ * The cap is measured off the comp: the mark spans ~297px of a 1728px content box there,
+ * i.e. ~17%, which is a good deal less than the 45% column it sits in. Without a ceiling a
+ * logo stretched to fill its column stops reading as a mark.
+ */
+export const BRAND_MARK_ASPECT = 305 / 81;
+export const BRAND_MARK_MAX = fluid(180, 300, 360);
+
+/**
+ * The hero screenshot's own 557 x 337.
+ *
+ * The asset already carries its own browser chrome, which is why the masthead places it bare
+ * rather than inside `BrowserMock` — see the head of ./Masthead.
+ */
+export const QCIF_HERO_ASPECT = 557 / 337;
 
 /* ── section 7, the summary of deliverables ─────────────────────────────── */
 

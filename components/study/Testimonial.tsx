@@ -7,9 +7,18 @@ import {
   CARD_ASPECT,
   CARD_PAD,
   CARD_SIGN_GAP,
+  CARD_TINT_RANGE,
   LEADING,
   TYPE,
 } from "./metrics";
+
+/**
+ * `contrast()` then `brightness()` maps [0,1] onto [(0.5-0.5c)b, (0.5+0.5c)b]. Inverting that
+ * for a wanted [lo, hi] gives b = lo + hi and c = (hi - lo)/(lo + hi). See CARD_TINT_RANGE.
+ */
+const [TINT_LO, TINT_HI] = CARD_TINT_RANGE;
+const TINT_BRIGHTNESS = TINT_LO + TINT_HI;
+const TINT_CONTRAST = (TINT_HI - TINT_LO) / TINT_BRIGHTNESS;
 
 /**
  * Band 3: the client's words, set over a photograph the band tints with its own field.
@@ -31,6 +40,41 @@ import {
  * the tonal floor, so the panel came out at mean luminance 50 against the reference's 107
  * and the shadows went to black.
  *
+ * ## `multiply` is the other half of the story, and white type is why
+ *
+ * The screen blend above is faithful to the Cafe Technica reference and it has one property
+ * that is fatal for legibility: it *only lightens*. White copy over an ember field is 3.86:1
+ * to begin with — already under the 4.5:1 that 22px body type needs — and every pixel the
+ * photograph brightens takes it further down. A bright patch drives it to nearly 1:1, which
+ * is what makes whole clauses of the Cafe Technica quote disappear into the shop window
+ * behind them.
+ *
+ * So a study whose photograph has highlights sets `blend: "multiply"` instead. Multiply can
+ * only darken, so the field becomes the *lightest* the card ever gets and the guarantee runs
+ * the right way. The photograph is range-compressed into `CARD_TINT_RANGE` first, which is
+ * what keeps the card reading as the field with a photograph in it rather than as a dark
+ * panel laid over it, and stops the shadows crushing the ember hue to black.
+ *
+ * The top of that range is bounded by legibility, and the bound is **not the same for both
+ * blocks of copy**: the quote is 37px, which WCAG counts as large text and holds at 3:1,
+ * while the 22px attribution under it needs 4.5:1. Letting the ceiling reach the field
+ * exactly costs 3.86:1 at the very brightest pixel, which is fine under the serif and would
+ * not be under the name — so what is actually verified is each block against its own
+ * threshold, sampled off the render with the type hidden so glyph antialiasing cannot be
+ * mistaken for background.
+ *
+ * ## The height is capped in vh, and the cap is applied to the width
+ *
+ * The card's height is otherwise a pure function of the viewport's *width* — a share of the
+ * content box over a fixed aspect — so it grows with a wide window and takes no notice of a
+ * short one. `maxVh` bounds it, and it is spent on the `width` rather than on a
+ * `max-height`: a height cap on a box whose height comes from a ratio spacer either squashes
+ * the ratio or clips the copy, whereas a width cap keeps the shape exact and simply draws the
+ * card smaller. Same trick, and the same reason, as `IMAGE_MAX_VH` in `cases/timeline`.
+ *
+ * Note the cap cannot hide anything: the row's height is still `max(ratio, copy)`, so a card
+ * whose copy outgrows the ceiling grows past it rather than losing a line.
+ *
  * ## The panel is placed, not centred
  *
  * 1045px wide, starting 141px inside a 96px gutter, on a 1902px viewport: its centre lands
@@ -39,7 +83,34 @@ import {
  * pull quote's, above.
  */
 export default function Testimonial({ study }: { study: CaseStudy }) {
-  const { photo, paragraphs, name, role } = study.testimonial;
+  const {
+    photo,
+    paragraphs,
+    name,
+    role,
+    blend = "screen",
+    aspect = CARD_ASPECT,
+    maxVh,
+  } = study.testimonial;
+
+  // The measured share of the content box, bounded by what `maxVh` of the viewport allows at
+  // this shape. `min()` across % and vh is what keeps the aspect exact — see the head of this
+  // file. Without a ceiling the first term stands alone, which is Cafe Technica.
+  const width = maxVh
+    ? `min(${CARD.width}%, calc(${maxVh}vh * ${aspect}))`
+    : `${CARD.width}%`;
+
+  // Greyscale first in both cases — the channel ratios the duotone is solved against only
+  // hold if the source carries no hue of its own. The range compression belongs to the
+  // multiply path alone; on screen it would lift the blacks the blend is relying on.
+  const tint =
+    blend === "multiply"
+      ? "object-cover mix-blend-multiply"
+      : "object-cover grayscale mix-blend-screen";
+  const tintFilter =
+    blend === "multiply"
+      ? `grayscale(1) contrast(${TINT_CONTRAST.toFixed(4)}) brightness(${TINT_BRIGHTNESS})`
+      : undefined;
 
   return (
     <Band tone="ember">
@@ -49,7 +120,7 @@ export default function Testimonial({ study }: { study: CaseStudy }) {
           style={
             {
               "--card-offset": `${CARD.offset}%`,
-              "--card-width": `${CARD.width}%`,
+              "--card-width": width,
             } as CSSProperties
           }
         >
@@ -75,10 +146,10 @@ export default function Testimonial({ study }: { study: CaseStudy }) {
               alt={photo.alt}
               fill
               sizes="(min-width: 1024px) 62vw, 100vw"
-              // Greyscale, then screen over the field. See the head of this file for the
-              // two measurements that fix both halves of that.
-              className="object-cover grayscale mix-blend-screen"
-              style={{ objectPosition: photo.focus }}
+              // See the head of this file for the two measurements that fix the screen
+              // duotone, and for the contrast arithmetic behind the multiply one.
+              className={tint}
+              style={{ objectPosition: photo.focus, filter: tintFilter }}
             />
 
             {/* The spacer: holds the measured ratio, contains nothing, and only from `lg` —
@@ -86,7 +157,7 @@ export default function Testimonial({ study }: { study: CaseStudy }) {
             <div
               aria-hidden
               className="col-start-1 row-start-1 lg:[aspect-ratio:var(--card-aspect)]"
-              style={{ "--card-aspect": String(CARD_ASPECT) } as CSSProperties}
+              style={{ "--card-aspect": String(aspect) } as CSSProperties}
             />
 
             {/*

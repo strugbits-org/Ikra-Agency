@@ -21,6 +21,32 @@
  * all — the space beside its mockup is a line of copy, not a frame.
  */
 
+import { CARD_MAX_VH, QCIF_HERO_ASPECT } from "./metrics";
+import type { Tone } from "./primitives";
+
+/**
+ * Which bands a study has, and the order they appear in.
+ *
+ * The two studies are not the same page with different words: Cafe Technica runs nine bands
+ * and QCIF six, and the ones they share are not in the same order — QCIF puts the chart third
+ * and its lead statement fourth, where Cafe Technica opens with the pull quote. So the order
+ * is data rather than a fixed sequence in `CaseStudyPage`, and the difference between the two
+ * pages is one legible array per record instead of a spread of conditionals.
+ *
+ * A key whose data is absent renders nothing, and says so in development.
+ */
+export type BandKey =
+  | "masthead"
+  | "brand"
+  | "glance"
+  | "quote"
+  | "testimonial"
+  | "outcome"
+  | "applications"
+  | "identity"
+  | "deliverables"
+  | "credits";
+
 /**
  * One band of copy beside one piece of media — the shape the last two bands share.
  *
@@ -31,6 +57,12 @@ export type MediaSplit = {
   heading: string | readonly string[];
   paragraphs: readonly string[];
   photo: { src: string; alt: string; focus?: string };
+  /**
+   * `cover` — the default — fills the frame, which is what a photograph wants. `contain`
+   * is for artwork with its own edges: QCIF's band puts a logo here, and a logo cropped to
+   * fill a frame is a logo with its ends cut off.
+   */
+  fit?: "cover" | "contain";
 };
 
 export type CaseStudy = {
@@ -41,7 +73,12 @@ export type CaseStudy = {
   /** One sentence, for the route's meta description. */
   summary: string;
 
+  /** The bands this study has, in order. See BandKey. */
+  bands: readonly BandKey[];
+
   masthead: {
+    /** The field the band sits on. `dark` unless the client brings its own — QCIF does. */
+    tone?: Tone;
     /** Set as written — the reference shows a month and a year, in caps. */
     date: string;
     /** The client block: name, sector, place. Three lines in the reference. */
@@ -53,26 +90,72 @@ export type CaseStudy = {
      * wrap on its own measure would put the break in the middle of the second one.
      */
     headline: readonly string[];
+    /**
+     * What the headline is set in. The accent is the Cafe Technica reference's; on QCIF's
+     * navy it would be an orange line on a blue field with no other orange anywhere near it,
+     * so that study takes the band's own ink instead.
+     */
+    headlineClassName?: string;
+    /**
+     * A supplied image in place of the drawn site mockup.
+     *
+     * `SitePreview` exists because there was no capture of the Cafe Technica homepage and a
+     * stock photograph in a browser frame reads as a stock photograph in a browser frame.
+     * QCIF supplied a real screenshot — and one that already carries its own browser chrome —
+     * so it is placed as-is, with nothing drawn over it. `aspect` is the asset's own, so the
+     * frame never crops.
+     */
+    media?: { src: string; alt: string; aspect: number; focus?: string };
     /** The two narrative columns beside the client block. */
     columns: readonly (readonly string[])[];
   };
 
   /** The serif pull quote and the two columns of narrative under it. */
-  quote: {
+  quote?: {
     text: string;
     columns: readonly (readonly string[])[];
+    /** The field. `paper` unless the study puts this band somewhere else. */
+    tone?: Tone;
+    /**
+     * Whether to hang the quotation marks. Default true.
+     *
+     * QCIF uses the same composition — a display line over two unequal columns — for a lead
+     * statement that quotes nobody. Marks on it would attribute the studio's own summary of
+     * the client's services to the client.
+     */
+    marks?: boolean;
   };
 
   /** The client's words, over a photograph the band tints with its own field colour. */
   testimonial: {
     photo: { src: string; alt: string; focus?: string };
+    /**
+     * Which way the photograph tints the field. See ./Testimonial, which carries the
+     * contrast arithmetic — the short version is that `screen` only ever lightens, and
+     * white type on a lightened ember field is not legible where the photograph is bright.
+     */
+    blend?: "screen" | "multiply";
+    /**
+     * The card's shape. Defaults to `CARD_ASPECT`, the 1045 x 824 measured off the Cafe
+     * Technica capture.
+     *
+     * That figure belongs to a card holding two long paragraphs. A study with one short
+     * quote gets the same tall box with the difference as dead space, so a study may state
+     * its own — QCIF's is its photograph's, which is what its comp shows.
+     */
+    aspect?: number;
+    /**
+     * A ceiling on the card's height, in vh. Absent means none. See `CARD_MAX_VH` for why
+     * this is opt-in rather than global.
+     */
+    maxVh?: number;
     paragraphs: readonly string[];
     name: string;
     role: string;
   };
 
   /** What was shipped, beside a mockup of it. */
-  outcome: {
+  outcome?: {
     heading: string;
     paragraphs: readonly string[];
   };
@@ -94,15 +177,21 @@ export type CaseStudy = {
   };
 
   /**
+   * The new brand beside the mark itself: copy left, logo right, on the study's dark field.
+   * QCIF's second band.
+   */
+  brand?: MediaSplit;
+
+  /**
    * Where the identity ended up in the world, beside a photograph of it. Copy on the left.
    */
-  applications: MediaSplit;
+  applications?: MediaSplit;
 
   /**
    * The visual system — palette, typeface, imagery — beside a grid of it in use. Copy on the
    * right; the media here stands in for a video, which is why it is one asset and not four.
    */
-  identity: MediaSplit;
+  identity?: MediaSplit;
 
 
   /**
@@ -122,7 +211,7 @@ export type CaseStudy = {
   };
 
   /** Who did what. Two columns, set at the page's small size. */
-  credits: {
+  credits?: {
     title: string;
     rows: readonly { role: string; name: string }[];
   };
@@ -132,7 +221,7 @@ export type CaseStudy = {
    * frame stays sharp at any width and the words stay editable — swap `hero` to
    * `{ kind: "image", ... }` above once a real capture exists.
    */
-  preview: {
+  preview?: {
     brand: string;
     headline: readonly string[];
     address: readonly string[];
@@ -149,6 +238,19 @@ export const CAFE_TECHNICA: CaseStudy = {
   title: "Café Technica",
   summary:
     "Naming, brand and a new website for the coffee-machine service business Tasmania calls first.",
+
+  // Unchanged from before `bands` existed — this is the order CaseStudyPage used to hard-code.
+  bands: [
+    "masthead",
+    "quote",
+    "testimonial",
+    "outcome",
+    "glance",
+    "applications",
+    "identity",
+    "deliverables",
+    "credits",
+  ],
 
   masthead: {
     date: "MAY 2026",
@@ -355,5 +457,189 @@ export const CAFE_TECHNICA: CaseStudy = {
       alt: "The Café Technica website",
       focus: "50% 50%",
     },
+  },
+};
+
+/**
+ * The second study, and the one that turned `bands` from a fixed sequence into data.
+ *
+ * Six bands against Cafe Technica's nine, in a different order, on a different field. What
+ * they share is every component and every measured figure — see BandKey above, and the head
+ * of ./CaseStudyPage for why the difference is expressed as a list rather than as guards.
+ *
+ * Three assets came with it. `qcif-hero.jpg` is a real screenshot of the delivered site and
+ * already carries its own browser chrome, so the masthead places it bare instead of drawing
+ * one — see `masthead.media`. `qcif-logo.png` is the client's mark, cropped to its alpha for
+ * the reason `BRAND_MARK_ASPECT` records. Both stand in for video that is coming later, and
+ * both sit in aspect boxes so that swap is a one-element change.
+ */
+export const QCIF: CaseStudy = {
+  slug: "qcif",
+  title: "QCIF",
+  summary:
+    "A brand, a sub-brand system and a website that let Queensland’s digital research partner restructure how it works.",
+
+  bands: ["masthead", "brand", "glance", "quote", "testimonial", "deliverables"],
+
+  masthead: {
+    // The client's own navy, sampled off the screenshot they supplied — see --color-navy.
+    tone: "navy",
+    // On navy the accent would be the only orange within three bands of itself; the field's
+    // own ink is what the comp sets this in.
+    headlineClassName: "",
+    date: "SEPTEMBER 2025",
+    client: ["QCIF", "NOT FOR PROFIT", "DIGITAL RESEARCH PARTNERS"],
+    // One entry, so it wraps on its own measure. Cafe Technica's is broken by hand because
+    // its two sentences would otherwise break mid-clause; this is one sentence and has no
+    // such seam to protect.
+    headline: [
+      "How a hyper-intelligent team made a quantum-leap in branding and used their website to restructure workflow.",
+    ],
+    media: {
+      src: "/img/qcif-hero.jpg",
+      alt: "The QCIF website, open at its home page",
+      aspect: QCIF_HERO_ASPECT,
+      focus: "50% 50%",
+    },
+    columns: [
+      [
+        "In every challenge lies an opportunity. When we first met QCIF they were moving from beneath a university umbrella structure and into an independent tour-de-force. The future was bright, and so were the team. QCIF (pronounced Q-SYF) are experts in digital research. Covering a wide spread of expertise, and also having the deepest levels of experience available.",
+        "What struck us immediately is that despite the humbling number of PhDs, they were one of the friendliest and most modest teams we have ever met.",
+      ],
+      [
+        "The brief was for a fresh website that reflected the organisation changes, but after a fluid discussion it was clear that the opportunities were greater, and so were the challenges.",
+      ],
+    ],
+  },
+
+  brand: {
+    // One entry, so it wraps on its own measure. The comp breaks it after "as it" at 1920,
+    // but that is where *that* width runs out — hard-coded here it strands "it" alone on a
+    // second line by 1440 and the third line is the rest of the sentence.
+    heading: [
+      "The new brand reflects QCIF’s renewed clarity as it steps forward into the next chapter.",
+    ],
+    paragraphs: [
+      "QCIF are at the technological bleeding edge and their branding needed to reflect that status. Branding in the technology space is particularly difficult as it is a saturated industry sector, and there’s a real risk of looking too similar to another brand.",
+      "Their story needs to reflect the power of 3 sector services, making the uber-complexity simple (and all in a digital first age). The icon is deceptively simple, an isometric arrangement, evocative of computer iconography, that tricks the eye into seeing a cube.",
+      "All the typography is custom drawn type, designed to work digitally, retain legibility, and convey a sense of order and confidence. Within the visual identity, the icon is transformed into 3 dimensions, and colour coded for their 3 sector services. In short, its simplified and smart, just like their offering. This visual brand narrative adds to the brand story, without creating weight or noise.",
+    ],
+    // `contain`, because this is a mark and not a photograph — cropping it to fill the frame
+    // would cut its own edges off. See BRAND_MARK_ASPECT.
+    fit: "contain",
+    photo: {
+      src: "/img/qcif-logo.png",
+      alt: "The QCIF Digital Research³ wordmark and icon",
+    },
+  },
+
+  glance: {
+    title: "Project Deliverables at a Glance",
+    items: [
+      { label: "Brand Research & Discovery", value: 100 },
+      { label: "Brand Strategy", value: 88 },
+      { label: "Brand Narratives", value: 74 },
+      { label: "Naming & IP", value: 100 },
+      { label: "Sub-Brand System", value: 100 },
+      { label: "Brand Identity", value: 100 },
+      { label: "Content Strategy", value: 80 },
+      { label: "UX/UI", value: 100 },
+      { label: "Custom Development", value: 92 },
+      { label: "SEO", value: 40 },
+    ],
+  },
+
+  quote: {
+    // The lead statement, in the pull quote's composition but with nothing in quotation
+    // marks — this is the studio describing the client, not the client speaking.
+    marks: false,
+    text:
+      "QCIF offer a multitude of digital research services (including quantum computing, research skills/training and bioinformatics). They also service 3 core industry verticals (academia, government & industry) with relevant bespoke solutions.",
+    columns: [
+      [
+        "QCIF realised that their brand strategy and 4 brand narratives required specific expertise to distil and simplify. We brought in the leading industry experts in brand strategy (Untold®) to run a BRAD® process, ensuring we were starting with the best possible insights from the beginning. Untold® challenged the team to re-think and reposition for the next stage of brand growth, and identified areas of risk and opportunity commercially, and within existing intellectual property.",
+      ],
+      [
+        "With new insights we were able to begin rebuilding the brand for the future. It was important to capitalise on the opportunities afforded by the organisational change. It was clear that QCIF could streamline and consolidate many systems into the new website platform. In doing so, not only could reduce overheads, make software redundancies, and improve transparency — we could also create a responsive and editable capability framework that evolved with the team.",
+      ],
+    ],
+  },
+
+  testimonial: {
+    // `multiply`, not the reference's `screen`. The screen blend can only lighten, and white
+    // type on a lightened ember field is not legible where the photograph is bright — this
+    // photograph's highlights reach 241 of 255. See the head of ./Testimonial for the
+    // arithmetic; the short version is that multiply holds the card at 5:1 or better.
+    blend: "multiply",
+    // The photograph's own 869 x 580, not Cafe Technica's measured 1045 x 824. That figure
+    // is the shape of a card holding two long paragraphs; this quote is four lines, so the
+    // taller box would be dead space under the attribution. The comp agrees — its card
+    // measures 868 x 577, i.e. this ratio at CARD_MAX_VH.
+    aspect: 869 / 580,
+    maxVh: CARD_MAX_VH,
+    photo: {
+      src: "/img/qcif-girl.avif",
+      alt: "A student at dusk on a city street",
+      focus: "50% 45%",
+    },
+    paragraphs: [
+      "A lot of websites can be really overwhelming and overcrowded for me and a lot of other ND people to read. This one is incredible, easy to read, and has such an awesome interface!",
+    ],
+    name: "Thalia Greinke",
+    role: "PhD Student & Tutor at the ANU",
+  },
+
+  deliverables: {
+    title: "SUMMARY OF DELIVERABLES",
+    rows: [
+      {
+        label: "Brand Research & Discovery (BRAD®) Process",
+        paragraphs: [
+          "Research and exploration of the existing brand system. Establishing and agreeing on the future commercial strategy. Reviewing existing brand narratives and identifying the need for a new brand strategy, and aligned brand narratives.",
+        ],
+      },
+      {
+        label: "Naming and Copywriting",
+        paragraphs: [
+          "Coining a registrable term for QCIF’s function, in a manner that ties to a system of 3s. E.g.: academia, government & industry / discovery, innovation, impact etc. and that ties to the visual brand narrative of our new pseudo-cube brand icon.",
+          "— Digital Research³",
+        ],
+      },
+      {
+        label: "Sub Brand Management",
+        paragraphs: [
+          "Consolidating all 9 sub brands into a functioning and simplified visual system with accessible colour standards",
+        ],
+      },
+      {
+        label: "Website Custom Features",
+        cards: [
+          {
+            title: "Dynamic skills matrix",
+            paragraphs: [
+              "Scalable and editable with constant changes. QCIF became the first in the industry to offer this feature. Users can filter experts by area of expertise, experience and skill level",
+            ],
+          },
+          {
+            title: "Advanced CMS for scalable content",
+            paragraphs: [
+              "A custom-built content system enables seamless updates across the entire website, ensuring consistency while allowing the team to easily manage and expand content over time.",
+            ],
+          },
+          {
+            title: "Multi-layered structure for complex information",
+            paragraphs: [
+              "The website clearly separates key sectors — government, academia, and science — while using smart filtering and cross-referencing to connect projects, people, and capabilities, making complex information easy to explore.",
+            ],
+          },
+          {
+            title: "Automated ticketing and routing system",
+            paragraphs: [
+              "All incoming requests are automatically categorised by domain and integrated into the client’s internal system, streamlining distribution, reducing manual handling, and ensuring enquiries reach the right teams instantly.",
+            ],
+          },
+        ],
+      },
+    ],
   },
 };
