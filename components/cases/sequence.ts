@@ -250,6 +250,28 @@ export function createCaseSequence(refs: CaseRefs) {
       gsap.set(revealWindow, { x: V - doorX, force3D: true });
       gsap.set(revealPanel, { x: doorX - V, force3D: true });
 
+      // Off-screen is not out of the tab order. The panel holds a form, and while the door is
+      // shut that form sits a whole viewport to the right behind a clipping window ''' + D + ''' invisible,
+      // and still three focusable fields a keyboard reader would tab into with nothing on
+      // screen to explain them. `inert` takes the whole subtree out of focus, hit-testing and
+      // the accessibility tree in one property.
+      //
+      // Driven from here rather than set in the markup on purpose: if this sequence never runs
+      // ''' + D + ''' no JavaScript, a thrown error ''' + D + ''' the form stays reachable rather than being permanently
+      // disabled by an attribute nothing is left to clear. Guarded because writing `inert`
+      // unconditionally would touch the DOM on every frame of a scroll.
+      const shut = doorX <= 0;
+      if (revealPanel.inert !== shut) revealPanel.inert = shut;
+
+      // And the layer in front has to stop taking the clicks once it has gone. The track
+      // paints *above* the reveal (tree order ''' + D + ''' see CaseStudies), and past the last cell it is
+      // transparent, which is why that order is safe to look at. Transparent is not the same
+      // as absent: the cells are still boxes over the stage, and the first thing anyone tried
+      // to do with the form ''' + D + ''' click its button ''' + D + ''' hit a case-study cell instead.
+      const gone = doorX > 0;
+      const pe = gone ? "none" : "";
+      if (track.style.pointerEvents !== pe) track.style.pointerEvents = pe;
+
       for (let i = 0; i < m.cellLeft.length; i++) {
         // `d` and not `d + doorX`: the rise is keyed to where a cell sits on screen during
         // the traverse, and the door happens after every cell has settled. Feeding the

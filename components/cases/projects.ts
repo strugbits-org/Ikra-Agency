@@ -95,17 +95,44 @@ export const CASE_VIEW_ALL = "View all projects";
 export const CASE_EXPLORE = "Explore project";
 
 /**
- * The panel the door uncovers — placeholder copy, and knowingly so.
+ * The panel the door uncovers: the site's one point of contact.
  *
- * A contact form is going here. Until it does the panel holds one large line, which is what
- * the reference puts behind its own door (a four-line statement, nothing else on the screen
- * with it), so the reveal can be built and tuned against the right amount of ink. Replacing
- * this with a form is a change to `./RevealPanel` and this record; the door itself measures
- * nothing about what is behind it.
+ * Transcribed from the supplied comp, whose block is 68.4% of its frame with every line in it
+ * flush left — the heading, the body, the three fields and the button all start on the same
+ * edge, and the block as a whole is centred. Every figure in `./RevealPanel` is a share of
+ * that frame rather than a pixel count, because the comp is a screenshot at an unstated scale
+ * and only the ratios in it are trustworthy.
+ *
+ * The words live here with the rest of the section's copy and the markup lives there, which is
+ * the same split the case cells use. The door measures nothing about any of it.
+ *
+ * Two transcriptions worth knowing about before editing:
+ *
+ *   - **"You Name" is the comp's own wording**, not a slip in the transcription. It is set
+ *     verbatim rather than silently corrected, because the copy is the client's.
+ *   - The e-mail address is plain text in the comp. It is a `mailto:` here, styled to inherit
+ *     so it is identical at rest — the only difference is that it can be clicked.
  */
 export const CASE_REVEAL = {
-  /** Set as one block, one line per entry. The breaks are deliberate, not wrapping. */
-  lines: ["Tell us what", "you're making."] as const,
-  /** Under the statement. Placeholder for the form's own first field. */
-  note: "A contact form lands here.",
+  heading: "Ready to give your brand a new life?",
+  /** Split so the address can be a link without the sentence being assembled in the markup. */
+  body: {
+    before: "Join the list for first access to a limited number of founding-client projects " +
+      "or just send an e-mail to ",
+    email: "info@ikra.agency",
+    after: ".",
+  },
+  /**
+   * The three fields, in the comp's order.
+   *
+   * `label` is the comp's placeholder text and is used as both: the visible placeholder and a
+   * screen-reader label, because a placeholder is not a label — it is gone the moment anyone
+   * types, which is exactly when the field most needs naming.
+   */
+  fields: [
+    { name: "name", label: "You Name", type: "text", autoComplete: "name" },
+    { name: "email", label: "Your email", type: "email", autoComplete: "email" },
+    { name: "company", label: "Company name", type: "text", autoComplete: "organization" },
+  ],
+  submit: "Join The Waitlist",
 } as const;
