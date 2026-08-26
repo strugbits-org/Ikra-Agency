@@ -104,3 +104,19 @@ export const CASE_CLOSING = [
 
 export const CASE_VIEW_ALL = "View all projects";
 export const CASE_EXPLORE = "Explore project";
+
+/**
+ * The panel the door uncovers — placeholder copy, and knowingly so.
+ *
+ * A contact form is going here. Until it does the panel holds one large line, which is what
+ * the reference puts behind its own door (a four-line statement, nothing else on the screen
+ * with it), so the reveal can be built and tuned against the right amount of ink. Replacing
+ * this with a form is a change to `./RevealPanel` and this record; the door itself measures
+ * nothing about what is behind it.
+ */
+export const CASE_REVEAL = {
+  /** Set as one block, one line per entry. The breaks are deliberate, not wrapping. */
+  lines: ["Tell us what", "you're making."] as const,
+  /** Under the statement. Placeholder for the form's own first field. */
+  note: "A contact form lands here.",
+} as const;

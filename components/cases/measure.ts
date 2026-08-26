@@ -12,6 +12,14 @@ export type CaseMeasure = {
   /** The viewport's width in px — the frame the track travels across. */
   viewportW: number;
   /**
+   * The viewport's height in px, which is what the door's vh figures resolve against.
+   *
+   * The traverse needs no height at all — every one of its figures is a fraction of the
+   * width — so this exists purely for the exit: DOOR_VH is the scroll the door is floored
+   * over, and the pin has to reserve it in px.
+   */
+  viewportH: number;
+  /**
    * The track's overflow: translate the track this many pixels and its right edge arrives at
    * the viewport's right edge. A distance in *track* px, not in scroll px — the sequence
    * divides it by TRAVEL_PER_SCROLL to get the pin's length, so at the shipped 1.5 the
@@ -58,8 +66,9 @@ export type CaseMeasure = {
 export function measureCases(refs: CaseRefs): CaseMeasure {
   const track = refs.track.current;
   const viewportW = document.documentElement.clientWidth;
+  const viewportH = window.innerHeight;
 
-  if (!track) return { viewportW, distance: 0, cellLeft: [], contentH: [] };
+  if (!track) return { viewportW, viewportH, distance: 0, cellLeft: [], contentH: [] };
 
   const cellLeft = refs.cells.current.map((el) => el?.offsetLeft ?? 0);
   const contentH = refs.contents.current.map((el) => el?.offsetHeight ?? 0);
@@ -68,5 +77,5 @@ export function measureCases(refs: CaseRefs): CaseMeasure {
   // scrollWidth is the one that stays honest if a cell ever overflows it.
   const distance = Math.max(0, track.scrollWidth - viewportW);
 
-  return { viewportW, distance, cellLeft, contentH };
+  return { viewportW, viewportH, distance, cellLeft, contentH };
 }

@@ -8,30 +8,34 @@ import {
   useSyncExternalStore,
 } from "react";
 import { CaseTrack } from "./cases/CaseLayers";
+import RevealPanel from "./cases/RevealPanel";
 import { createCaseSequence } from "./cases/sequence";
 
 /**
  * The case studies: a pinned stage across which a horizontal track travels right-to-left as
  * the reader scrolls down. The track is the heading, one cell per project, and a closing
- * call-to-action — all the same width, all sliding together.
+ * call-to-action — all the same width, all sliding together. When it runs out, the whole
+ * layer slides off to the left and uncovers the panel that has been standing behind it.
  *
- * Assembled from five parts, so only one of them knows about position:
+ * Assembled from six parts, so only one of them knows about position:
  *
- *   ./cases/projects   the typed content, and the only file to edit for it
- *   ./cases/timeline   every number, each one measured off the reference recording
- *   ./cases/measure    the layout figures every frame is computed against
- *   ./cases/sequence   the matchMedia, the pin, the approach, and the one paint
- *   ./cases/CaseLayers the track and its cells, driven purely through refs
+ *   ./cases/projects    the typed content, and the only file to edit for it
+ *   ./cases/timeline    every number, each one measured off a reference recording
+ *   ./cases/measure     the layout figures every frame is computed against
+ *   ./cases/sequence    the matchMedia, the pin, the approach, the door and the one paint
+ *   ./cases/CaseLayers  the track and its cells, driven purely through refs
+ *   ./cases/RevealPanel the panel behind the door, which never moves
  *
  * This file is only refs, effects and markup: no timing and no math.
  *
  * **Nothing here touches the hero or the definition section.** It is a sibling in
  * `app/page.tsx` with its own triggers and its own pin, so the existing sequences are
- * untouched by construction rather than by care.
+ * untouched by construction rather than by care. The one thing it borrows from the hero is
+ * `hero/flooredCue`, which is pure — see the note where the sequence calls it.
  *
  * Reduced motion builds no ScrollTrigger and renders a static end state: the heading, the
- * projects and the closing panel as one plain vertical column, with no pin to reserve
- * distance for.
+ * projects and the closing panel as one plain vertical column with the reveal panel below
+ * them, and no pin to reserve distance for.
  */
 
 /**
@@ -74,6 +78,8 @@ export default function CaseStudies() {
   const trackRef = useRef<HTMLDivElement>(null);
   const cellRefs = useRef<(HTMLElement | null)[]>([]);
   const contentRefs = useRef<(HTMLElement | null)[]>([]);
+  const revealWindowRef = useRef<HTMLDivElement>(null);
+  const revealPanelRef = useRef<HTMLDivElement>(null);
 
   const reducedMotion = useSyncExternalStore(
     subscribeMotion,
@@ -93,6 +99,8 @@ export default function CaseStudies() {
       track: trackRef,
       cells: cellRefs,
       contents: contentRefs,
+      revealWindow: revealWindowRef,
+      revealPanel: revealPanelRef,
     });
   }, [reducedMotion]);
 
@@ -120,22 +128,30 @@ export default function CaseStudies() {
      range (#fcfcfc → #d5d5d5) is not usable verbatim here: the definition section above ends
      on this site's flat `--color-gray`, so opening at near-white would put a hard band across
      the seam. The gradient keeps the reference's direction and its subtlety, anchored to the
-     token the previous section ends on so the boundary stays invisible. */
+     token the previous section ends on so the boundary stays invisible.
+
+     It stays on the *section*, and it stays purely vertical, and both of those are now
+     load-bearing rather than incidental — the door works by never moving this at all. See the
+     note on seams in ./cases/timeline. */
   const field = "bg-linear-to-b from-gray to-[#cfcece]";
 
   if (reducedMotion) {
     return (
       <section ref={sectionRef} className={`relative w-full ${field}`}>
         {track}
+        {/* No door to open, so the panel behind it is simply the next thing down the page. */}
+        <div className="min-h-[80vh] w-full py-24">
+          <RevealPanel />
+        </div>
       </section>
     );
   }
 
   return (
     /* No height of its own: the pin reserves its own distance (`pinSpacing: true`), and that
-       distance is the track's measured overflow. Writing a height here as well would split one
-       source of truth across two files — the opposite trade to the two existing sections,
-       which need `pinSpacing: false` against a stated height.
+       distance is the track's measured overflow plus the door's floor. Writing a height here
+       as well would split one source of truth across two files — the opposite trade to the two
+       existing sections, which need `pinSpacing: false` against a stated height.
 
        No `overflow` here either, deliberately. The clipping the track needs is on the stage
        below; putting `overflow-hidden`/`clip` on this element instead risks making it a scroll
@@ -143,11 +159,50 @@ export default function CaseStudies() {
     <section ref={sectionRef} className={`relative w-full ${field}`}>
       {/* The element GSAP pins: exactly one viewport. `overflow-hidden` is load-bearing rather
           than decorative — it is the frame the track travels across, and what hides every cell
-          not yet arrived and every cell already gone. */}
+          not yet arrived, every cell already gone, and the reveal window while it is still
+          parked off the right edge. */}
       <div
         ref={stageRef}
         className="relative h-screen w-full overflow-hidden"
       >
+        {/* The reveal, and it comes *first* on purpose.
+
+            Both this and the track are positioned with no `z-index`, so tree order decides
+            which paints on top — the same rule as the stacked composition in
+            `DefinitionSection` and the testimonial's copy block. First means behind, which is
+            what this is: the panel the door uncovers, never something drawn over the case
+            studies. It can afford to be behind because the track is transparent wherever the
+            reveal is visible — that region is the empty tail run at the end of the track.
+
+            Two boxes, and neither may be collapsed into the other. The window is stage-sized
+            and clips; the panel inside it is counter-translated by exactly the window's own
+            offset, which is what leaves it standing still on screen while the window slides
+            across it. Written as one element it would either move with the door or not be
+            clipped by it.
+
+            The start state is in the markup rather than left to the first paint: the window
+            sits one whole viewport to the right, so a commit before the sequence runs — or a
+            crawler, or a failed script — shows the case studies alone rather than the reveal
+            covering them. */}
+        <div
+          ref={revealWindowRef}
+          className="absolute inset-0 overflow-hidden"
+          /* An inline `transform`, not Tailwind's `translate-x-full`: v4 compiles those to
+             the standalone `translate` property, which the browser composes *with* the
+             `transform` GSAP writes rather than being replaced by it — so the window would
+             start one viewport out and then be moved a second one. Same property in, same
+             property out. */
+          style={{ transform: "translateX(100%)", willChange: "transform" }}
+        >
+          <div
+            ref={revealPanelRef}
+            className="absolute inset-0"
+            style={{ transform: "translateX(-100%)", willChange: "transform" }}
+          >
+            <RevealPanel />
+          </div>
+        </div>
+
         {track}
       </div>
     </section>

@@ -198,6 +198,134 @@ export const MQ = {
 export const CELL_VW_MOBILE = 100;
 export const IMAGE_PAD_VW_MOBILE = 6;
 
+/* ── the door ────────────────────────────────────────────────────────────────── */
+
+/**
+ * ## The section's exit: the whole case-studies layer slides off to the left
+ *
+ * Once the track has finished its traverse the layer it lives on leaves the screen
+ * sideways, uncovering a panel that has been standing still behind it the whole time.
+ * Like everything above, the *shape* of it is transcribed off a reference recording
+ * (1918×934, 30fps) rather than chosen, and what the frames rule out matters as much as
+ * what they show:
+ *
+ *   rigid, not a wipe   The outgoing layer's right edge and the ink inside it move by
+ *                       the same amount every frame — the ratio of content travel to
+ *                       edge travel runs 0.947 → 1.000 over the fifteen frames where
+ *                       both are measurable, i.e. 1:1. The layer translates; nothing
+ *                       inside it slides against the frame.
+ *   the panel is still  The revealed section does not move, drift, scale or parallax.
+ *                       Its widest line held its right edge at x=1394 and its cap line
+ *                       at y=489 on **every** frame of both the open and the close, and
+ *                       its left edge at 526 from the moment the door cleared it.
+ *   no fade either side The outgoing field's tone at a fixed point on the screen held
+ *                       221 (y=700) and 212 (y=880) across the whole opening. The layer
+ *                       does not dim as it leaves and the panel does not fade in.
+ *   a whole viewport    The edge runs off the left of the screen and the field is
+ *                       entirely gone. The travel is 100vw, not a partial reveal.
+ *
+ * So the whole effect is one translation over one stationary layer, and the temptation
+ * to add a crossfade or a little parallax on the panel should be resisted the same way
+ * the card scale and the inner-image parallax were measured out of the traverse above.
+ *
+ * ## The clock is ours, and deliberately not the reference's
+ *
+ * The reference's door is **scrubbed**: its speed runs 19 → 28 → 48 → 4 → 16 → 2 px per
+ * frame, two accelerate-and-decelerate cycles, which is two hand gestures and not one
+ * curve. (The frames that repeat a value are dropped frames — mean |Δ| of 0.01–0.13
+ * against 3–10 for every frame that really moved — not a paused scroll.) So it takes two
+ * scrolls to open and it parks half-open in between, which is exactly what this build is
+ * asked not to do: the door has to open in one gesture whatever the reader's speed.
+ *
+ * That makes it a floored cue, the same shape as the hero's two door moves — see
+ * `hero/flooredCue.ts`, which owns the clock, the scroll bound and the rebase-on-reversal
+ * and is imported here rather than reimplemented.
+ */
+
+/** How far the layer travels, in vw. A whole viewport — measured; see above. */
+export const DOOR_TRAVEL_VW = 100;
+
+/**
+ * The move's own duration, and the curve it is read through.
+ *
+ * Not a transcription — a scrubbed reference has no duration (see above). 1.2s for a
+ * full-viewport slide is brisk without being a cut, and it puts the crossover speed
+ * (`DOOR_VH / DOOR_SECONDS`, the pace above which the reader outruns the clock) at
+ * 50vh/s, which is the figure the hero's opening already ships at.
+ *
+ * The ease is applied where the cue's value is *read* rather than on its tween, which is
+ * `createFlooredCue`'s contract: the clock and the scroll floor have to be compared as
+ * raw progress, and an eased tween retargeted mid-flight re-eases from wherever it was
+ * caught. `inOut` because the panel starts at rest and ends at rest at both ends of the
+ * gesture — there is nothing carrying momentum into it.
+ */
+export const DOOR_SECONDS = 1.2;
+export const DOOR_EASE = "power2.inOut";
+
+/**
+ * The return leg's speed, as a multiplier. 1 — the close is an exact undo of the open.
+ *
+ * The reference's own close ran 1.37× faster than its open (71 frames against 97), but
+ * both figures are the recorder's hand rather than a design, so there is nothing there to
+ * transcribe. The hero slows its return legs because they are reversals *into* content
+ * the reader is coming back to read; this one reverses into the closing panel of a track
+ * they have already been through, so a symmetric undo is the honest default.
+ */
+export const DOOR_REVERSE_SPEED = 1;
+
+/**
+ * The scroll the door is floored against, in vh past the end of the traverse — and the
+ * amount the pin grows by.
+ *
+ * The floor is what makes the clock affordable: below the crossover the clock leads and
+ * the reader gets the whole designed move; above it the scroll leads and the move
+ * finishes in whatever distance is left. Either way the door is **open by the end of this
+ * span**, which is what stops the pin releasing on a half-open door — the fault the
+ * hero's close shipped with, and the reason `CLOSE_VH` exists there.
+ *
+ * 60 is generous next to the hero's 25, and for a reason that inverts the argument made
+ * there. Every vh of `CLOSE_VH` is scroll spent after a move that has already landed, on
+ * a screen of flat gray — so it is a grind and it is kept short. The vh spent here is
+ * spent on the revealed panel, which is the thing the reader came to, so it reads as a
+ * hold on content rather than a wait. It is the same trade `LEAD_HOLD_VH` makes.
+ *
+ * This is the one knob for how long the panel stays on screen before the pin releases
+ * into the footer; raising it holds the panel that much longer.
+ */
+export const DOOR_VH = 60;
+export const DOOR_SPAN = [0, DOOR_VH] as const;
+
+/**
+ * How far the scroll must reverse before it counts as a reversal, in vh.
+ *
+ * Under a wheel notch (~11vh) and comfortably above ScrollSmoother's settling wobble.
+ * The direction is a Schmitt trigger on travel rather than the sign of one frame's delta,
+ * for the reason spelled out at `trackDirection` in `hero/sequence.ts`: the smoother keeps
+ * delivering motion for about a second after a gesture ends and the tail of it crosses
+ * zero repeatedly, and each flicker would retarget a 1.2s cue that had barely started.
+ */
+export const DIR_FLIP_VH = 3;
+
+/**
+ * ## There is no seam here to bleed, and that is worth stating
+ *
+ * Both of this repo's other sliding compositions close their joins a hair past touching —
+ * `IMAGE_SEAM_BLEED_PX` in the definition section's footer, and the hero's oversized door
+ * panels — because ScrollSmoother scrolls in fractional pixels and two edges computed from
+ * the same number still round independently.
+ *
+ * This one needs none, because the door is not a moving edge between two painted things.
+ * The field is the section's own background and never moves at all: it is a purely vertical
+ * gradient, so translating it horizontally would be invisible, and the only horizontal
+ * detail on it is the track, which is transparent. So the picture has exactly one boundary
+ * — field to panel — and a rounding error can only move that boundary by a subpixel. It
+ * cannot expose a third thing between them, because there is no third thing.
+ *
+ * The one consequence to keep: **the field must stay a vertical gradient.** Give it any
+ * horizontal component and the illusion breaks — the part of it that is supposed to have
+ * slid off the screen would still be sitting there under the panel's left edge.
+ */
+
 if (process.env.NODE_ENV !== "production") {
   // Two cells must fill the screen exactly at the wide breakpoint, or the track's rhythm
   // stops being "one screen shows a card and its neighbour" and the measured rise span
@@ -248,4 +376,38 @@ if (process.env.NODE_ENV !== "production") {
       `[CaseStudies] IMAGE_PAD_VW leaves a ${IMAGE_VW}vw image in a ${CELL_VW}vw cell.`,
     );
   }
+
+  // The door has to clear the whole screen, or a strip of the case-studies field is still
+  // standing when the pin releases and the revealed panel arrives with a grey margin.
+  if (DOOR_TRAVEL_VW < 100) {
+    console.error(
+      `[CaseStudies] the door travels ${DOOR_TRAVEL_VW}vw, so ${100 - DOOR_TRAVEL_VW}vw of ` +
+      "the case-studies field never leaves the screen.",
+    );
+  }
+
+  // The floor is what guarantees the door is open by the time the pin releases, and it can
+  // only do that if it has scroll to work with. A span shorter than one wheel notch (~11vh)
+  // is not a floor at all — the reader crosses the whole of it in one event, and the door is
+  // then wholly at the mercy of the clock finishing before the pin lets go.
+  if (DOOR_VH < 12) {
+    console.error(
+      `[CaseStudies] DOOR_VH=${DOOR_VH} is under one wheel notch, so the scroll floor cannot ` +
+      "bound the door's landing. Raise it above 12.",
+    );
+  }
+
+  // Below the crossover the clock leads and the reader gets the designed move; above it the
+  // scroll leads. Put the crossover under an ordinary reading pace and the clock never leads
+  // anyone, which is the whole point of the cue — it degenerates into a scrub, i.e. back into
+  // the reference's own two-gesture behaviour.
+  const crossoverVhPerSecond = DOOR_VH / DOOR_SECONDS;
+  if (crossoverVhPerSecond < 30) {
+    console.error(
+      `[CaseStudies] the door hands over to the scroll at ${crossoverVhPerSecond.toFixed(0)}vh/s, ` +
+      "which is at or below a reading pace — the clock would never lead. Raise DOOR_VH or " +
+      "shorten DOOR_SECONDS.",
+    );
+  }
+
 }
