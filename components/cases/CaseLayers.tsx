@@ -191,32 +191,26 @@ export function CaseTrack({
       {/* One cell per project. */}
       {CASE_PROJECTS.map((project, i) => (
         <Cell key={project.id} index={i + 1} {...cellProps}>
-          {/*
-            Every card's picture is the same height, and the width is what varies.
+          <article>
+            {/*
+              One frame for the whole row — same width, same height, so the captions sit on
+              one line — and it is the *widest* artwork's ratio rather than the reference's
+              measured 1.45. That choice is what keeps the captures whole: at 1.45 they lose
+              ~12% off their sides, which on an interface is the CRM's right-hand panel and
+              the edge of the QCIF page; at 1.687 the widest one is exact and the other loses
+              2%, i.e. six pixels of browser chrome. What does give is the photograph, which
+              is cropped top and bottom instead — the right way round, since a crop of a
+              street is still a street.
 
-            Three things are wanted at once and only one arrangement gives all three: no crop
-            (a capture loses its right-hand panel to `object-cover`), no mat (`object-contain`
-            in a shared box stands the capture on a slab of grey), and one height across the
-            row (unequal heights put each caption at its own level, which is what a row of
-            cards must not do). So the *height* is the shared figure and each frame takes the
-            asset's ratio to find its width.
+              Feed the row artwork that shares one ratio and this collapses back to the
+              reference's 1.45 with nothing cropped anywhere; see `aspect` in ./projects.
 
-            That height is the slot divided by the widest ratio in the row, so even the widest
-            card fits inside the measured `IMAGE_PAD_VW` — taking the tallest card's height
-            instead would make a 1.687 capture 48.9vw wide in a 50vw cell and leave neighbours
-            all but touching. The cost is that the narrowest card no longer fills the slot:
-            Cafe Technica's photograph draws at 86% of 42vw. `mx-auto` centres what is left.
-          */}
-          <article
-            className="mx-auto"
-            style={{ width: `${((project.aspect ?? IMAGE_ASPECT) / widestAspect) * 100}%` }}
-          >
-            {/* The measured 1.45 aspect, unless the card's artwork brings its own — see
-                `aspect` in ./projects. No radius — the reference's frames are square
-                cornered — and no overlay, gradient or scrim of any kind over the artwork. */}
+              No radius — the reference's frames are square cornered — and no overlay,
+              gradient or scrim of any kind over the artwork.
+            */}
             <div
               className="relative w-full overflow-hidden bg-ink/5"
-              style={{ aspectRatio: project.aspect ?? IMAGE_ASPECT }}
+              style={{ aspectRatio: widestAspect }}
             >
               <Image
                 src={project.imageSrc}
