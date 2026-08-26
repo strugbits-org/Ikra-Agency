@@ -3,7 +3,9 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { ScrollSmoother, ScrollTrigger } from "@/lib/gsap";
+import RouteCover from "./RouteCover";
 import ScrollBar from "./ScrollBar";
+import { hideRouteCover } from "./routeTransition";
 
 export default function SmoothScrollProvider({
   children,
@@ -59,6 +61,12 @@ export default function SmoothScrollProvider({
    * Back and forward are not special-cased and do not need to be: the router's own scroll
    * restoration lands after this and wins, so a `goBack` returns to where the reader was
    * (verified: parked at 6000 on the home page, into a case study at 0, back to 6000).
+   *
+   * **And the cover comes off here, last.** A link raises it on click (see `CaseLink`); this
+   * is the first moment the new page exists, is at the top, and has had its triggers
+   * re-measured, so it is the first moment there is anything worth showing. Uncovering before
+   * the refresh would hand over a page whose pins are still measured against the old
+   * document's height.
    */
   useEffect(() => {
     if (lastPath.current === pathname) return;
@@ -66,6 +74,18 @@ export default function SmoothScrollProvider({
 
     smootherRef.current?.scrollTo(0, false);
     ScrollTrigger.refresh();
+
+    // One frame, so the browser has actually painted the reset and refreshed layout before
+    // the cover starts to fade off it. Two rAFs is the usual idiom for "after the next
+    // paint": the first fires before it, the second after.
+    let inner = 0;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(hideRouteCover);
+    });
+    return () => {
+      cancelAnimationFrame(outer);
+      cancelAnimationFrame(inner);
+    };
   }, [pathname]);
 
   return (
@@ -79,6 +99,9 @@ export default function SmoothScrollProvider({
           smoother is. It portals itself out to document.body — see the component
           — so where it sits in this tree costs nothing. */}
       <ScrollBar />
+      {/* Same reasoning as ScrollBar: it portals itself out to document.body, because
+          `position: fixed` cannot hold still inside the smoother's transformed subtree. */}
+      <RouteCover />
     </>
   );
 }

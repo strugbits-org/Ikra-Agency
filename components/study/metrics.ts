@@ -280,29 +280,70 @@ export const CARD_ASPECT = 1045 / 824;
 export const CARD_MAX_VH = 65;
 
 /**
- * The band the greyscale photograph is compressed into before it multiplies over the field,
- * as a pair of multipliers on that field.
+ * How the greyscale photograph is mapped before it multiplies over the field: a gamma on the
+ * source, then a band of multipliers on the field to land in.
  *
- * `1` is the field untouched; `0` is black. So `[0.5, 1]` says: the lightest the photograph
- * may leave the card is the flat ember it sits on, and the darkest is half of it. That upper
- * bound is the whole point of the pair — it is what makes the card *read as the field with a
- * photograph in it* rather than as a dark panel laid on top, which is what an uncompressed
- * multiply gives you (this shipped at `[0.3, 0.9]` first and the card came out visibly
- * darker than the band around it).
+ * `1` is the field untouched and `0` is black, so a pair like `[0.5, 1]` says: the lightest the
+ * photograph may leave the card is the flat ember it sits on, and the darkest is half of it.
+ * That upper bound is what makes the card *read as the field with a photograph in it* rather
+ * than as a dark panel laid over it — which is what an uncompressed multiply gives you, and
+ * what shipped at `[0.3, 0.9]` first. The lower bound matters for the opposite reason: taken
+ * all the way down, a photograph's shadows go to black and take the hue with them, so the card
+ * stops being orange at the bottom.
  *
- * The lower bound matters for a different reason: multiplied all the way down, a photograph's
- * shadows go to black and take the hue with them, so the card stops being orange at the
- * bottom. Half the field keeps it warm.
- *
- * The CSS is derived rather than written — `contrast()` and `brightness()` in series map
- * [0,1] onto [(0.5-0.5c)b, (0.5+0.5c)b], so `b = lo + hi` and `c = (hi - lo) / (lo + hi)`.
- * Stating the endpoints and solving for the filter keeps the two numbers anyone would want
- * to check — how light and how dark — at the front.
- *
- * Contrast is the constraint on the top end and is verified against the render, per text
- * block, rather than predicted: see ./Testimonial.
+ * `gamma` is applied to the source first, and `1` means it is not — in which case the pair is
+ * a plain linear map and `contrast()`/`brightness()` in CSS would express it. It exists because
+ * a linear map cannot lift a photograph whose shadows are already crushed; see
+ * CARD_TINT_CRUSHED. `study/Testimonial` renders all three as one SVG `feComponentTransfer`,
+ * whose `gamma` type is `amplitude * pow(C, exponent) + offset` — i.e. exactly
+ * `lo + (hi - lo) * s^gamma`, with no arithmetic in between.
  */
-export const CARD_TINT_RANGE = [0.5, 1] as const;
+export type CardTint = { gamma: number; lo: number; hi: number };
+
+/**
+ * The default: no gamma, and the whole band from half the field up to the field itself.
+ *
+ * QCIF's photograph is a soft dusk street that never approaches black, so it needs nothing
+ * more. Measured on the render it lands at 44% of the field's luminance with the copy at
+ * 4.27:1 and 5.34:1 — see CARD_TINT_CRUSHED for the study this does not work for, and
+ * ./Testimonial for how contrast is verified per block.
+ */
+export const CARD_TINT: CardTint = { gamma: 1, lo: 0.5, hi: 1 };
+
+/**
+ * The transfer for a photograph whose shadows are already crushed — Cafe Technica's.
+ *
+ * ## Why the default fails here, and why no pair can fix it
+ *
+ * `CARD_TINT` maps a *nominal* [0, 1] and knows nothing about where a given photograph's tones
+ * actually fall. The two studies' fall in very different places: recovered from the render,
+ * **44.9% of Cafe Technica's card sits in the bottom 5% of the input range against 0.1% of
+ * QCIF's**. One is a dusk street, the other a sunlit shopfront with a dark interior behind it
+ * and a coat in the foreground. So the same band tints the one and puts a flat black mass
+ * across half of the other — the failure the lower bound exists to prevent, arriving through
+ * the source instead of through the arithmetic.
+ *
+ * A wider or higher band does not fix it, and that is provable rather than a matter of taste:
+ * to put this photograph's p25 and median where QCIF's sit, a linear map would need
+ * `hi - lo = 2.44`. Its median source grey is 0.064. The shadows have to be *lifted*, not
+ * scaled, and that is a gamma.
+ *
+ * ## What actually bounds it
+ *
+ * Not the shadows — the highlights, and specifically the brightest patch of photograph that
+ * lands under the 22px attribution, which needs 4.5:1 against white. That single patch sets
+ * how light the whole card may be, and the only question left is how the budget is spent:
+ * measured on the render, at 4.65:1 the card can reach 65% of the field's luminance with the
+ * photograph nearly washed out, or 58% with it clearly readable. Note the gamma is not free
+ * here either — it lifts that binding highlight too — but it still buys real headroom: at 65%
+ * a linear map measures 4.32:1 and fails, where `gamma 0.4` measures 4.65:1 and passes.
+ *
+ * This sits at **60% of the field** with the figures in the photograph still legible, verified
+ * at 4.56:1 under the quote and 4.71:1 under the attribution. The default's 43% was measured,
+ * correct, matched QCIF's tonality exactly — and was still reported as too dark, because the
+ * eye reads the dark mass and not the mean.
+ */
+export const CARD_TINT_CRUSHED: CardTint = { gamma: 0.33, lo: 0.66, hi: 0.91 };
 
 /** Copy block to the attribution: measured 60px between their line boxes. */
 export const CARD_SIGN_GAP = fluid(32, 60, 72);

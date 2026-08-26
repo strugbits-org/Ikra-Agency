@@ -7,18 +7,48 @@ import {
   CARD_ASPECT,
   CARD_PAD,
   CARD_SIGN_GAP,
-  CARD_TINT_RANGE,
+  CARD_TINT,
   LEADING,
   TYPE,
 } from "./metrics";
+import type { CardTint } from "./metrics";
 
 /**
- * `contrast()` then `brightness()` maps [0,1] onto [(0.5-0.5c)b, (0.5+0.5c)b]. Inverting that
- * for a wanted [lo, hi] gives b = lo + hi and c = (hi - lo)/(lo + hi). See CARD_TINT_RANGE.
+ * The greyscale-and-compress the photograph goes through before it multiplies, as an SVG
+ * filter rather than a CSS one.
+ *
+ * CSS shorthand filters are all linear: `contrast()` then `brightness()` in series map [0,1]
+ * onto [(0.5-0.5c)b, (0.5+0.5c)b], which expresses any `[lo, hi]` band and nothing else. That
+ * is enough for QCIF and provably not enough for Cafe Technica, whose shadows are crushed in
+ * the source and have to be *lifted* rather than scaled — see CARD_TINT_CRUSHED. There is no
+ * gamma in the CSS shorthand, so this drops to `feComponentTransfer`, whose `gamma` type is
+ * `amplitude * pow(C, exponent) + offset`: one primitive for `lo + (hi - lo) * s^gamma`, with
+ * `gamma: 1` collapsing to exactly the linear band CSS would have given.
+ *
+ * Two details are load-bearing. `color-interpolation-filters="sRGB"` — SVG filters default
+ * to linearRGB, and every figure behind these numbers was measured in sRGB, which is also
+ * where `multiply` composites. And `type="saturate" values="0"`, which is what the filter spec
+ * defines `grayscale(1)` as, so the greyscale step is unchanged from the CSS path it replaces.
+ *
+ * The element is sized to nothing rather than hidden with `display: none`, which some browsers
+ * take as licence not to resolve the reference.
  */
-const [TINT_LO, TINT_HI] = CARD_TINT_RANGE;
-const TINT_BRIGHTNESS = TINT_LO + TINT_HI;
-const TINT_CONTRAST = (TINT_HI - TINT_LO) / TINT_BRIGHTNESS;
+function TintFilter({ id, tint }: { id: string; tint: CardTint }) {
+  const { gamma, lo, hi } = tint;
+  const transfer = { type: "gamma", amplitude: hi - lo, exponent: gamma, offset: lo } as const;
+  return (
+    <svg aria-hidden focusable="false" className="absolute h-0 w-0 overflow-hidden">
+      <filter id={id} colorInterpolationFilters="sRGB">
+        <feColorMatrix type="saturate" values="0" />
+        <feComponentTransfer>
+          <feFuncR {...transfer} />
+          <feFuncG {...transfer} />
+          <feFuncB {...transfer} />
+        </feComponentTransfer>
+      </filter>
+    </svg>
+  );
+}
 
 /**
  * Band 3: the client's words, set over a photograph the band tints with its own field.
@@ -49,11 +79,18 @@ const TINT_CONTRAST = (TINT_HI - TINT_LO) / TINT_BRIGHTNESS;
  * is what makes whole clauses of the Cafe Technica quote disappear into the shop window
  * behind them.
  *
- * So a study whose photograph has highlights sets `blend: "multiply"` instead. Multiply can
- * only darken, so the field becomes the *lightest* the card ever gets and the guarantee runs
- * the right way. The photograph is range-compressed into `CARD_TINT_RANGE` first, which is
- * what keeps the card reading as the field with a photograph in it rather than as a dark
- * panel laid over it, and stops the shadows crushing the ember hue to black.
+ * So both studies set `blend: "multiply"` instead. Multiply can only darken, so the field
+ * becomes the *lightest* the card ever gets and the guarantee runs the right way. The
+ * photograph is compressed into a band of multipliers on that field first, which is what keeps
+ * the card reading as the field with a photograph in it rather than as a dark panel laid over
+ * it, and stops the shadows crushing the ember hue to black.
+ *
+ * **The transfer is per-study, and it has to be.** It maps a *nominal* [0, 1] and knows nothing
+ * about where a given photograph's tones actually fall: measured off the render, 44.9% of Cafe
+ * Technica's card sits in the bottom 5% of the input range against 0.1% of QCIF's, so one band
+ * tints the one and puts a flat black mass across half of the other. Widening the band cannot
+ * answer that — matching QCIF's low percentiles linearly would want `hi - lo = 2.44` — which
+ * is why the transfer carries a gamma and why it is an SVG filter. See CARD_TINT_CRUSHED.
  *
  * The top of that range is bounded by legibility, and the bound is **not the same for both
  * blocks of copy**: the quote is 37px, which WCAG counts as large text and holds at 3:1,
@@ -89,6 +126,7 @@ export default function Testimonial({ study }: { study: CaseStudy }) {
     name,
     role,
     blend = "screen",
+    tint = CARD_TINT,
     aspect = CARD_ASPECT,
     maxVh,
   } = study.testimonial;
@@ -100,21 +138,21 @@ export default function Testimonial({ study }: { study: CaseStudy }) {
     ? `min(${CARD.width}%, calc(${maxVh}vh * ${aspect}))`
     : `${CARD.width}%`;
 
-  // Greyscale first in both cases — the channel ratios the duotone is solved against only
-  // hold if the source carries no hue of its own. The range compression belongs to the
-  // multiply path alone; on screen it would lift the blacks the blend is relying on.
-  const tint =
-    blend === "multiply"
-      ? "object-cover mix-blend-multiply"
-      : "object-cover grayscale mix-blend-screen";
-  const tintFilter =
-    blend === "multiply"
-      ? `grayscale(1) contrast(${TINT_CONTRAST.toFixed(4)}) brightness(${TINT_BRIGHTNESS})`
-      : undefined;
+  // Greyscale first in both cases — the channel ratios the duotone is solved against
+  // only hold if the source carries no hue of its own. The compression belongs to the multiply
+  // path alone; on screen it would lift the blacks that blend is relying on, so that path keeps
+  // CSS `grayscale` and no transfer at all.
+  const multiply = blend === "multiply";
+  const filterId = `card-tint-${study.slug}`;
+  const tintClass = multiply
+    ? "object-cover mix-blend-multiply"
+    : "object-cover grayscale mix-blend-screen";
+  const tintFilter = multiply ? `url(#${filterId})` : undefined;
 
   return (
     <Band tone="ember">
       <Measure>
+        {multiply ? <TintFilter id={filterId} tint={tint} /> : null}
         <div
           className="relative w-full lg:[margin-left:var(--card-offset)] lg:[width:var(--card-width)]"
           style={
@@ -148,7 +186,7 @@ export default function Testimonial({ study }: { study: CaseStudy }) {
               sizes="(min-width: 1024px) 62vw, 100vw"
               // See the head of this file for the two measurements that fix the screen
               // duotone, and for the contrast arithmetic behind the multiply one.
-              className={tint}
+              className={tintClass}
               style={{ objectPosition: photo.focus, filter: tintFilter }}
             />
 

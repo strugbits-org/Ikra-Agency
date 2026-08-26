@@ -21,7 +21,8 @@
  * all — the space beside its mockup is a line of copy, not a frame.
  */
 
-import { CARD_MAX_VH, QCIF_HERO_ASPECT } from "./metrics";
+import { CARD_TINT_CRUSHED, CARD_MAX_VH, QCIF_HERO_ASPECT } from "./metrics";
+import type { CardTint } from "./metrics";
 import type { Tone } from "./primitives";
 
 /**
@@ -135,6 +136,15 @@ export type CaseStudy = {
      * white type on a lightened ember field is not legible where the photograph is bright.
      */
     blend?: "screen" | "multiply";
+    /**
+     * How the photograph is mapped before it multiplies over the field. Defaults to
+     * `CARD_TINT`.
+     *
+     * It is per-study because the transfer maps a *nominal* range and the two studies'
+     * photographs use very different parts of it — see `CARD_TINT_CRUSHED`. Ignored on the
+     * `screen` path, which relies on the blacks this would lift.
+     */
+    tint?: CardTint;
     /**
      * The card's shape. Defaults to `CARD_ASPECT`, the 1045 x 824 measured off the Cafe
      * Technica capture.
@@ -287,6 +297,16 @@ export const CAFE_TECHNICA: CaseStudy = {
   },
 
   testimonial: {
+    // `multiply`, like QCIF's. The reference capture for this band is a `screen` blend and
+    // this record followed it, faithfully and unreadably: screen can only lighten, and this
+    // photograph is a sunlit shopfront, so the copy sat on a background measured at 1.04:1
+    // — white type on white. Multiply inverts the guarantee, making the flat ember the
+    // *lightest* the card can get. See the head of ./Testimonial.
+    blend: "multiply",
+    // ...but not QCIF's transfer. This photograph's shadows are already crushed — nearly half
+    // the card lands on the floor of the default band — so they need lifting rather than
+    // scaling, which is a gamma. See CARD_TINT_CRUSHED for the measurement and the bound.
+    tint: CARD_TINT_CRUSHED,
     photo: {
       src: "/img/Coffee-Shop-Vibes.avif",
       alt: "Café Technica’s customers on a Hobart street",

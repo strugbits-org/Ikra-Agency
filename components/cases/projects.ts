@@ -13,21 +13,20 @@
  * tag row and no per-project accent colour; earlier versions of this file carried all three
  * and they were inventions. They are gone rather than hidden.
  *
- * ## One study is real; the rest are placeholder, and knowingly so
+ * ## Both entries are real, and the stand-ins are gone
  *
- * The first entry is Café Technica, and it is the only one with a `link` — it points at
- * `app/work/cafe-technica`, which is a full page built from the client's own material. The
- * two below it are still stand-ins.
+ * Café Technica and QCIF each point at a full page built from that client's own material —
+ * `app/work/cafe-technica` and `app/work/qcif`. The two caviar stand-ins that used to sit
+ * under them have been removed rather than left unlinked: an unclickable card next to two
+ * clickable ones reads as a broken link, and naming clients this studio may not have is a
+ * claim rather than a layout.
  *
- * `public/` holds no case-study photography — every image in it is caviar or coastal stock,
- * and most is already in use: `hero-bg.jpg` is the hero's backdrop, `section2-vertical.mp4`
- * its clip window, the three `caviar *.jpg` files the footer's merging row, and
- * `caviar-falling-video.mp4` the definition's window. These four are the most visually
- * distinct of what is left.
- *
- * The copy is placeholder for a stronger reason than the images: naming clients this studio
- * may not have would be a claim rather than a layout. The *shape* is the reference's, so
- * replacing the words cannot disturb the composition.
+ * **Two cells is now the count, and the section retimes itself for it.** The track's length,
+ * the pin's length and every cell's entrance are all derived from this array — see
+ * `./sequence` — so adding a third study is one more entry here and nothing else. The
+ * reference recording happens to show three, which is why `TRACK_TAIL_VW` and the pace knob
+ * were tuned against that count; at two the traverse is simply shorter, and the dev
+ * assertions in `./timeline` are written in vw rather than in cells so they still hold.
  */
 export type CaseProject = {
   id: string;
@@ -57,30 +56,20 @@ export const CASE_PROJECTS: CaseProject[] = [
     focus: "50% 45%",
   },
   {
-    id: "sturia-reserve",
-    title: "Sturia Reserve",
+    id: "qcif",
+    title: "QCIF",
     description:
-      "Packaging and provenance for a single-estate reserve selling into eleven markets.",
-    imageSrc:
-      "/img/luxurious-mound-glistening-black-caviar-rests-atop-textured-stone.jpg",
-    link: null,
-    focus: "50% 55%",
+      "A brand, a sub-brand system and a website that let Queensland’s digital research partner restructure how it works.",
+    // The delivered site itself. It is the only QCIF asset that is *about the work* rather
+    // than about the client's people, which is what a case-study card should show — but it
+    // is only 557px wide, so it upscales past about a 1300px viewport. A wider capture is
+    // the one thing that would improve this card.
+    imageSrc: "/img/qcif-hero.jpg",
+    link: "/work/qcif",
+    focus: "50% 50%",
   },
-  {
-    id: "service-atelier",
-    title: "Service Atelier",
-    description:
-      "A tasting ritual turned into a training system, and then into a booking product.",
-    imageSrc: "/img/silver-spoon-with-black-caviar-free-space-text.jpg",
-    link: null,
-    focus: "50% 45%",
-  },
-  // A fourth entry, held back to match the reference's own count of three.
-  //
-  // Not a limit — uncomment it and the section retimes itself: the track grows by one cell
-  // and the pin by 50vw, which is 3.5 → 4.5 screens of scrolling at a 2:1 viewport. Three is
-  // what the recording shows, and at 1px of scroll per 1px of track (the reference's own
-  // relation, see ./sequence) that count is also what keeps the section's length close to it.
+  // A third study goes here. Not a limit — the track grows by one cell and the pin by 50vw,
+  // which is half a screen more scrolling at a 2:1 viewport, and nothing else has to change.
   // {
   //   id: "northern-waters",
   //   title: "Northern Waters",

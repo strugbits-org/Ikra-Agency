@@ -50,14 +50,20 @@ const TONE: Record<Tone, string> = {
 /**
  * How far each band overlaps the one below it, in px.
  *
- * Without it a hairline of the page's own background opens at the seam **while the page is
- * scrolling** and closes again whenever it stops. ScrollSmoother translates `#smooth-content`
- * by a fractional number of pixels, so two adjacent boxes that share an edge in layout round
- * that edge independently when they rasterise, and a sub-pixel gap falls between them. Behind
- * them is `--color-cream`, so on the QCIF study's navy — where two bands of the *same* colour
- * meet and there is nothing else to explain a line — it reads as a grey rule under the
- * masthead. Measured mid-scroll before the fix: an isolated #f0e5e3 row between two navy rows
- * on 22 of 26 sampled frames, and none at all once the scroll settled, which is the signature.
+ * Without it a hairline opens at the seam **while the page is scrolling** and closes again
+ * whenever it stops. ScrollSmoother translates `#smooth-content` by a fractional number of
+ * pixels, so two adjacent boxes that share an edge in layout round that edge independently
+ * when they rasterise, and the page's own `--color-cream` ground bleeds through the gap. On
+ * the QCIF study's navy — where two bands of the *same* colour meet and there is nothing else
+ * that could explain a line — it reads as a grey rule under the masthead.
+ *
+ * Measured by scanning every frame of a real wheel scroll for a row that is off-navy at five
+ * x positions spread across the viewport, with navy immediately above and below at all five —
+ * full width is what separates a seam from an antialiased glyph, and getting that wrong is
+ * what made the first pass chase the copy instead. Without the overlap the seam row deviates
+ * from navy by as much as **57 counts** (median 52 at dpr 1, 32 at dpr 1.5) on essentially
+ * every frame; with it, by 1, on none. Note the boundary is clean at every *settled* scroll
+ * position, which is the signature and the reason this is easy to miss in a screenshot.
  *
  * A negative margin rather than a border or an outline: it makes the boxes genuinely overlap,
  * so the band below paints its own background across the gap whatever way the rounding goes.

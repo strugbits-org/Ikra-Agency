@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { showRouteCover } from "@/components/routeTransition";
 import type { ReactNode, RefObject } from "react";
 import {
   CASE_CLOSING,
@@ -80,8 +81,14 @@ function CaseLink({
   // `next/link` rather than a bare anchor, so a case study opens without tearing the page
   // down and rebuilding ScrollSmoother — see SmoothScrollProvider, which resets the
   // smoother and refreshes every trigger when the route changes.
+  //
+  // The click raises the route cover, and the click rather than a router event because it is
+  // the earliest signal there is: in development the destination segment has not been
+  // compiled at this point, so nothing the router exposes fires until well after the screen
+  // has already gone cream. `SmoothScrollProvider` takes it off again once the new page is
+  // up, reset and re-measured — see `components/RouteCover`.
   return href ? (
-    <Link href={href} className={cls}>
+    <Link href={href} className={cls} onClick={showRouteCover}>
       {inner}
     </Link>
   ) : (
