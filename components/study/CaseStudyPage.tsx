@@ -93,7 +93,7 @@ function BandFor({ band, study }: { band: BandKey; study: CaseStudy }): ReactNod
       return warnIfMissing(band, study.outcome) && <Outcome study={study} />;
 
     case "deliverables":
-      return <Deliverables study={study} />;
+      return warnIfMissing(band, study.deliverables) && <Deliverables study={study} />;
 
     case "credits":
       return warnIfMissing(band, study.credits) && <Credits study={study} />;
@@ -103,14 +103,16 @@ function BandFor({ band, study }: { band: BandKey; study: CaseStudy }): ReactNod
       // than GrowthBars doing it — that component renders no `Band`, no `Measure` and no
       // `Display`, which is what keeps it usable on a route that has none of them.
       return (
-        <Band tone="dark">
-          <Measure>
-            <GrowthBars
-              items={study.glance.items}
-              heading={<Display>{study.glance.title}</Display>}
-            />
-          </Measure>
-        </Band>
+        warnIfMissing(band, study.glance) && (
+          <Band tone="dark">
+            <Measure>
+              <GrowthBars
+                items={study.glance!.items}
+                heading={<Display>{study.glance!.title}</Display>}
+              />
+            </Measure>
+          </Band>
+        )
       );
 
     // The three media splits: one composition, three measured layouts. Their tones, their

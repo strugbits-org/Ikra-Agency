@@ -434,6 +434,15 @@ export const BRAND_MARK_MAX = fluid(180, 300, 360);
  */
 export const QCIF_HERO_ASPECT = 557 / 337;
 
+/**
+ * The Auto Maxx hero screenshot's own 835 x 495.
+ *
+ * Same story as QCIF's: the capture already carries browser chrome of its own, so the
+ * masthead places it bare rather than inside `BrowserMock`. Stated as the asset's dimensions
+ * so the frame never crops it.
+ */
+export const CRM_HERO_ASPECT = 835 / 495;
+
 /* ── section 7, the summary of deliverables ─────────────────────────────── */
 
 /**
@@ -493,6 +502,16 @@ export const CARD_TITLE_GAP = fluid(12, 20, 24);
  * change to the role column rather than the names moving with it.
  */
 export const CREDITS_COLS = { role: 24, gap: 3, name: 30 } as const;
+
+/**
+ * A partner mark set in the name column instead of a line of type.
+ *
+ * 350px at the reference width, measured off the third study's comp: the mark spans 18.4% of
+ * a 625px artboard, i.e. 350 of 1902 — and comfortably inside the 30% the name column has.
+ * Stated as a width only, with the asset's own ratio giving the height, so replacing the file
+ * needs no second figure here.
+ */
+export const CREDITS_LOGO_WIDTH = fluid(140, 350, 380);
 
 /**
  * Heading to the first row, and between rows. Set on `role`, not `body`.

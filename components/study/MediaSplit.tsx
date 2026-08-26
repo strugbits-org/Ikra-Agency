@@ -64,7 +64,10 @@ export default function MediaSplit({
    */
   fullHeight?: boolean;
 }) {
-  const { heading, paragraphs, photo, fit = "cover" } = content;
+  // The band's measured frame, unless the record brings a capture with a ratio of
+  // its own — see `aspect` on the content type.
+  const { heading, paragraphs, photo, fit = "cover", aspect: ownAspect } = content;
+  const frame = ownAspect ?? aspect;
   const lines = typeof heading === "string" ? [heading] : heading;
 
   const copy = (
@@ -92,7 +95,7 @@ export default function MediaSplit({
       // `mx-auto` only bites once `maxWidth` is under the column, so it costs nothing on the
       // photograph bands and centres the mark on the one that sets a cap.
       className="relative mx-auto w-full overflow-hidden [aspect-ratio:var(--media-aspect)]"
-      style={{ "--media-aspect": aspect, maxWidth: mediaMax } as CSSProperties}
+      style={{ "--media-aspect": frame, maxWidth: mediaMax } as CSSProperties}
     >
       <Image
         src={photo.src}

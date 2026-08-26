@@ -47,8 +47,18 @@
   --color-paper: var(--color-paper);
   --color-navy: var(--color-navy);
   --font-sans: var(--font-zalando);
-  /* Only the case-study routes render this; see app/fonts.ts for why it is a stand-in. */
-  --font-serif: var(--font-playfair);
+  /*
+   * Only the case-study routes render this, and it is a system stack rather than a webfont:
+   * Times New Roman ships with Windows and macOS, so it costs no request and no preload.
+   * Linux and Android do not have it and fall back to the generic serif, which in practice
+   * is Liberation Serif or Noto Serif — metrically close enough that the measured type sizes
+   * in `study/metrics.ts` still set the same lines. If it ever has to be exact everywhere,
+   * the answer is Tinos (free, metric-compatible) rather than self-hosting Times New Roman,
+   * which is Monotype-licensed. The Playfair Display stand-in this replaces is gone from
+   * app/fonts.ts — nothing read `--font-playfair` once this token stopped pointing at it,
+   * but next/font was still preloading its woff2 on every route including the home page.
+   */
+  --font-serif: "Times New Roman", Times, serif;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -191,10 +191,19 @@ export default function Testimonial({ study }: { study: CaseStudy }) {
             />
 
             {/* The spacer: holds the measured ratio, contains nothing, and only from `lg` —
-                below it a 1045:824 box on a phone is a letterbox with a paragraph in it. */}
+                below it a 1045:824 box on a phone is a letterbox with a paragraph in it.
+
+                `w-full` is load-bearing and not tidying. A grid item's automatic minimum
+                size is its min-content contribution, and for a ratio box whose height the
+                row has already stretched that is `height x ratio` — so the moment a study's
+                copy outgrows the ratio, the spacer demands a column wider than the card and
+                the quote runs out through `overflow-hidden`. Measured on the third study's
+                eleven-line quote: a 666px row asked for an 845px track inside a 791px card,
+                and the last word was clipped. A definite width makes the ratio derive the
+                height rather than the other way round. */}
             <div
               aria-hidden
-              className="col-start-1 row-start-1 lg:[aspect-ratio:var(--card-aspect)]"
+              className="col-start-1 row-start-1 w-full min-w-0 lg:[aspect-ratio:var(--card-aspect)]"
               style={{ "--card-aspect": String(aspect) } as CSSProperties}
             />
 

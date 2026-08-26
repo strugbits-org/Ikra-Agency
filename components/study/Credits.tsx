@@ -1,8 +1,12 @@
+import Image from "next/image";
 import type { CSSProperties } from "react";
 import { Band, Measure } from "./primitives";
 import type { CaseStudy } from "./content";
+
+type Credit = NonNullable<CaseStudy["credits"]>["rows"][number];
 import {
   CREDITS_COLS,
+  CREDITS_LOGO_WIDTH,
   CREDITS_HEAD_GAP,
   CREDITS_ROW_GAP,
   LEADING,
@@ -63,6 +67,7 @@ export default function Credits({ study }: { study: CaseStudy }) {
               key={row.role}
               {...row}
               gap={i === 0 ? CREDITS_HEAD_GAP : CREDITS_ROW_GAP}
+              span={rows.length - i}
             />
           ))}
         </div>
@@ -74,8 +79,22 @@ export default function Credits({ study }: { study: CaseStudy }) {
 /**
  * Both halves are items of the band's own grid rather than of a nested one, so a role that
  * wraps to three lines keeps its name on the first of them with nothing to align.
+ *
+ * The second half is a line of type, a partner's mark, or nothing — the third study credits
+ * one studio with a logo and leaves its other two rows unattributed, and an empty grid item
+ * keeps the rows' spacing without a placeholder in it — an unattributed row emits *no*
+ * second item at all, because an empty one cannot be auto-placed into a column the mark's
+ * span already occupies and lands in a row of its own instead, which is 20px of white
+ * between two credits and the mark no longer centred on them.
+ *
+ * **A mark spans the rows below it rather than sitting in its own**, and that is the whole
+ * difference between this reading as one attribution and as a gap in the list. A logo is
+ * several lines tall where a name is one, so left in its own row it pushes the role under it
+ * down by its full height — measured, 118px of white between the first credit and the second,
+ * with the mark level with the first line rather than with the block. Spanning to the last
+ * row and centring on it leaves the roles evenly spaced, which is what the comp shows.
  */
-function Row({ role, name, gap }: { role: string; name: string; gap: string }) {
+function Row({ role, name, logo, gap, span }: Credit & { gap: string; span: number }) {
   return (
     <>
       {/* Medium, matching the deliverables' terms above — the same relation of a term to
@@ -83,9 +102,30 @@ function Row({ role, name, gap }: { role: string; name: string; gap: string }) {
       <p className="font-medium lg:col-start-1" style={{ marginTop: gap }}>
         {role}
       </p>
-      <p className="lg:col-start-3" style={{ marginTop: gap }}>
-        {name}
-      </p>
+      {logo ? (
+        // The asset's own ratio on the box, so `object-contain` has nothing to letterbox and
+        // one width is the only figure the mark needs. The span is a variable rather than a
+        // literal class because Tailwind needs its class strings whole at build time and the
+        // row count is data — the same dodge the column templates above use.
+        <div
+          className="mt-8 lg:col-start-3 lg:mt-0 lg:self-center lg:[grid-row:span_var(--mark-span)]"
+          style={
+            {
+              "--mark-span": span,
+              "--mark-aspect": logo.aspect,
+              maxWidth: CREDITS_LOGO_WIDTH,
+            } as CSSProperties
+          }
+        >
+          <div className="relative w-full [aspect-ratio:var(--mark-aspect)]">
+            <Image src={logo.src} alt={logo.alt} fill sizes="30vw" className="object-contain" />
+          </div>
+        </div>
+      ) : name ? (
+        <p className="lg:col-start-3" style={{ marginTop: gap }}>
+          {name}
+        </p>
+      ) : null}
     </>
   );
 }

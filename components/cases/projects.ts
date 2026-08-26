@@ -43,6 +43,23 @@ export type CaseProject = {
   link: string | null;
   /** `object-position` — these are crops of frames that were not shot for this. */
   focus: string;
+  /**
+   * The frame's own ratio, when the artwork must not be cropped. Defaults to the reference's
+   * measured `IMAGE_ASPECT` of 1.45, which is what a photograph takes: a crop of a street is
+   * still a street, and holding one ratio across the row is the reference's own choice.
+   *
+   * A screen capture is the exception, twice over. Both site captures are wider than 1.45
+   * (1.653 and 1.687), so covering scales them to the frame's height and takes ~12% off their
+   * sides — on an interface that is the CRM's right-hand panel and the edge of the QCIF page
+   * simply missing, and `focus` cannot re-frame it because the subject is the whole screen.
+   * And `object-contain` inside a 1.45 box is no answer either: it shows the capture whole but
+   * stands it on a slab of `bg-ink/5` that reads as a grey mat around the picture. Giving the
+   * frame the asset's own ratio is the one arrangement with neither a crop nor a mat — the
+   * image *is* the frame. The cost is that a wider card is shorter, so its caption sits a
+   * little higher than its neighbour's; the width cap in ./CaseLayers is unaffected, being
+   * derived from the tallest ratio.
+   */
+  aspect?: number;
 };
 
 export const CASE_PROJECTS: CaseProject[] = [
@@ -65,20 +82,28 @@ export const CASE_PROJECTS: CaseProject[] = [
     // is only 557px wide, so it upscales past about a 1300px viewport. A wider capture is
     // the one thing that would improve this card.
     imageSrc: "/img/qcif-hero.jpg",
+    // A capture: the frame takes its ratio so nothing is cropped and no mat shows.
+    aspect: 557 / 337,
     link: "/work/qcif",
     focus: "50% 50%",
   },
-  // A third study goes here. Not a limit — the track grows by one cell and the pin by 50vw,
+  {
+    id: "auto-maxx",
+    title: "Auto Maxx Pensacola",
+    description:
+      "A custom AI-powered CRM and calling system that chases every enquiry for a dealership’s sales team.",
+    // The product itself, which is what the study is about — this client's work has no
+    // photography and a stock forecourt would be a picture of a car dealership rather than
+    // a picture of the job. The capture is 835px wide, so it upscales past ~1900; a wider
+    // one is the only thing that would improve this card.
+    imageSrc: "/img/WowImage.png",
+    // A capture: the frame takes its ratio so nothing is cropped and no mat shows.
+    aspect: 835 / 495,
+    link: "/work/auto-maxx",
+    focus: "50% 50%",
+  },
+  // A fourth study goes here. Not a limit — the track grows by one cell and the pin by 50vw,
   // which is half a screen more scrolling at a 2:1 viewport, and nothing else has to change.
-  // {
-  //   id: "northern-waters",
-  //   title: "Northern Waters",
-  //   description:
-  //     "Commercial strategy for a wholesaler stepping out from behind its own customers.",
-  //   imageSrc: "/img/scenic-view-rocks-sea.jpg",
-  //   link: null,
-  //   focus: "50% 50%",
-  // },
 ];
 
 /** The heading cell — the track's first cell, not a banner above it. */

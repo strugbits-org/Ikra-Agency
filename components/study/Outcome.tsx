@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { CSSProperties } from "react";
 import BrowserMock from "./BrowserMock";
 import SitePreview from "./SitePreview";
@@ -20,12 +21,21 @@ import { OUTCOME_BODY_GAP, OUTCOME_MOCK_WIDTH } from "./metrics";
 export default function Outcome({ study }: { study: CaseStudy }) {
   // Optional since the second study has no such band — see BandKey in ./content.
   if (!study.outcome) return null;
-  const { heading, paragraphs } = study.outcome;
+  const { heading, paragraphs, media, caption } = study.outcome;
 
   return (
     <Band tone="paper">
       <Measure>
-        <div className="grid grid-cols-1 items-center gap-y-14 lg:grid-cols-2">
+        <div
+          className={
+            // A column gap only when the media is a supplied capture: the drawn mockup keeps
+            // its measured 39.9% inset and leaves the gap itself, but a capture takes the
+            // half-column whole and the copy beside it would otherwise run right up to its
+            // edge. 4.5% is the comp's own — 32px of a 770px content box.
+            "grid grid-cols-1 items-center gap-y-14 lg:grid-cols-2" +
+            (media ? " lg:gap-x-[4.5%]" : "")
+          }
+        >
           <div>
             <Display>{heading}</Display>
             <Prose
@@ -35,10 +45,14 @@ export default function Outcome({ study }: { study: CaseStudy }) {
             />
           </div>
 
-          {/* Centred in the right half. `justify-self-center` rather than a margin, so the
-              39.9% width is the only figure the column needs. */}
+          {/* The drawn mockup is centred in the right half at its measured 39.9%;
+              `justify-self-center` rather than a margin, so that width is the only figure the
+              column needs. A supplied capture takes the column whole instead — it is a real
+              screenshot at its own aspect, and its comp runs it to the gutter. */}
           <div
-            className="w-full lg:justify-self-center lg:[width:var(--mock-w)]"
+            className={
+              media ? "w-full" : "w-full lg:justify-self-center lg:[width:var(--mock-w)]"
+            }
             style={
               {
                 // A share of the *content box*, restated against the half-column it sits in.
@@ -46,7 +60,28 @@ export default function Outcome({ study }: { study: CaseStudy }) {
               } as CSSProperties
             }
           >
-            {study.preview ? (
+            {media ? (
+              <>
+                {/* The asset's own aspect on the box, so `object-cover` has nothing to crop
+                    — the same arrangement the masthead's capture uses. */}
+                <div
+                  className="relative w-full overflow-hidden [aspect-ratio:var(--shot-aspect)]"
+                  style={{ "--shot-aspect": media.aspect } as CSSProperties}
+                >
+                  <Image
+                    src={media.src}
+                    alt={media.alt}
+                    fill
+                    sizes="(min-width: 1024px) 50vw, 100vw"
+                    className="object-cover"
+                    style={{ objectPosition: media.focus }}
+                  />
+                </div>
+                {caption ? (
+                  <Prose paragraphs={caption} style={{ marginTop: OUTCOME_BODY_GAP }} />
+                ) : null}
+              </>
+            ) : study.preview ? (
               <BrowserMock label={`The ${study.title} website`}>
                 <SitePreview preview={study.preview} />
               </BrowserMock>

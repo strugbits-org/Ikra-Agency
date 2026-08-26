@@ -21,7 +21,12 @@
  * all — the space beside its mockup is a line of copy, not a frame.
  */
 
-import { CARD_TINT_CRUSHED, CARD_MAX_VH, QCIF_HERO_ASPECT } from "./metrics";
+import {
+  CARD_TINT_CRUSHED,
+  CARD_MAX_VH,
+  CRM_HERO_ASPECT,
+  QCIF_HERO_ASPECT,
+} from "./metrics";
 import type { CardTint } from "./metrics";
 import type { Tone } from "./primitives";
 
@@ -64,6 +69,16 @@ export type MediaSplit = {
    * fill a frame is a logo with its ends cut off.
    */
   fit?: "cover" | "contain";
+  /**
+   * The frame's ratio, when the study supplies a capture rather than the photograph the band
+   * was measured against. Defaults to the band's own figure in ./metrics — see
+   * `APPLY_PHOTO_ASPECT` and `IDENTITY_MEDIA_ASPECT`, both transcribed off the reference.
+   *
+   * Stated as the asset's `width / height`, so `object-cover` has nothing to crop. A
+   * screenshot is the case that needs it: cropping a photograph to a measured frame is a
+   * composition choice, cropping an interface is a bug.
+   */
+  aspect?: number;
 };
 
 export type CaseStudy = {
@@ -168,6 +183,17 @@ export type CaseStudy = {
   outcome?: {
     heading: string;
     paragraphs: readonly string[];
+    /**
+     * A supplied capture in place of the drawn mockup — the same story as `masthead.media`,
+     * and the same reason: `SitePreview` exists for a client with no screenshot of what was
+     * shipped, and drawing one over a client who supplied theirs invents an interface.
+     *
+     * A supplied capture also takes the whole half-column rather than the mockup's 39.9%
+     * inset, which is what the comp for it shows.
+     */
+    media?: { src: string; alt: string; aspect: number; focus?: string };
+    /** A line under the media. Only read when there is media to put it under. */
+    caption?: readonly string[];
   };
 
   /**
@@ -181,7 +207,7 @@ export type CaseStudy = {
    * `components/growth` so this file stays free of component dependencies, the same way
    * `MediaSplit` above is declared locally.
    */
-  glance: {
+  glance?: {
     title: string;
     items: readonly { label: string; value: number }[];
   };
@@ -211,7 +237,7 @@ export type CaseStudy = {
    * website row a grid because it is six deliverables under one term, and the other three a
    * paragraph each.
    */
-  deliverables: {
+  deliverables?: {
     title: string;
     rows: readonly {
       label: string;
@@ -223,7 +249,16 @@ export type CaseStudy = {
   /** Who did what. Two columns, set at the page's small size. */
   credits?: {
     title: string;
-    rows: readonly { role: string; name: string }[];
+    rows: readonly {
+      role: string;
+      /** The attribution, as type. Omitted on a row whose partner is a mark, or on none. */
+      name?: string;
+      /**
+       * A partner's logo in place of that line. `aspect` is the asset's own `width / height`,
+       * which is what gives the box its height — see `CREDITS_LOGO_WIDTH`.
+       */
+      logo?: { src: string; alt: string; aspect: number };
+    }[];
   };
 
   /**
@@ -660,6 +695,249 @@ export const QCIF: CaseStudy = {
           },
         ],
       },
+    ],
+  },
+};
+
+/**
+ * The third study, and the first that is only partly written.
+ *
+ * `bands` is three long — masthead, pull quote, testimonial — because that is what the comp
+ * covers. The rest of the record is genuinely absent rather than filled with plausible copy:
+ * the band table renders what the list asks for and nothing else, so the page ends at the
+ * testimonial and picking up where the comp leaves off is adding keys to that array.
+ *
+ * It is the closest of the three to Cafe Technica — the same dark masthead with an accent
+ * serif headline, the same ember testimonial over the same photograph and the same crushed
+ * transfer, since it is the same crushed-shadow source.
+ *
+ * Two transcription notes. The comp's client block still reads "CAFE TECHNICA / COFFEE
+ * EQUIPMENT SERVICES / TASMANIA, AUSTRALIA", which is the artwork it was built over showing
+ * through rather than this client's details; the copy beside it names Auto Maxx Pensacola, a
+ * pre-owned dealership, so that is what the block says here. And the attribution under the
+ * quote is a placeholder in the comp ("Name of client:"), kept verbatim rather than invented
+ * — a name is the one thing on this page that cannot be guessed at.
+ */
+export const AUTO_MAXX: CaseStudy = {
+  slug: "auto-maxx",
+  title: "Auto Maxx Pensacola",
+  summary:
+    "A custom AI-powered CRM and calling system that chases every enquiry so a dealership’s sales team doesn’t have to.",
+
+  bands: [
+    "masthead",
+    "quote",
+    "testimonial",
+    "outcome",
+    "glance",
+    "applications",
+    "identity",
+    "deliverables",
+    "credits",
+  ],
+
+  masthead: {
+    date: "MAY 2026",
+    client: ["AUTO MAXX PENSACOLA", "PRE-OWNED VEHICLE DEALERSHIP", "PENSACOLA, FLORIDA"],
+    headline: [
+      "Let AI handle the enquiries while you",
+      "focus on closing deals.",
+    ],
+    media: {
+      src: "/img/WowImage.png",
+      alt: "The Auto Maxx CRM, open on a lead’s conversation and call history",
+      aspect: CRM_HERO_ASPECT,
+      focus: "50% 50%",
+    },
+    columns: [
+      [
+        "Auto Maxx Pensacola is an automotive dealership selling pre-owned vehicles across a wide range of categories, from cars and SUVs to trucks and luxury vehicles.",
+        "Alongside vehicle sales, the dealership also supports customers through financing and other parts of the buying process.",
+      ],
+      [
+        "The real challenge? Every new enquiry triggered another wave of calls, messages, emails, follow-ups, and appointments. As leads grew, so did the pressure, making it harder to respond fast, retain context, and keep opportunities moving. Auto Maxx did not need more people to manage the process, it needed a system that could.",
+      ],
+    ],
+  },
+
+  quote: {
+    text:
+      "We went beyond the traditional CRM to design an all in one AI-powered system built for their sales process.",
+    columns: [
+      [
+        "We saw the problem clearly: every new enquiry meant more calls to make, messages to send, follow-ups to chase, and appointments to manage. As opportunities grew, so did the time spent keeping up with them.",
+        "So we built a custom AI-powered CRM and calling system that does the chasing for them. Calls, SMS, emails, follow-ups, appointments, AI agents, IVR, and workflows now run through one intelligent system built around Auto Maxx’s sales process.",
+      ],
+      [
+        "Instead of the team constantly checking who needs a call, who needs a follow-up, or which appointment is next, the system keeps each opportunity moving automatically. Every lead has a clear next step, while the team has the visibility to step in when their attention matters most.",
+        "The goal was never to automate the sales team out of the process. It was to remove the repetitive work around them. Less time spent managing leads. Less chasing. Less manual coordination. More time spent talking to customers, building relationships, and closing deals. The system works in the background while the sales team focuses on the front line.",
+      ],
+    ],
+  },
+
+  testimonial: {
+    // Cafe Technica's treatment exactly, because it is Cafe Technica's photograph: multiply
+    // so the flat ember is the lightest the card can get, and the crushed transfer because
+    // this source's shadows need lifting rather than scaling. See ./Testimonial.
+    blend: "multiply",
+    tint: CARD_TINT_CRUSHED,
+    photo: {
+      src: "/img/Coffee-Shop-Vibes.avif",
+      alt: "A dealership forecourt at dusk",
+      focus: "50% 50%",
+    },
+    paragraphs: [
+      "“We want to thank you for everything you have done for us. Your solution has made our processes more efficient and saved us valuable time, allowing us to focus on what truly needs our attention. What impressed us most was how thoughtfully you approached the project. You did not just build a CRM or AI calling system. You understood our challenges, guided us through the process, and created a seamless system that has made our day-to-day work much easier. We are genuinely happy with the results and truly appreciate the expertise, commitment, and ease you brought to the project”",
+    ],
+    name: "Name of client:",
+    role: "Designation at Auto Maxx.",
+  },
+
+  outcome: {
+    heading:
+      "We connected their entire sales process into one intelligent system, making the business easier to run",
+    paragraphs: [
+      "The solution brought lead management, communication, follow-ups, and appointment bookings into one structured, automated workflow. From the moment an enquiry came in, the system knew what needed to happen next.",
+      "Every opportunity was brought into one AI-powered workflow, giving the team a simpler way to manage leads from beginning to the end. We turned a time consuming follow-up process into an organised, configurable workflow that keeps leads moving without constant manual effort.",
+      "With the system handling configured follow ups and keeping every opportunity visible, the team spends less time chasing updates, remembering the next action, or switching between platforms. They now have more clarity across the pipeline and more time to focus on the conversations that actually drive sales.",
+    ],
+    // The same capture as the masthead's — it is the thing that was shipped, and there is
+    // one screenshot of it. Placed bare for the same reason: it carries its own chrome.
+    media: {
+      src: "/img/WowImage.png",
+      alt: "The Auto Maxx CRM, open on a lead’s conversation and call history",
+      aspect: CRM_HERO_ASPECT,
+      focus: "50% 50%",
+    },
+    caption: [
+      "The result was a simpler, more responsive, and scalable way of working. The business no longer had to work harder as it grew. The system did more of the work for them.",
+    ],
+  },
+
+  // The same skyline the other two studies use, so this is the record and nothing else.
+  // The values are the comp's own bar heights against its tallest, which is a designed
+  // profile rather than a measurement of anything — see the note on `glance` above.
+  glance: {
+    title: "Project Deliverables",
+    items: [
+      { label: "AI-Powered CRM", value: 100 },
+      { label: "AI Calling System", value: 100 },
+      { label: "Lead Management", value: 85 },
+      { label: "AI Follow-Up Automation", value: 100 },
+      { label: "SMS & Email Automation", value: 100 },
+      { label: "AI Agents & Responders", value: 100 },
+      { label: "IVR Configuration", value: 81 },
+      { label: "Appointment & Calendar Management", value: 66 },
+      { label: "Lead Pipeline", value: 100 },
+      { label: "Dealership & User Management", value: 20 },
+    ],
+  },
+
+  // Both captures are the client's own screens, so both frames take the asset's ratio rather
+  // than the reference photograph's — see `aspect` on MediaSplit.
+  applications: {
+    heading:
+      "We built the system around what happens after the enquiry, not just where the lead comes from.",
+    paragraphs: [
+      "A lead is only valuable if something happens next. For Auto Maxx, that meant making sure every enquiry could move through the right sequence without depending on someone remembering the next call, message, follow-up, or appointment.",
+      "We connected the different parts of that journey into one system. New enquiries enter the CRM, communication can be triggered through configured workflows, follow-ups can happen automatically, and appointments stay connected to the same customer journey. The important part was not simply adding more automation. It was creating a system that understands the sales process well enough to know what needs to happen next and keeps the opportunity moving.",
+      "That gives the Auto Maxx team something a traditional collection of tools could not: a connected view of the entire journey, from the first enquiry to the conversations that can turn an opportunity into a sale.",
+    ],
+    aspect: 836 / 711,
+    photo: {
+      src: "/img/WowImage2.png",
+      alt: "The CRM’s settings, showing the configured AI conversation triggers",
+    },
+  },
+
+  identity: {
+    // One entry, so it wraps on its own measure — the comp breaks it after "sales", which
+    // is where that width runs out rather than where the sentence wants a seam.
+    heading: [
+      "The AI handles the repetition. The sales team stays with the customers.",
+    ],
+    paragraphs: [
+      "AI works best when it takes care of the work that does not need a salesperson. For Auto Maxx, that meant handling configured calls, responses, follow-ups, reminders, and communication while keeping the team in control of the moments that require a human conversation.",
+      "AI agents, responders, IVR, SMS, email, and calling workflows were brought together as part of the same sales infrastructure. Instead of treating each interaction as a separate task, the system gives every lead a connected path forward.",
+      "The result is not automation for its own sake. It is a sales process designed to let technology carry the repetitive load while the people behind Auto Maxx focus on customers, conversations, and closing deals.",
+    ],
+    aspect: 836 / 679,
+    photo: {
+      src: "/img/Container.png",
+      alt: "The CRM’s SMS templates, with an AI-drafted message ready to send",
+    },
+  },
+
+  // One term with a grid of cards under it, which is the shape the other two studies give
+  // their website row — here it is the whole table, because the comp has one term.
+  deliverables: {
+    title: "SUMMARY OF DELIVERABLES",
+    rows: [
+      {
+        label: "Website Design and Development",
+        cards: [
+          {
+            title: "AI-Powered CRM & Lead Management",
+            paragraphs: [
+              "A custom CRM that brings Auto Maxx’s leads, customer information, communication history, and sales pipeline into one connected system, giving the team a clearer view of every opportunity.",
+            ],
+          },
+          {
+            title: "AI Calling & Communication",
+            paragraphs: [
+              "An integrated AI calling system connecting calls, SMS, and email, allowing Auto Maxx to manage customer conversations and follow-ups through a single workflow.",
+            ],
+          },
+          {
+            title: "Automated Follow-Up",
+            paragraphs: [
+              "AI-powered triggers, responders, and scheduled follow-ups that keep leads engaged without requiring the team to manually coordinate every interaction.",
+            ],
+          },
+          {
+            title: "AI Agents & Call Management",
+            paragraphs: [
+              "Configurable AI agents, responders, call workflows, and IVR controls built around Auto Maxx’s operating process, giving the team greater control over automated customer interactions.",
+            ],
+          },
+          {
+            title: "Appointments & Sales Pipeline",
+            paragraphs: [
+              "Calendar and appointment management connected to the lead pipeline, keeping customer activity, appointments, and next steps organized within the same system.",
+            ],
+          },
+          {
+            title: "Dealership & User Management",
+            paragraphs: [
+              "Administrative controls for dealership operations, users, business hours, AI settings, and communication preferences, giving Auto Maxx the flexibility to manage the platform day to day.",
+            ],
+          },
+          {
+            title: "Connected Sales Infrastructure",
+            paragraphs: [
+              "A unified system that brings CRM, AI calling, communication, lead management, and follow-up into one environment, reducing manual coordination and creating a more efficient process for managing leads.",
+            ],
+          },
+        ],
+      },
+    ],
+  },
+
+  credits: {
+    title: "CREDITS",
+    rows: [
+      {
+        role: "Brand Strategy, Creative Direction, Naming, Visual Identity, Copywriting, Website Design & Development",
+        // The comp attributes this row with a mark rather than a name, and leaves the other
+        // two unattributed — transcribed as it stands.
+        logo: {
+          src: "/img/strugbits.png",
+          alt: "Strugbits",
+          aspect: 387 / 173,
+        },
+      },
+      { role: "Vehicle Branding & Wrap Design" },
+      { role: "Systems Integration & Custom Development" },
     ],
   },
 };

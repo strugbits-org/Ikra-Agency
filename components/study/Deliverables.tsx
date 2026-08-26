@@ -14,7 +14,7 @@ import {
   TYPE,
 } from "./metrics";
 
-type Row = CaseStudy["deliverables"]["rows"][number];
+type Row = NonNullable<CaseStudy["deliverables"]>["rows"][number];
 
 /**
  * Band 7: the deliverables, as a column of terms against a column of what each one meant.
@@ -38,6 +38,8 @@ type Row = CaseStudy["deliverables"]["rows"][number];
  * and squaring them to the paragraphs above would flatten the difference.
  */
 export default function Deliverables({ study }: { study: CaseStudy }) {
+  // Optional since the third study stops at the testimonial — see BandKey in ./content.
+  if (!study.deliverables) return null;
   const { title, rows } = study.deliverables;
 
   // The leftover as a fourth track — see the note in ./Credits. Without it these three are
