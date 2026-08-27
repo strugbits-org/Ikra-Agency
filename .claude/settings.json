@@ -143,7 +143,13 @@
       "Bash(npx eslint *)",
       "Bash(git -C \"d:/tanzeel/Ikra-Agency\" check-ignore -v .env)",
       "Bash(break)",
-      "Bash(curl -s -X POST http://localhost:3000/api/waitlist -H 'Content-Type: application/json' -d '{\"name\":\"Test User\",\"email\":\"test@example.com\",\"company\":\"Test Co\"}' -w '\\\\nHTTP %{http_code}\\\\n')"
+      "Bash(curl -s -X POST http://localhost:3000/api/waitlist -H 'Content-Type: application/json' -d '{\"name\":\"Test User\",\"email\":\"test@example.com\",\"company\":\"Test Co\"}' -w '\\\\nHTTP %{http_code}\\\\n')",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" https://ikra-agency.vercel.app)",
+      "Bash(timeout 180 node touch-repro.js)",
+      "Bash(node touch-diag.js)",
+      "Bash(node touch-diag2.js)",
+      "Bash(timeout 180 node verify-mobile-scroll.js http://localhost:3000)",
+      "Bash(timeout 180 node verify-mobile-up.js http://localhost:3000)"
     ],
     "additionalDirectories": [
       "d:\\tanzeel\\ikra-backups\\case-studies-v1-stack",

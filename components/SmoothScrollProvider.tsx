@@ -22,6 +22,50 @@ export default function SmoothScrollProvider({
       "(prefers-reduced-motion: reduce)",
     ).matches;
 
+    // The one thing a mount-time refresh can still miss: the custom variable font
+    // swapping in after this first pass, which reflows text throughout the page and
+    // changes the document's real height. Individual sections re-measure their own
+    // internal geometry off `document.fonts.ready` already (see definition/sequence),
+    // but nothing re-syncs the page's own cached scroll distance against the
+    // now-taller-or-shorter document — so on a slow load, every pin below the swap can
+    // end up measured against a document that is no longer the right length. Racing
+    // against font load explains why an earlier version of this bug was intermittent
+    // rather than constant.
+    let cancelled = false;
+    document.fonts.ready.then(() => {
+      if (!cancelled) ScrollTrigger.refresh();
+    });
+
+    // Below the same breakpoint CaseStudies already treats as "no GSAP-driven scroll
+    // tricks" (see its own docblock), skip ScrollSmoother entirely and let the page
+    // scroll natively. `normalizeScroll` works by intercepting touch and replacing
+    // native scrolling with a transform it drives itself — and on a real phone that
+    // hand-off can lose: touch events keep arriving and the browser's own `scrollY`
+    // keeps moving, but the smoother's transform doesn't track it, so every
+    // ScrollTrigger (all keyed off the transform, never off `scrollY`) freezes
+    // mid-page while the reader can still visibly drag the screen. That reads as the
+    // page getting stuck at one point scrolling down and a *different* point
+    // scrolling up, because the two positions have desynced independently in each
+    // direction — confirmed by dispatching real touch events at the OS level against
+    // the deployed site: `scrollY` advanced normally while the smoother's own
+    // transform never moved off 0. Neither a devtools mobile emulator nor
+    // Playwright's default input simulation reproduces this — only genuine touch
+    // input does — which is why it wasn't caught until it was tested on an actual
+    // phone.
+    //
+    // Every pin in this codebase is a plain `ScrollTrigger` (see hero/sequence,
+    // definition/sequence, cases/sequence) — none of them call into the smoother
+    // directly — so they work identically against native scroll. `ScrollBar` already
+    // falls back to `window.scrollY`/`window.scrollTo` wherever `ScrollSmoother.get()`
+    // returns null, which is the same fallback reduced motion already exercises.
+    const isMobile = window.matchMedia("(max-width: 767.98px)").matches;
+    if (isMobile) {
+      smootherRef.current = null;
+      return () => {
+        cancelled = true;
+      };
+    }
+
     const smoother = ScrollSmoother.create({
       wrapper: "#smooth-wrapper",
       content: "#smooth-content",
@@ -30,20 +74,6 @@ export default function SmoothScrollProvider({
       normalizeScroll: true,
     });
     smootherRef.current = smoother;
-
-    // The one thing a mount-time refresh can still miss: the custom variable font
-    // swapping in after this first pass, which reflows text throughout the page and
-    // changes the document's real height. Individual sections re-measure their own
-    // internal geometry off `document.fonts.ready` already (see definition/sequence),
-    // but nothing re-syncs ScrollSmoother's own cached scroll distance against the
-    // now-taller-or-shorter document — so on a slow load, every pin below the swap can
-    // end up measured against a document that is no longer the right length, and the
-    // smoother's own scroll ceiling can land short of the page's real bottom. Racing
-    // against font load explains why this was intermittent rather than constant.
-    let cancelled = false;
-    document.fonts.ready.then(() => {
-      if (!cancelled) ScrollTrigger.refresh();
-    });
 
     return () => {
       cancelled = true;
@@ -63,7 +93,10 @@ export default function SmoothScrollProvider({
    * on `#smooth-content` and `normalizeScroll` takes the wheel and touch events, so Next's
    * own scroll-to-top has nothing real to act on: opening a case study from halfway down the
    * home page would land halfway down the case study. `scrollTo(0, false)` — no smoothing,
-   * so it is a jump rather than a visible flight back up — is what actually resets it.
+   * so it is a jump rather than a visible flight back up — is what actually resets it. Below
+   * `md` there is no smoother (see the mount effect), so the native `window.scrollTo` does
+   * the same job — without it a mobile reader would carry their old scroll position into the
+   * new route instead of landing at its top.
    *
    * **Every ScrollTrigger's start and end are stale.** They were measured against the old
    * document's height; the new route's content is a different length, and the pin on
@@ -87,7 +120,8 @@ export default function SmoothScrollProvider({
     if (lastPath.current === pathname) return;
     lastPath.current = pathname;
 
-    smootherRef.current?.scrollTo(0, false);
+    if (smootherRef.current) smootherRef.current.scrollTo(0, false);
+    else window.scrollTo(0, 0);
     ScrollTrigger.refresh();
 
     // One frame, so the browser has actually painted the reset and refreshed layout before
