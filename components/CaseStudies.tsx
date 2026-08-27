@@ -10,6 +10,7 @@ import {
 import { CaseTrack } from "./cases/CaseLayers";
 import RevealPanel from "./cases/RevealPanel";
 import { createCaseSequence } from "./cases/sequence";
+import { MQ } from "./cases/timeline";
 
 /**
  * The case studies: a pinned stage across which a horizontal track travels right-to-left as
@@ -36,6 +37,20 @@ import { createCaseSequence } from "./cases/sequence";
  * Reduced motion builds no ScrollTrigger and renders a static end state: the heading, the
  * projects and the closing panel as one plain vertical column with the reveal panel below
  * them, and no pin to reserve distance for.
+ *
+ * **Below `md` this renders the same static end state, unconditionally of the motion
+ * preference.** A pinned stage whose whole premise is translating a full-viewport track
+ * sideways off *vertical* touch scroll does not survive a real phone: the pin's length is a
+ * function of `innerHeight`, which iOS/Android change mid-scroll as the address bar
+ * collapses, and the door's floored cue is tuned against wheel-notch scroll deltas that
+ * touch scrolling doesn't produce the same way. There is no reference recording for a phone
+ * version of this section to transcribe numbers from, unlike everything else in
+ * `components/cases/`, so rather than invent a second choreography this reuses the
+ * accessible fallback: the reveal panel simply becomes the next block down the page, which
+ * is "the door opening from below" without there being a door. `isMobile` is read
+ * independently of `reducedMotion` — a desktop reader with reduced motion on gets this same
+ * static column on a wide screen, and a phone reader with no motion preference set still
+ * doesn't get the pin.
  */
 
 /**
@@ -72,6 +87,21 @@ const readMotion = () => window.matchMedia(REDUCED).matches;
 // No `window` on the server, and the animated path is the honest default there.
 const readMotionOnServer = () => false;
 
+/**
+ * The viewport breakpoint, read the same way and for the same reason as the motion
+ * preference above — this too has to be correct on first render after hydration and track a
+ * resize or a rotation, not just the value at mount. Shares `MQ.isMobile` with
+ * `cases/sequence.ts`'s own matchMedia so the two can never disagree about where the pin
+ * starts and stops applying.
+ */
+const subscribeViewport = (onChange: () => void) => {
+  const mq = window.matchMedia(MQ.isMobile);
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+};
+const readIsMobile = () => window.matchMedia(MQ.isMobile).matches;
+const readIsMobileOnServer = () => false;
+
 export default function CaseStudies() {
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -86,9 +116,18 @@ export default function CaseStudies() {
     readMotion,
     readMotionOnServer,
   );
+  const isMobile = useSyncExternalStore(
+    subscribeViewport,
+    readIsMobile,
+    readIsMobileOnServer,
+  );
+  // Either one alone is enough to skip the pinned track — see the docblock above. Combined
+  // once here so the render logic below has a single flag to branch on rather than repeating
+  // the `||` at every call site.
+  const staticLayout = reducedMotion || isMobile;
 
   useIsomorphicLayoutEffect(() => {
-    if (reducedMotion) return;
+    if (staticLayout) return;
     // Cleanup is `mm.kill(true)`: it reverts every breakpoint's tweens and start states and
     // disconnects the media queries, so an unmount or a Fast Refresh cannot leave a duplicate
     // ScrollTrigger behind. Returned rather than a context because matchMedia already *is* a
@@ -102,7 +141,7 @@ export default function CaseStudies() {
       revealWindow: revealWindowRef,
       revealPanel: revealPanelRef,
     });
-  }, [reducedMotion]);
+  }, [staticLayout]);
 
   // The two writers handed down to the cells. Stable, so a cell's `ref` callback is not a new
   // function on every render — React would otherwise detach and reattach every one of them.
@@ -120,7 +159,10 @@ export default function CaseStudies() {
       trackRef={trackRef}
       registerCell={registerCell}
       registerContent={registerContent}
-      reducedMotion={reducedMotion}
+      // `CaseTrack`'s prop is named for the accessibility fallback it was built for — the
+      // stacked, un-pinned column it renders is exactly what a phone wants too, so mobile
+      // reuses it under the same flag rather than earning a second layout.
+      reducedMotion={staticLayout}
     />
   );
 
@@ -135,12 +177,35 @@ export default function CaseStudies() {
      note on seams in ./cases/timeline. */
   const field = "bg-linear-to-b from-gray to-[#cfcece]";
 
-  if (reducedMotion) {
+  if (staticLayout) {
     return (
       <section ref={sectionRef} className={`relative w-full ${field}`}>
         {track}
-        {/* No door to open, so the panel behind it is simply the next thing down the page. */}
-        <div className="min-h-[80vh] w-full py-24">
+        {/* No door to open, so the panel behind it is simply the next thing down the page —
+            on a phone this is the "door opening from below" the pinned version does with a
+            horizontal slide: scrolling past the cards is all it takes to arrive at it.
+
+            `min-h-[80vh]` is `md:`-only. It was written for the accessibility fallback,
+            which only ever showed on a wide screen with reduced motion set — there,
+            approximating the pinned version's one-viewport stage reads as intentional
+            breathing room. `RevealPanel` doesn't actually fill or centre in that box (a
+            plain `min-height` doesn't give a percentage-height child anything to resolve
+            against), so on a phone, where this same branch is now everyone's default, the
+            floor was just dead gray above and below a form three fields tall. Dropping it
+            below `md` lets the block hug `RevealPanel`'s own height instead.
+
+            `bg-cream` here too, below `md` only. `RevealPanel` paints its own field, but
+            only across its own box — which this branch leaves it to size itself, since the
+            `h-full` it centres its content with never resolves against a plain
+            `min-height`/auto-height parent (see above). So this wrapper's padding was
+            showing the *section's* gray field, not the panel's cream one: a hard edge
+            where the heading meets cream with nothing above it, and on the way out a
+            cream → gray → dark-footer double seam that reads as an unstyled gap rather
+            than a margin. Painting the wrapper cream too makes its padding read as the
+            panel's own, since the two fields are the same colour with nothing to bleed
+            between them — no seam to close, unlike the transformed layers elsewhere in
+            this repo that need one. */}
+        <div className="w-full bg-cream py-16 md:min-h-[80vh] md:bg-transparent md:py-24">
           <RevealPanel />
         </div>
       </section>

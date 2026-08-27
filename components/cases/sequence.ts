@@ -100,7 +100,13 @@ const DOOR_TRAVEL_FRAC = DOOR_TRAVEL_VW / 100;
 export function createCaseSequence(refs: CaseRefs) {
   const mm = gsap.matchMedia();
 
-  mm.add(MQ, () => {
+  // `isWide` only. Below `md`, `CaseStudies.tsx` never calls this function at all — it
+  // renders the same static, un-pinned column reduced motion gets — so in practice this
+  // condition is never false while the function is running. It stays a matchMedia (rather
+  // than a plain `if`) so a resize that carries the reader from wide to narrow with the
+  // component still mounted tears the pin down cleanly instead of leaving it pinned under a
+  // layout it was never measured against.
+  mm.add(MQ.isWide, () => {
     const stage = refs.stage.current;
     const track = refs.track.current;
     const section = refs.section.current;

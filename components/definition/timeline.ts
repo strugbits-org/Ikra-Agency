@@ -687,6 +687,40 @@ export const PIN_VH = TAIL_AT + TAIL_VH;
 export const SECTION_VH = PIN_VH + 100;
 
 /**
+ * Mobile-only: shortens the statement's *entrance* span — the scroll it
+ * takes the paragraph to go from first appearing to fully settled (see
+ * paintStatement/statementTrigger). Nothing else about the section changes
+ * on mobile: the pin's own phases (window growing, photo dissolving,
+ * definition climbing, the tail) are the same vh on every viewport.
+ *
+ * STATEMENT_REVEAL_AT_PCT stays exactly as it is — it's hero-linked (the
+ * statement must not start settling before the hero's wash can be complete).
+ * The span is free to shrink from the *other* end: raising this constant
+ * shortens STATEMENT_LIFT_VH_SPAN.
+ *
+ * Bounded by the same rate ≤ 1 requirement the desktop assertion checks
+ * (`STATEMENT_LIFT_VH · 100 ≤ span`, i.e. `≤ STATEMENT_REVEAL_AT_PCT − 62`):
+ * push this higher than ~83 and the paragraph would visibly move down the
+ * screen while scrolling down. 78 keeps a real margin (rate ≈ 0.93) while
+ * cutting the span from 85 to 67 — about 21% less scroll for the same
+ * entrance.
+ */
+export const DEF_MOBILE_STATEMENT_LIFT_END_PCT = 78;
+
+if (process.env.NODE_ENV !== "production") {
+  const span = STATEMENT_REVEAL_AT_PCT - DEF_MOBILE_STATEMENT_LIFT_END_PCT;
+  const rate = STATEMENT_LIFT_VH * 100 / span;
+  if (rate > 1) {
+    console.error(
+      `[DefinitionSection] DEF_MOBILE_STATEMENT_LIFT_END_PCT=${DEF_MOBILE_STATEMENT_LIFT_END_PCT} ` +
+      `leaves only a ${span}-unit span, which is narrower than the ${(STATEMENT_LIFT_VH * 100).toFixed(0)}-unit ` +
+      "lift needs (rate " + rate.toFixed(2) + " > 1) — the statement would move down the screen " +
+      "while scrolling down on mobile. Lower DEF_MOBILE_STATEMENT_LIFT_END_PCT.",
+    );
+  }
+}
+
+/**
  * The cross-fade out of the hero, in vh — see the veil in the markup.
  *
  * HERO_GRAY_TAIL_VH is the pinned scroll the hero has left once it begins washing

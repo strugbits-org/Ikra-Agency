@@ -9,7 +9,10 @@ export default function Footer() {
         <img
           src="/img/logo-white.png"
           alt=""
-          className="h-auto w-full object-contain translate-y-4 md:translate-y-6 mt-20"
+          // Nudged up on mobile only (smaller translate + margin-top) so it sits
+          // behind the recentred, reordered content below rather than under it.
+          // `md:` restores the original desktop position untouched.
+          className="h-auto w-full object-contain translate-y-0 mt-8 md:translate-y-6 md:mt-20"
         />
       </div>
 
@@ -17,8 +20,9 @@ export default function Footer() {
       <div className="relative z-10 flex w-full flex-1 flex-col justify-between px-8 pt-16 pb-4 md:px-16 md:pt-20 md:pb-4 lg:pt-20">
         {/* Top 3-column row */}
         <div className="flex flex-col items-center justify-between gap-10 md:flex-row md:items-start">
-          {/* Left Column: Contacts */}
-          <div className="w-full text-left md:w-1/3">
+          {/* Left Column: Contacts — order-2 on mobile (below the badge), text
+              centred; both reset to the original left column at md. */}
+          <div className="order-2 w-full text-center md:order-1 md:w-1/3 md:text-left">
             <h3 className="mb-4 text-xl font-medium tracking-tight text-white md:mb-5 md:text-[26px] lg:mb-6 lg:text-[31px]">
               Contacts
             </h3>
@@ -37,8 +41,9 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Center Column: MAKE THE LEAP™ Badge with Constellation Pixels */}
-          <div className="flex w-full items-center justify-center -translate-y-2 md:w-1/3 md:-translate-y-4 lg:-translate-y-5">
+          {/* Center Column: MAKE THE LEAP™ Badge with Constellation Pixels —
+              order-1 on mobile, i.e. first; back to the middle column at md. */}
+          <div className="order-1 flex w-full items-center justify-center -translate-y-2 md:order-2 md:w-1/3 md:-translate-y-4 lg:-translate-y-5">
             <div className="relative flex items-center justify-center">
               <svg
                 width="300"
@@ -147,12 +152,13 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Right Column: Follow us */}
-          <div className="w-full text-right md:w-1/3">
+          {/* Right Column: Follow us — order-3 on mobile (last, unchanged), text
+              and links recentred; both reset to the original right column at md. */}
+          <div className="order-3 w-full text-center md:w-1/3 md:text-right">
             <h3 className="mb-4 text-xl font-medium tracking-tight text-white md:mb-5 md:text-[26px] lg:mb-6 lg:text-[31px]">
               Follow us
             </h3>
-            <div className="flex flex-col items-end space-y-1 text-[15px] font-normal text-white md:text-base lg:text-[21px]">
+            <div className="flex flex-col items-center space-y-1 text-[15px] font-normal text-white md:items-end md:text-base lg:text-[21px]">
               <a
                 href="https://instagram.com"
                 target="_blank"

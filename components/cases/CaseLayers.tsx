@@ -122,7 +122,11 @@ function Cell({
       ref={(el) => registerCell(index, el)}
       className={
         (reducedMotion
-          ? "flex w-full shrink-0 justify-center px-[6vw] py-14"
+          // `py-8` below `md`, `md:py-14` above it — tighter on a phone, where this
+          // branch is now the mobile default rather than just the accessibility
+          // fallback, and two cells' worth of padding stacking between cards read
+          // as too much gap. Unchanged for a desktop reduced-motion viewer.
+          ? "flex w-full shrink-0 justify-center px-[6vw] py-8 md:py-14"
           : "flex h-full w-[100vw] shrink-0 items-center justify-center md:w-[50vw]") +
         // The reference's cell divider: a hairline between cells, never before the first.
         (index > 0 ? " border-l border-ink/10" : "")
@@ -227,8 +231,15 @@ export function CaseTrack({
             </div>
 
             {/* The caption: title and description left, link right-aligned to the image's
-                own right edge. Three parts, which is all the reference has. */}
-            <div className="mt-6 flex items-start justify-between gap-8 xl:mt-8">
+                own right edge — from `md` up. Below that there isn't room for both side
+                by side without squeezing the description into a sliver, which is what
+                pushed "Explore project" hard against the edge; stacked instead, with the
+                whole block capped to 75% of the card so it doesn't run the full width.
+                `gap-4` below `md`: that gap is now vertical (description to button)
+                rather than horizontal (description to button), so the original `gap-8`
+                read as too much air between them; `md:gap-8` keeps the row's own
+                horizontal gap unchanged. */}
+            <div className="mt-6 flex w-[75%] flex-col items-start gap-4 md:w-full md:flex-row md:justify-between md:gap-8 xl:mt-8">
               <div>
                 <h3 className="text-[clamp(18px,1.6vw,32px)] leading-tight font-normal text-ink">
                   {project.title}

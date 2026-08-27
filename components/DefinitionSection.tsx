@@ -184,16 +184,23 @@ export default function DefinitionSection() {
             {!reducedMotion && <DictionaryPanel panelRef={dictionaryRef} />}
           </div>
 
-          {/* Phones *and* tablets (< lg): the definition sits in normal flow, because
+          {/* Tablets only now (md–lg): the definition sits in normal flow, because
               below `lg` the frame has no room to hold it beside the wordmark — see
-              DictionaryPanel for the measurement. It was `md:hidden`, which put the
-              travelling panel on 768–1023px viewports where its resting box overlapped
-              the wordmark's by up to 83px.
+              DictionaryPanel for the measurement.
+
+              Hidden below `md` as a quick fix — the tail's cue that fires the wordmark's
+              dissolve and the dots' fall reads DictionaryPanel's measured height, which
+              is `display:none` (so reads 0) at this width same as it is on tablet; with
+              nothing to measure the cue falls back to a fixed scroll distance that knows
+              nothing about where this in-flow block actually sits, so the fall could fire
+              while this text was still on screen. Hiding it sidesteps that rather than
+              fixing the cue itself — see the conversation this was flagged in if that
+              needs revisiting properly instead.
 
               Gutters match the frame's at each breakpoint so the column does not step
               in and out as the layout changes around it. */}
           {!reducedMotion && (
-            <DictionaryInFlow className="block px-14 py-12 md:px-36 lg:hidden" />
+            <DictionaryInFlow className="hidden px-14 py-12 md:block md:px-36 lg:hidden" />
           )}
 
           {/* Reduced motion: follows the composition in normal flow */}

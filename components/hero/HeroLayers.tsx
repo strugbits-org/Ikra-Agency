@@ -148,7 +148,11 @@ export function ClipWindow({
   return (
     <div
       ref={boxRef}
-      className="absolute top-1/2 left-1/2 z-20 h-[78vh] w-[15vw] max-w-75 min-w-35 -translate-x-1/2 -translate-y-1/2 overflow-hidden"
+      // `h-[55vh]` below `md`, `md:h-[78vh]` unchanged above it — a client request to
+      // shrink the strip on phones, where 78vh read as too tall. Safe as a plain size
+      // change: `holeClip` only insets left/right (see ./doors), so the "shrink on
+      // scroll" clip-path never touches this box's height at any breakpoint.
+      className="absolute top-1/2 left-1/2 z-20 h-[55vh] w-[15vw] max-w-75 min-w-35 -translate-x-1/2 -translate-y-1/2 overflow-hidden md:h-[78vh]"
       style={{ clipPath: holeClip(0), opacity: 0 }}
     >
       {/* Not /video/section2.mp4, which is kept alongside as the master: that is

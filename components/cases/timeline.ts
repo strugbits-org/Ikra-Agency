@@ -180,23 +180,23 @@ export const SCRUB = 1;
 /* ── breakpoints ─────────────────────────────────────────────────────────────── */
 
 /**
- * The two ranges, as `gsap.matchMedia` conditions.
+ * The two ranges. `isWide` is the one `./sequence` builds the pinned track and its door
+ * against — the traverse's own cell pitch (`CELL_VW`) is a `md:` Tailwind class, so the
+ * two share Tailwind's 768px threshold exactly.
+ *
+ * `isMobile` is `CaseStudies.tsx`'s own breakpoint, read independently of `gsap.matchMedia`
+ * so the component can decide *whether to build the sequence at all* rather than build it
+ * and have it react to the query — see the note there on why the pinned track never runs
+ * below `md`.
  *
  * `.98` upper bounds rather than whole pixels: a fractional viewport width is ordinary once
  * browser zoom is involved, and `max-width: 767px` leaves 767.5 matching neither range —
  * which would tear down one paint and build nothing in its place.
- *
- * Below `md` the cell is a whole viewport rather than half (see CELL_VW_MOBILE), because
- * half of a 390px screen is a 195px card, which no caption fits under.
  */
 export const MQ = {
   isWide: "(min-width: 768px)",
   isMobile: "(max-width: 767.98px)",
 } as const;
-
-/** One cell per screen on a phone, with a wider image inside it. */
-export const CELL_VW_MOBILE = 100;
-export const IMAGE_PAD_VW_MOBILE = 6;
 
 /* ── the door ────────────────────────────────────────────────────────────────── */
 
