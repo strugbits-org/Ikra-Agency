@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, FormEvent } from "react";
+import { useState, type CSSProperties, type FormEvent } from "react";
 import { CASE_REVEAL } from "./projects";
 
 /**
@@ -99,9 +99,12 @@ const size = (share: number, floor: number) =>
  *
  * ## The form
  *
- * Uncontrolled, reading `FormData` on submit rather than holding three pieces of state. There
- * is nowhere to send it yet, so the values go to the console; when there is, the change is
- * inside `onSubmit` and nothing else here moves.
+ * Uncontrolled, reading `FormData` on submit rather than holding three pieces of state — the
+ * one piece of state this component does hold is `status`, and it exists only to word the
+ * button and surface a failure, not to mirror the fields. Submitting posts the values to
+ * `/api/waitlist`, which exchanges the site's Wix OAuth client ID for a visitor token and
+ * creates a submission against the client's existing Wix form, so it lands in their Wix
+ * dashboard exactly like a native submission would.
  *
  * Two accessibility details the comp cannot show. Each field carries a real `<label>`,
  * visually hidden — a placeholder is not a label, since it disappears the moment anyone types
@@ -110,11 +113,26 @@ const size = (share: number, floor: number) =>
  * of the tab order, and without it a keyboard reader tabs into three invisible fields.
  */
 export default function RevealPanel() {
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
-    // Nowhere to post yet. Prevented rather than left alone so the page does not navigate.
+  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const values = Object.fromEntries(new FormData(event.currentTarget));
-    console.log("[waitlist]", values);
+    const form = event.currentTarget;
+    const values = Object.fromEntries(new FormData(form));
+
+    setStatus("submitting");
+    try {
+      const response = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
+      if (!response.ok) throw new Error("submission failed");
+      setStatus("success");
+      form.reset();
+    } catch {
+      setStatus("error");
+    }
   };
 
   return (
@@ -187,15 +205,29 @@ export default function RevealPanel() {
 
           <button
             type="submit"
-            className="w-full cursor-pointer bg-accent font-medium text-white transition-colors outline-none hover:bg-[#e8502f] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink"
+            disabled={status === "submitting"}
+            className="w-full cursor-pointer bg-accent font-medium text-white transition-colors outline-none hover:bg-[#e8502f] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink disabled:cursor-not-allowed disabled:opacity-70"
             style={{
               marginTop: size(S.buttonTop, 20),
               paddingBlock: size(S.buttonPad, 9),
               fontSize: size(S.field, 14),
             }}
           >
-            {CASE_REVEAL.submit}
+            {status === "submitting"
+              ? "Sending…"
+              : status === "success"
+                ? "Joined — thank you"
+                : CASE_REVEAL.submit}
           </button>
+
+          {status === "error" && (
+            <p
+              className="text-accent"
+              style={{ marginTop: size(S.bodyTop, 12), fontSize: size(S.field, 13) }}
+            >
+              Something went wrong — please try again, or email us directly.
+            </p>
+          )}
         </form>
       </div>
     </div>

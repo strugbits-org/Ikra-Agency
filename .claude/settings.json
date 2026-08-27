@@ -140,7 +140,10 @@
       "Bash(curl -sI \"http://localhost:3000/_next/image?url=%2Fimg%2FWowImage.png&w=1920&q=75\")",
       "Bash(cd \"d:/tanzeel/Ikra-Agency\" && rm -f \"/tmp/pw/repro.js\" \"/tmp/pw/repro.png\")",
       "WebSearch",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(git -C \"d:/tanzeel/Ikra-Agency\" check-ignore -v .env)",
+      "Bash(break)",
+      "Bash(curl -s -X POST http://localhost:3000/api/waitlist -H 'Content-Type: application/json' -d '{\"name\":\"Test User\",\"email\":\"test@example.com\",\"company\":\"Test Co\"}' -w '\\\\nHTTP %{http_code}\\\\n')"
     ],
     "additionalDirectories": [
       "d:\\tanzeel\\ikra-backups\\case-studies-v1-stack",
