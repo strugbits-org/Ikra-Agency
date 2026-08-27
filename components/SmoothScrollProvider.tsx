@@ -31,7 +31,22 @@ export default function SmoothScrollProvider({
     });
     smootherRef.current = smoother;
 
+    // The one thing a mount-time refresh can still miss: the custom variable font
+    // swapping in after this first pass, which reflows text throughout the page and
+    // changes the document's real height. Individual sections re-measure their own
+    // internal geometry off `document.fonts.ready` already (see definition/sequence),
+    // but nothing re-syncs ScrollSmoother's own cached scroll distance against the
+    // now-taller-or-shorter document — so on a slow load, every pin below the swap can
+    // end up measured against a document that is no longer the right length, and the
+    // smoother's own scroll ceiling can land short of the page's real bottom. Racing
+    // against font load explains why this was intermittent rather than constant.
+    let cancelled = false;
+    document.fonts.ready.then(() => {
+      if (!cancelled) ScrollTrigger.refresh();
+    });
+
     return () => {
+      cancelled = true;
       smootherRef.current = null;
       smoother.kill();
     };
