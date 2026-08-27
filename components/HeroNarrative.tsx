@@ -290,6 +290,7 @@ export default function HeroNarrative() {
             reducedMotion={reducedMotion}
             ribbonRef={ribbonRef}
             leapRef={leapRef}
+            leapFontSize={gapCopyFontSize(stageBox.w)}
           />
         </div>
       </div>

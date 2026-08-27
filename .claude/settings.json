@@ -158,7 +158,15 @@
       "Bash(timeout 60 node door-flick2.js http://localhost:3000)",
       "Bash(timeout 60 node door-flick-reverse.js http://localhost:3000)",
       "Bash(timeout 90 node final-regression.js http://localhost:3000)",
-      "Bash(timeout 60 node statement-recheck-v2.js)"
+      "Bash(timeout 60 node statement-recheck-v2.js)",
+      "Bash(timeout 60 node gap-leap-compare.js)",
+      "Bash(timeout 60 node leap-screenshot.js)",
+      "Bash(timeout 60 node leap-screenshot2.js)",
+      "Bash(timeout 90 node leap-debug.js)",
+      "Bash(timeout 60 node leap-shot-final.js)",
+      "Bash(jobs -l)",
+      "Read(//d/tmp/pw/**)",
+      "Bash(rm -f /tmp/pw/leap-vs-gap-final.js /tmp/pw/leap-shot-verify.js /tmp/pw/leap-overlap-full.js /tmp/pw/leap-overlap-fast.js /tmp/pw/leap-verify-390.png /tmp/pw/leap-verify-1440.png /tmp/pw/dev-server.log 2>/dev/null; echo done)"
     ],
     "additionalDirectories": [
       "d:\\tanzeel\\ikra-backups\\case-studies-v1-stack",

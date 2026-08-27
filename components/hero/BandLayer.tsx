@@ -1,7 +1,6 @@
 "use client";
 
-import type { RefObject } from "react";
-import { gsap } from "@/lib/gsap";
+import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { BAND_CLIP_UNDRAWN, LEAP_GAP, type BandGeometry } from "./band";
 // ── RESTORE THE WAVE — step 1 of 5 ── uncomment the import below.
 //
@@ -21,55 +20,43 @@ import { BAND_CLIP_UNDRAWN, LEAP_GAP, type BandGeometry } from "./band";
 //
 // import WavyBand from "./WavyBand";
 
-// How many ems wide the closing line is, so its size can be solved from the span
-// between the wedges rather than picked — widen the wedges and the line shrinks to
-// suit.
+// `until you make the leap` used to be sized off its own span between the wedges
+// (LEAP_EMS/LEAP_EMS_STACKED, a since-removed pair of clamps), which is why it never
+// matched GAP_LINES: two different formulas solving two different spans agree at no
+// width. It now renders at exactly GapCopy's own solved size instead — `leapFontSize`
+// below, threaded down from `gapCopyFontSize(stageBox.w)` in HeroNarrative, the same
+// value GAP_LINES itself uses — so the two read as one continuous piece of type
+// rather than a handoff between two sizes.
 //
-// Not a guess: summing the advance widths in
-// public/fonts/ZalandoSansSemiExpanded-VariableFont_wght.ttf gives 4.494em for
-// "until you " and 7.009em for "make the leap", so 11.50em at weight 400. The bold
-// run renders at 700 and the font ships HVAR, so its advances are wider than that —
-// 14 leaves room for the bold run being up to ~12% wider *and* still clears the span
-// at every width from 768px up. Keep it above ~12.4 if the wording changes.
-const LEAP_EMS = 14;
+// That leaves nothing here to predict the rendered width from: at a shared size the
+// line no longer shrinks to fit its own span, so whether it fits has to be measured,
+// not solved. See the `stacked` state below.
+
+// Summed from the advance widths in
+// public/fonts/ZalandoSansSemiExpanded-VariableFont_wght.ttf at weight 500
+// (font-medium, matching GapCopy): "until you " is 4.494em, "make the leap" 7.009em.
+// Kept only as context for the measurement below, not as an input to it — HVAR
+// deltas make weight 500 wider than the raw 400 sums by an amount worth measuring
+// rather than padding for.
 
 /**
- * The same measurement for the two-line rendering, where the governing run is "make
- * the leap" alone — 7.009em at weight 400, so ~7.85em at the 700 this renders at, and
- * 9.5 carries the same ~1.22× headroom over that as LEAP_EMS does over 11.50.
- *
- * A phone needs the second line and cannot be talked out of it. The one-line solve
- * wants a 364px span to hold 14em at the 26px floor, which on a 390px screen leaves
- * 13px for both wedges — so no aperture that keeps a visible wedge can fit this
- * sentence on one line, and the old floor simply overflowed it across the orange in
- * `text-accent`, where half the words are the panels' own colour and vanish. Breaking
- * it is the only lever that does not either shrink the line under legibility or delete
- * the wedges the ribbon is pinned to.
- *
- * The ceiling is 44 rather than LEAP_EMS's 82 because two lines are twice as tall: the
- * solve reaches the ceiling by ~640px of stage, and 44px × 1.3 × 2 is already 114px of
- * copy standing where the ribbon was.
+ * Small fixed clearance kept between the closing line's measured width and the
+ * wedges' inner edges, in px. Not a proportional margin the way GAP_COPY_INSET is —
+ * this line renders at GAP_LINES' own solved size with nothing left to shed for
+ * breathing room, so the only thing left to guard against is sub-pixel rounding in
+ * the measurement itself. Same job BAND_TUCK_PX and DOOR_PANEL_BLEED_PX do
+ * elsewhere in this section.
  */
-const LEAP_EMS_STACKED = 9.5;
-const LEAP_STACKED_PX = [24, 44] as const;
-const LEAP_ONE_LINE_PX = [26, 82] as const;
+const LEAP_CLEARANCE_PX = 8;
 
-// `whitespace-nowrap` because the size is solved for this width; wrapping where it was
-// not asked for would only ever mean the fit is wrong. The break on a narrow stage is
-// an explicit <br/>, which nowrap does not suppress, so the two lines are the two runs
-// the size was solved for rather than wherever the box happened to run out.
-//
-// Deliberately carries NO font-size of its own. It used to say `text-3xl
-// md:text-[60px]`, which silently overrode the size the container solves and pinned
-// the line to a flat 60px — 741px wide, against a span that is 609px at 1440, so the
-// ends sat on top of the wedges on every laptop. `text-accent` words over
-// accent-coloured orange simply disappear, which is why the overlap has to be
-// structurally impossible rather than merely unlikely.
+// `whitespace-nowrap` on both the real line and its measurer: wrapping where it was
+// not asked for would only ever mean the fit was measured wrong. The break on a
+// narrow stage is an explicit <br/>, which nowrap does not suppress.
 const leapCopy = (stacked: boolean) => (
-  <p className="leading-[1.3] font-normal whitespace-nowrap text-ink">
+  <p className="leading-[1.3] font-medium whitespace-nowrap text-ink">
     until you
     {stacked ? <br /> : " "}
-    <span className="font-bold text-accent">make the leap</span>
+    <span className="text-accent">make the leap</span>
   </p>
 );
 
@@ -83,12 +70,45 @@ export default function BandLayer({
   reducedMotion,
   ribbonRef,
   leapRef,
+  leapFontSize,
 }: {
   band: BandGeometry | null;
   reducedMotion: boolean;
   ribbonRef: RefObject<HTMLDivElement | null>;
   leapRef: RefObject<HTMLDivElement | null>;
+  leapFontSize: number;
 }) {
+  const measureRef = useRef<HTMLSpanElement>(null);
+  const [stacked, setStacked] = useState(band?.narrow ?? false);
+
+  /**
+   * Whether the closing line fits its seat on one line, at `leapFontSize` — measured
+   * against a hidden nowrap clone rather than predicted from ems, because at a size
+   * shared with GAP_LINES there is no formula here left to predict a rendered width
+   * with; only the browser, for this font/weight/size, knows it. Runs before paint
+   * (`useLayoutEffect`), so the corrected value commits before anything is visible —
+   * the initial guess above only has to hold for a discarded first frame.
+   *
+   * Measured again once `document.fonts.ready` resolves: a cold load can run this
+   * effect against the fallback font's metrics before the real one swaps in, same
+   * race `SmoothScrollProvider` already re-syncs `ScrollTrigger` against.
+   */
+  useLayoutEffect(() => {
+    const el = measureRef.current;
+    if (!band || !el) return;
+    let cancelled = false;
+    const measure = () => {
+      if (cancelled) return;
+      const fits = el.scrollWidth <= band.width - LEAP_CLEARANCE_PX;
+      setStacked((prev) => (prev === !fits ? prev : !fits));
+    };
+    measure();
+    document.fonts.ready.then(measure);
+    return () => {
+      cancelled = true;
+    };
+  }, [band, leapFontSize]);
+
   if (!band) return null;
 
   return (
@@ -119,18 +139,31 @@ export default function BandLayer({
         {/* <WavyBand g={band} animate={!reducedMotion} /> */}
       </div>
 
+      {/* Hidden one-line clone, same text/weight/size as the real line, laid out
+          off-screen (opacity-0, out of flow) purely so its natural nowrap width can
+          be read — see the `stacked` effect above. Never itself visible. */}
+      <span
+        ref={measureRef}
+        aria-hidden
+        className="pointer-events-none absolute font-medium whitespace-nowrap opacity-0"
+        style={{ fontSize: leapFontSize }}
+      >
+        until you make the leap
+      </span>
+
       {/* Centred on the stage rather than boxed inside the band's inset: sized to
           its own content and pulled back half its width, so its midpoint is the
           screen's at any font size. Being unboxed is what keeps any overhang even
           rather than all on one side — it is not a licence to overhang.
 
           On the ribbon's centre line, since it takes over that space once the
-          ribbon clears — and sized to the span between the wedges (see LEAP_EMS)
-          so it sits between them, with 26–64px of clearance a side from 768px up.
-          Below that the sentence breaks in two and is solved against its longer
-          run instead (see LEAP_EMS_STACKED), which is what keeps it off the wedges
-          on a phone; the one-line floor used to overflow onto them, and half the
-          words are `text-accent` over accent-coloured orange.
+          ribbon clears — and rendered at `leapFontSize`, GAP_LINES' own solved
+          size, so the two read as one piece of type rather than a handoff between
+          sizes. Whether that fits on one line or has to break in two (see
+          `stacked` above) is measured against the real span between the wedges at
+          that size, not assumed from a breakpoint — the one-line floor used to
+          overflow onto them, and half the words are `text-accent` over
+          accent-coloured orange.
 
           Translate-centring is GSAP's here (xPercent, from leapSeat), not the
           class list's. Reduced motion has no GSAP, so it keeps the class and stays
@@ -144,13 +177,11 @@ export default function BandLayer({
           top: reducedMotion
             ? band.top + band.height + LEAP_GAP
             : band.top + band.height / 2,
-          fontSize: band.narrow
-            ? gsap.utils.clamp(...LEAP_STACKED_PX, band.width / LEAP_EMS_STACKED)
-            : gsap.utils.clamp(...LEAP_ONE_LINE_PX, band.width / LEAP_EMS),
+          fontSize: leapFontSize,
           opacity: reducedMotion ? 1 : 0,
         }}
       >
-        {leapCopy(band.narrow)}
+        {leapCopy(stacked)}
       </div>
     </>
   );
