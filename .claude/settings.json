@@ -119,10 +119,31 @@
       "Bash(node measure.js)",
       "Bash(node measure2.js)",
       "Bash(curl -sf http://localhost:3000)",
-      "Bash(git diff *)"
+      "Bash(git diff *)",
+      "Bash(node C:/tmp/pw/check-auto-maxx.js)",
+      "Bash(node scratch-check-auto-maxx.js)",
+      "Bash(npm ls *)",
+      "Read(//d//**)",
+      "Bash(node check-auto-maxx.js)",
+      "Bash(node check-auto-maxx2.js)",
+      "Bash(node check-auto-maxx3.js)",
+      "Bash(node check-auto-maxx4.js)",
+      "Bash(node -e \"console.log\\(require\\('d:/tanzeel/Ikra-Agency/node_modules/sharp/package.json'\\).version\\)\")",
+      "Bash(node scratch-sample.js)",
+      "Bash(git show *)",
+      "Read(//c/Users/AGA Computer/AppData/Local/Temp/pw/**)",
+      "Bash(node verify-fix.js)",
+      "Bash(rm -f scratch-check-auto-maxx.js scratch-sample.js)",
+      "Bash(rm -f \"/tmp/pw/check-auto-maxx.js\" \"/tmp/pw/check-auto-maxx2.js\" \"/tmp/pw/check-auto-maxx3.js\" \"/tmp/pw/check-auto-maxx4.js\" \"/tmp/pw/verify-fix.js\" \"/tmp/pw/old-wowimage.png\" \"/tmp/pw/old-qcif-hero.jpg\" \"/tmp/pw/auto-maxx-centered.png\" \"/tmp/pw/auto-maxx-768x1024.png\" \"/tmp/pw/auto-maxx-390x844.png\" \"/tmp/pw/auto-maxx-1024x768.png\" \"/tmp/pw/verify-Coffee-Shop-Vibes.png\" \"/tmp/pw/verify-WowImage.png\")",
+      "Bash(node repro.js)",
+      "Bash(xargs -I{} stat -c \"%Y %n\" {})",
+      "Bash(curl -sI \"http://localhost:3000/_next/image?url=%2Fimg%2FWowImage.png&w=1920&q=75\")",
+      "Bash(cd \"d:/tanzeel/Ikra-Agency\" && rm -f \"/tmp/pw/repro.js\" \"/tmp/pw/repro.png\")"
     ],
     "additionalDirectories": [
-      "d:\\tanzeel\\ikra-backups\\case-studies-v1-stack"
+      "d:\\tanzeel\\ikra-backups\\case-studies-v1-stack",
+      "C:\\Users\\AGA Computer\\AppData\\Local\\Temp\\pw",
+      "\\tmp\\pw"
     ]
   }
 }

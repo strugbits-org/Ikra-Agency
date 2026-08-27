@@ -98,7 +98,11 @@ export const CASE_PROJECTS: CaseProject[] = [
     // one is the only thing that would improve this card.
     imageSrc: "/img/WowImage.png",
     // A capture: the frame takes its ratio so nothing is cropped and no mat shows.
-    aspect: 835 / 495,
+    // Matches the current file's own dimensions (794 x 490) — the previous 835/495
+    // was measured off an earlier crop of this same screenshot that had a grey mat
+    // baked in around the browser mockup; the file has since been replaced with a
+    // tighter crop, so this ratio was re-measured to match it.
+    aspect: 794 / 490,
     link: "/work/auto-maxx",
     focus: "50% 50%",
   },
