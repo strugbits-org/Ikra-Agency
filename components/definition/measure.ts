@@ -11,6 +11,7 @@ import {
   LOGO_FADE_ABOVE_FRAC,
   LOGO_FADE_CAP_FRAC,
   PAN_END,
+  STATEMENT_LIFT_VH,
 } from "./timeline";
 
 /** The elements the composition is measured against. */
@@ -48,6 +49,18 @@ export type Measurements = {
   cy: number;
   frameH: number;
   statementTravel: number;
+  /**
+   * `STATEMENT_LIFT_VH` converted to px, cached here rather than read as
+   * `window.innerHeight` inside the entrance's own per-frame paint. Below `md` a real
+   * touch scroll leaves the address bar mid-collapse for stretches of the gesture, and
+   * `innerHeight` tracks it live — so a value multiplied by it on every frame drifts by
+   * however much the chrome has moved since the last frame, independent of scroll
+   * progress. That reads as the statement's entrance flickering in place while the
+   * reader is scrolling smoothly in one direction. Re-read on the same cadence as
+   * everything else here (refresh, resize) rather than live, so the entrance ignores
+   * the chrome the way `render`'s own exit travel already does.
+   */
+  statementLiftPx: number;
   markX: number;
   markY: number;
   markW: number;
@@ -126,6 +139,7 @@ export function createMeasure(els: MeasureEls, refs: MeasureRefs) {
     cy: 0,
     frameH: 1,
     statementTravel: 0,
+    statementLiftPx: 0,
     markX: 0,
     markY: 0,
     markW: 1,
@@ -149,6 +163,7 @@ export function createMeasure(els: MeasureEls, refs: MeasureRefs) {
     m.cx = circleAt.x + m.baseSize / 2;
     m.cy = circleAt.y + m.baseSize / 2;
     m.frameH = frame.offsetHeight || 1;
+    m.statementLiftPx = STATEMENT_LIFT_VH * window.innerHeight;
 
     // Exactly to where the statement's own bottom edge meets the frame's top,
     // so it is fully gone rather than relying on the fade to hide a stub.

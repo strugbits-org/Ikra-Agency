@@ -117,6 +117,57 @@ export function createHeroSequence(
     // its statement should arrive with (see ./handoff).
     heroWash.active = true;
 
+    /**
+     * The doors' floored cues (`opening`, `close` below) read scroll position through
+     * this rather than through raw `vh`, and only below `md`.
+     *
+     * Their crossover — the scroll speed above which the reader outruns the clock and
+     * the doors jump to wherever the scroll says, instead of playing the designed
+     * swing — is a fixed vh/s (`OPEN_VH / OPEN_SECONDS`, similarly for the close). That
+     * threshold was set once, tuned against how fast `vh` actually moved under
+     * ScrollSmoother's own `smooth: 1.2` easing sitting in front of this trigger's own
+     * `scrub: 1`. Below `md` there is no smoother (see SmoothScrollProvider) — a real
+     * touch swipe, and especially the momentum that continues after the finger lifts,
+     * hands `vh` a raw delta with only one damping stage behind it instead of two, so
+     * it moves through the door's span faster for the same gesture. The threshold did
+     * not change; how much of an ordinary mobile scroll now clears it did — which is
+     * why the swing that used to be visible on ordinary paces reads as an instant
+     * open/shut on a phone.
+     *
+     * This restores the missing stage, scoped to exactly the two reads that are
+     * speed-sensitive. It deliberately leaves `opening.aim`/`close.aim` and every
+     * other phase (`trackDirection`, the gap copy, the ribbon) on raw `vh` — those
+     * only ever compare it to a fixed mark, so smoothing it would just add latency
+     * with nothing to buy back. Only a value being read as a *rate* needs damping.
+     *
+     * A plain exponential toward `vh`, not a hard cap: a cap would leave the doors
+     * permanently behind the reader's true position after a long, fast scroll, with
+     * nothing to reconcile the two once they stop. An exponential decays back onto
+     * the raw value on its own once the reader holds still, at the same rate it fell
+     * behind — so a slow reader is never behind by more than a few frames, and a fast
+     * one gets exactly the "clock leads, then the scroll finishes the job" behaviour
+     * the desktop crossover already describes, just at a speed a phone can produce
+     * more easily than a mouse wheel could.
+     *
+     * DOOR_SMOOTH_TAU is a starting figure rather than a measured one — there is no
+     * way to record a reference swipe's real momentum profile the way the rest of
+     * this file's constants were measured, and neither a devtools emulator nor
+     * synthetic touch input reproduces a phone's native fling physics closely enough
+     * to tune it against. If the doors still snap open on a real device, raise it; if
+     * the swing now reads as sluggish behind an ordinary scroll, lower it.
+     */
+    const doorVhSmoothing = window.matchMedia("(max-width: 767.98px)").matches;
+    const DOOR_SMOOTH_TAU = 0.4;
+    let doorVh = 0;
+    let doorVhTime = gsap.ticker.time;
+    function readDoorVh(vh: number) {
+      if (!doorVhSmoothing) return vh;
+      const dt = Math.max(0, gsap.ticker.time - doorVhTime);
+      doorVhTime = gsap.ticker.time;
+      doorVh += (vh - doorVh) * (1 - Math.exp(-dt / DOOR_SMOOTH_TAU));
+      return doorVh;
+    }
+
     // The ribbon, kept off the scrub entirely (see BAND_DRAW_AT), and driven as one
     // number sweeping BAND_UNDRAWN → BAND_FULL → BAND_CLOSED (see bandClip).
     //
@@ -293,16 +344,22 @@ export function createHeroSequence(
         else if (vh < dirPeak - DIR_FLIP_VH) {
           scrollDir = -1;
           dirPeak = vh;
-          opening.rebase(vh);
-          close.rebase(vh);
+          // The smoothed value, not raw `vh` — `rebase` re-anchors each cue's offset
+          // against `ramp(vh, span)`, and `.read()` will go on computing that same
+          // ramp from the smoothed value from here on (see readDoorVh). Rebasing
+          // against raw `vh` would anchor the offset to a position `.read()` is not
+          // actually using, reopening exactly the one-frame jump `offset` exists to
+          // prevent.
+          opening.rebase(readDoorVh(vh));
+          close.rebase(readDoorVh(vh));
         }
       } else {
         if (vh < dirPeak) dirPeak = vh;
         else if (vh > dirPeak + DIR_FLIP_VH) {
           scrollDir = 1;
           dirPeak = vh;
-          opening.rebase(vh);
-          close.rebase(vh);
+          opening.rebase(readDoorVh(vh));
+          close.rebase(readDoorVh(vh));
         }
       }
     }
@@ -418,7 +475,7 @@ export function createHeroSequence(
       // the ramp on the doors' own position across a reversal and bleeds off as the
       // reader commits. Without it the two sides disagree by however far the clock had
       // run ahead, and the swap pays that difference in a single frame.
-      const pathP = opening.read(vh, scrollDir);
+      const pathP = opening.read(readDoorVh(vh), scrollDir);
 
       // The two legs of that one path, overlapping rather than sequential. The panels
       // run the whole path; the hole closes across the part of it that ends as the
@@ -562,7 +619,7 @@ export function createHeroSequence(
       // only one of the two.
       // Both forms are needed: the eased one is where the panels *are*, the raw one is
       // linear in scroll and is what the wash is spanned against (see CLOSE_SEALED_RAW).
-      const closeRaw = close.read(vh, scrollDir);
+      const closeRaw = close.read(readDoorVh(vh), scrollDir);
       const closeP = CLOSE_EASE(closeRaw);
       const doorNow = doorP * (1 - closeP);
       // Shaped rather than linear, so a panel's short edge cannot climb into frame

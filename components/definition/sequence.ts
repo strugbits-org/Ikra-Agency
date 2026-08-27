@@ -38,7 +38,6 @@ import {
   PIN_VH,
   STATEMENT_FADE_EASE,
   STATEMENT_LIFT_END_PCT,
-  STATEMENT_LIFT_VH,
   STATEMENT_REVEAL_AT_PCT,
   STATEMENT_VH,
   TAIL_AT,
@@ -545,7 +544,14 @@ export function createDefinitionSequence(
         // Travel: raw, so the net motion is monotonically upward. Easing this
         // too made the curve leave at twice its average rate — faster than
         // the page, and therefore *downward* for the first third.
-        y: -(1 - raw) * STATEMENT_LIFT_VH * window.innerHeight,
+        //
+        // `m.statementLiftPx` rather than `STATEMENT_LIFT_VH * window.innerHeight`
+        // read live — see the field's own doc in ./measure. This paints on every
+        // scroll event and every ticker tick (see syncStatement below), so a live
+        // read multiplies a moving `raw` by a value the mobile address bar can also
+        // be moving, and the two drifting against each other reads as a flicker
+        // rather than a lift.
+        y: -(1 - raw) * m.statementLiftPx,
         // Presence: the hero's wash, not the scroll — the wash is cued and
         // finishes wherever the reader stops, so a scroll-mapped fade can't
         // keep up with it in either direction. Boosted on mobile — see
