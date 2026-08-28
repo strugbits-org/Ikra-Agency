@@ -1,5 +1,6 @@
 import type { RefObject } from "react";
 import { gsap } from "@/lib/gsap";
+import { unlockInitialScroll } from "@/components/scrollLock";
 import { holeClip } from "./doors";
 
 /**
@@ -54,6 +55,7 @@ export function playHeroIntro(
     gsap.set(headline, { xPercent: -50, yPercent: -50, opacity: 0 });
     gsap.set(box, { opacity: 0 });
     introDone.current = true;
+    unlockInitialScroll();
     return;
   }
 
@@ -87,6 +89,7 @@ export function playHeroIntro(
     const land = () => {
       introDone.current = true;
       hurry.current = null;
+      unlockInitialScroll();
       // Hands the stage to the scroll sequence at whatever position the reader has
       // actually reached — see the note above on why the latch alone is not enough.
       // Null only under reduced motion, where no sequence exists.

@@ -86,6 +86,18 @@ body {
   overscroll-behavior: none;
 }
 
+/*
+ * Set by SmoothScrollProvider (see components/scrollLock.ts) while the home page's
+ * hero is still running its load timeline. The wheel/touch/keyboard listeners it
+ * installs alongside this are what actually stop a normalizeScroll-driven desktop
+ * or a native mobile scroll; this is the backstop for anything that moves the page
+ * without one of those three, and for below-`md`, where the page really is just a
+ * native scroller.
+ */
+html.scroll-locked {
+  overflow: hidden;
+}
+
 body {
   background: var(--color-cream);
   color: var(--color-ink);

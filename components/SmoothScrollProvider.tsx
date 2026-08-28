@@ -6,6 +6,18 @@ import { ScrollSmoother, ScrollTrigger } from "@/lib/gsap";
 import RouteCover from "./RouteCover";
 import ScrollBar from "./ScrollBar";
 import { hideRouteCover } from "./routeTransition";
+import { readInitialScrollLock, subscribeInitialScrollLock } from "./scrollLock";
+
+/** Keys that move the page without a wheel or a touch — held during the initial lock. */
+const SCROLL_KEYS = new Set([
+  "Space",
+  "PageUp",
+  "PageDown",
+  "End",
+  "Home",
+  "ArrowUp",
+  "ArrowDown",
+]);
 
 export default function SmoothScrollProvider({
   children,
@@ -79,6 +91,52 @@ export default function SmoothScrollProvider({
       cancelled = true;
       smootherRef.current = null;
       smoother.kill();
+    };
+  }, []);
+
+  /**
+   * Holds scroll input off the page while the home page's hero is still running its
+   * load timeline — see ./scrollLock for why this lives here rather than in the hero
+   * itself. `.paused()` is ScrollSmoother's own "nothing will scroll" switch and
+   * covers desktop; below `md` there is no smoother to ask (see the mount effect
+   * above), so the wheel/touch/keyboard listeners are what actually hold a phone
+   * still there. Both run together rather than one implying the other, since which
+   * one is doing the work depends on the viewport.
+   *
+   * Reads the store's current value on mount rather than assuming unlocked, because
+   * React fires a child's effects before its parent's: on the home page,
+   * HeroNarrative's own mount effect — which locks — has already run by the time
+   * this one does.
+   */
+  useEffect(() => {
+    const preventScroll = (e: Event) => e.preventDefault();
+    const preventKeyScroll = (e: KeyboardEvent) => {
+      if (SCROLL_KEYS.has(e.code)) e.preventDefault();
+    };
+
+    const apply = (isLocked: boolean) => {
+      smootherRef.current?.paused(isLocked);
+      document.documentElement.classList.toggle("scroll-locked", isLocked);
+      if (isLocked) {
+        window.addEventListener("wheel", preventScroll, { passive: false });
+        window.addEventListener("touchmove", preventScroll, {
+          passive: false,
+        });
+        window.addEventListener("keydown", preventKeyScroll);
+      } else {
+        window.removeEventListener("wheel", preventScroll);
+        window.removeEventListener("touchmove", preventScroll);
+        window.removeEventListener("keydown", preventKeyScroll);
+      }
+    };
+
+    apply(readInitialScrollLock());
+    const unsubscribe = subscribeInitialScrollLock(() =>
+      apply(readInitialScrollLock()),
+    );
+    return () => {
+      unsubscribe();
+      apply(false);
     };
   }, []);
 

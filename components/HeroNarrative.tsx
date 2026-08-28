@@ -13,10 +13,22 @@ import {
   DoorPanels,
   HeroBackdrop,
   HeroCursor,
+  HeroLoadingCue,
 } from "./hero/HeroLayers";
 import { playHeroIntro } from "./hero/intro";
 import { createHeroSequence } from "./hero/sequence";
 import { SECTION_VH } from "./hero/timeline";
+import { lockInitialScroll, unlockInitialScroll } from "@/components/scrollLock";
+
+/**
+ * A ceiling on how long the initial scroll lock can hold, independent of whether
+ * the load timeline itself ever reports landing (see ./hero/intro). Every real path
+ * through it unlocks well inside this — `document.fonts.ready` plus its own ~1.5s
+ * of fades — so this only fires if something has actually gone wrong (a font
+ * promise that never settles, an exception mid-timeline), and exists so that
+ * failure mode is "the intro didn't play" rather than "the page cannot scroll".
+ */
+const SCROLL_LOCK_SAFETY_MS = 6000;
 
 /**
  * One continuous pinned sequence, assembled from four parts:
@@ -116,6 +128,13 @@ export default function HeroNarrative() {
       window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     );
     setMounted(true);
+
+    // Held until the load timeline lands (see ./hero/intro's `land`) — locked here
+    // rather than the moment that effect runs so there is no gap between paint and
+    // the lock engaging for the reader to scroll through.
+    lockInitialScroll();
+    const safety = window.setTimeout(unlockInitialScroll, SCROLL_LOCK_SAFETY_MS);
+    return () => window.clearTimeout(safety);
   }, []);
 
   const { bgSrc, bgPlaying, setBgPlaying } = useBackgroundFootage(
@@ -212,6 +231,8 @@ export default function HeroNarrative() {
           />
 
           <ClipWindow boxRef={videoBoxRef} videoRef={clipVideoRef} />
+
+          <HeroLoadingCue />
 
           {/* The turn-over from orange to the next section's gray (Phase 7). Above
             the panels and everything they carry, but deliberately below the header:

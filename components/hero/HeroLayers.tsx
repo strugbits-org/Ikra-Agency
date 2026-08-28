@@ -2,7 +2,12 @@
 
 import { createPortal } from "react-dom";
 import Image from "next/image";
+import { useSyncExternalStore } from "react";
 import type { RefObject } from "react";
+import {
+  readInitialScrollLock,
+  subscribeInitialScrollLock,
+} from "@/components/scrollLock";
 import {
   DOOR_PANEL_BLEED_PX,
   DOOR_PANEL_OVERHANG,
@@ -173,6 +178,35 @@ export function ClipWindow({
         loop
         playsInline
         preload="auto"
+      />
+    </div>
+  );
+}
+
+/**
+ * The one cue on the solid-orange screen while scroll is locked (see
+ * ../scrollLock) — otherwise that stretch is a plain static field with nothing
+ * moving on it until the load timeline's fonts-gated fade begins, which reads as
+ * broken rather than loading. Subscribed straight to the lock store rather than
+ * threaded down as a prop: nothing else here needs to know about it, and the store
+ * already exists for SmoothScrollProvider.
+ */
+export function HeroLoadingCue() {
+  const locked = useSyncExternalStore(
+    subscribeInitialScrollLock,
+    readInitialScrollLock,
+    () => false,
+  );
+  return (
+    <div
+      aria-hidden={!locked}
+      className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center transition-opacity duration-300"
+      style={{ opacity: locked ? 1 : 0 }}
+    >
+      {locked && <span className="sr-only">Loading</span>}
+      <span
+        aria-hidden
+        className="h-9 w-9 animate-spin rounded-full border-2 border-white/25 border-t-white"
       />
     </div>
   );
