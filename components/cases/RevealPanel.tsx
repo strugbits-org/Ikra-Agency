@@ -130,6 +130,7 @@ export default function RevealPanel() {
       if (!response.ok) throw new Error("submission failed");
       setStatus("success");
       form.reset();
+      setTimeout(() => setStatus("idle"), 3000);
     } catch {
       setStatus("error");
     }
@@ -187,6 +188,7 @@ export default function RevealPanel() {
                   type={field.type}
                   autoComplete={field.autoComplete}
                   placeholder={field.label}
+                  required
                   /* Bottom rule only, and the rule is the field. `bg-transparent` so the
                      panel's cream runs through it uninterrupted; `rounded-none` and the
                      appearance reset because iOS otherwise draws its own inset box.

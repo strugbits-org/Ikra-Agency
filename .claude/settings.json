@@ -166,7 +166,13 @@
       "Bash(timeout 60 node leap-shot-final.js)",
       "Bash(jobs -l)",
       "Read(//d/tmp/pw/**)",
-      "Bash(rm -f /tmp/pw/leap-vs-gap-final.js /tmp/pw/leap-shot-verify.js /tmp/pw/leap-overlap-full.js /tmp/pw/leap-overlap-fast.js /tmp/pw/leap-verify-390.png /tmp/pw/leap-verify-1440.png /tmp/pw/dev-server.log 2>/dev/null; echo done)"
+      "Bash(rm -f /tmp/pw/leap-vs-gap-final.js /tmp/pw/leap-shot-verify.js /tmp/pw/leap-overlap-full.js /tmp/pw/leap-overlap-fast.js /tmp/pw/leap-verify-390.png /tmp/pw/leap-verify-1440.png /tmp/pw/dev-server.log 2>/dev/null; echo done)",
+      "Bash(ls -la /tmp/pw/ 2>&1; echo \"---\"; test -f /tmp/pw/mobile-doors.js && echo \"exists\" || echo \"missing\")",
+      "Bash(timeout 110 node mobile-doors.js)",
+      "Bash(ls -la /c/tmp/pw/ 2>&1 | tail -20)",
+      "Bash(ls -la /c/tmp/pw/mobile-doors2-*.png 2>&1)",
+      "Bash(rm -f /tmp/pw/mobile-doors.js /tmp/pw/mobile-doors2.js /tmp/pw/sweep.js /tmp/pw/close-check.js /tmp/pw/close-check2.js /tmp/pw/extra-checks.js /tmp/pw/rm-check.js)",
+      "Bash(rm -f /c/tmp/pw/mobile-doors-*.png /c/tmp/pw/mobile-doors2-*.png /c/tmp/pw/sweep-*.png /c/tmp/pw/close-*.png /c/tmp/pw/close2-*.png /c/tmp/pw/boundary-800.png /c/tmp/pw/reduced-motion-390.png /c/tmp/pw/rm-fixed-390.png)"
     ],
     "additionalDirectories": [
       "d:\\tanzeel\\ikra-backups\\case-studies-v1-stack",
