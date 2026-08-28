@@ -386,16 +386,27 @@ export const APPLY_PHOTO_ASPECT = 831 / 707;
  * Section 6, the identity: the media takes the left at 45% and the copy the right at 48.3%,
  * with a wider 6.4% gap between them than the applications band above uses.
  *
- * The gap is wider because the media here is a grid of four separate frames rather than one
+ * The gap is wide because the media reads as a grid of separate frames rather than one
  * photograph — its own internal spacing sets the rhythm, and closing to 3.2 would read as a
- * fifth column of it.
+ * fifth column of it. That was true of the original gallery photo and is still true of the
+ * video that replaced it (see `IDENTITY_MEDIA_ASPECT`), which plays the same panel-grid
+ * composition in motion — so neither share needed to move for the swap.
  */
 export const IDENTITY_COLS = { copy: 48.3, gap: 6.4, media: 45 } as const;
 
 /**
- * The gallery asset's own 661 × 541. Its native ratio rather than the frame measured off the
- * reference (768 × 680), so `object-cover` has nothing to crop — this asset is a composition
- * of four panels and trimming any edge off it cuts a panel.
+ * The identity band's media is a video now, not the gallery photo it replaced, but the box is
+ * still 661 x 541 — the crop, not a native size.
+ *
+ * The clip's own frame is 540 x 720 (read off its `tkhd`), and unlike the two hero clips it has
+ * no letterboxing to remove: decoded frame by frame at eleven timestamps across its 20s, its
+ * content reaches every edge every time. What it shows there, though, is the *same* grid of
+ * panels on black as the old photograph — a taller slice of it, top row and bottom row included
+ * — not one continuous image, so unlike a screenshot or a portrait subject, cropping it doesn't
+ * cut anything off mid-subject; it just shows fewer rows of a repeating grid. Keeping this
+ * band's box at the photograph's own 661 x 541 crops to the grid's fullest middle row and
+ * reproduces the exact size and proportions the reference — and this band's own height before
+ * the swap — already had, which is what the swap to video was asked not to disturb.
  */
 export const IDENTITY_MEDIA_ASPECT = 661 / 541;
 

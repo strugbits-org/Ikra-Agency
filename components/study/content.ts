@@ -65,7 +65,13 @@ export type BandKey =
 export type MediaSplit = {
   heading: string | readonly string[];
   paragraphs: readonly string[];
-  photo: { src: string; alt: string; focus?: string };
+  photo: {
+    src: string;
+    alt: string;
+    focus?: string;
+    /** Renders `src` as a looping, muted `<video>` instead of an `<Image>` — see masthead.media. */
+    video?: boolean;
+  };
   /**
    * `cover` — the default — fills the frame, which is what a photograph wants. `contain`
    * is for artwork with its own edges: QCIF's band puts a logo here, and a logo cropped to
@@ -426,9 +432,9 @@ export const CAFE_TECHNICA: CaseStudy = {
       "That precision is balanced by retro-inspired coffee imagery. The result doesn’t feel like a cold engineering company or a generic lifestyle coffee brand. It is technical, yet human and full of character.",
     ],
     photo: {
-      src: "/img/cafe-gallery.avif",
+      src: "https://video.wixstatic.com/video/f415e2_3e4af18e47ef4df9884f3507e3de455c/720p/mp4/file.mp4",
       alt: "The Café Technica identity in use — uniform, brandbook, typography and tote",
-      focus: "50% 50%",
+      video: true,
     },
   },
 

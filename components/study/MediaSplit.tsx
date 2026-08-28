@@ -97,14 +97,29 @@ export default function MediaSplit({
       className="relative mx-auto w-full overflow-hidden [aspect-ratio:var(--media-aspect)]"
       style={{ "--media-aspect": frame, maxWidth: mediaMax } as CSSProperties}
     >
-      <Image
-        src={photo.src}
-        alt={photo.alt}
-        fill
-        sizes={`(min-width: 1024px) ${Math.round(cols.media)}vw, 100vw`}
-        className={fit === "contain" ? "object-contain" : "object-cover"}
-        style={{ objectPosition: photo.focus }}
-      />
+      {photo.video ? (
+        // The frame above is already the clip's own ratio (see IDENTITY_MEDIA_ASPECT), so
+        // `object-cover` has nothing to crop — same reasoning as the masthead's video.
+        <video
+          className="absolute inset-0 h-full w-full object-cover"
+          src={photo.src}
+          aria-label={photo.alt}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+        />
+      ) : (
+        <Image
+          src={photo.src}
+          alt={photo.alt}
+          fill
+          sizes={`(min-width: 1024px) ${Math.round(cols.media)}vw, 100vw`}
+          className={fit === "contain" ? "object-contain" : "object-cover"}
+          style={{ objectPosition: photo.focus }}
+        />
+      )}
     </div>
   );
 

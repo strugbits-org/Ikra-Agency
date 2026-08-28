@@ -189,7 +189,12 @@
       "Bash(node \"C:/Users/AGACOM~1/AppData/Local/Temp/claude/d--tanzeel-Ikra-Agency/f7bd2df0-106d-4e77-8f56-77464f0d7696/scratchpad/analyze-multi.js\")",
       "Bash(node \"C:/Users/AGACOM~1/AppData/Local/Temp/claude/d--tanzeel-Ikra-Agency/f7bd2df0-106d-4e77-8f56-77464f0d7696/scratchpad/verify-qcif-crop.js\")",
       "Bash(node \"C:/Users/AGACOM~1/AppData/Local/Temp/claude/d--tanzeel-Ikra-Agency/f7bd2df0-106d-4e77-8f56-77464f0d7696/scratchpad/analyze-multi2.js\")",
-      "Bash(node \"C:/Users/AGACOM~1/AppData/Local/Temp/claude/d--tanzeel-Ikra-Agency/f7bd2df0-106d-4e77-8f56-77464f0d7696/scratchpad/verify-cafe.js\")"
+      "Bash(node \"C:/Users/AGACOM~1/AppData/Local/Temp/claude/d--tanzeel-Ikra-Agency/f7bd2df0-106d-4e77-8f56-77464f0d7696/scratchpad/verify-cafe.js\")",
+      "Bash(node \"C:/Users/AGACOM~1/AppData/Local/Temp/claude/d--tanzeel-Ikra-Agency/f7bd2df0-106d-4e77-8f56-77464f0d7696/scratchpad/analyze-multi3.js\")",
+      "Bash(node \"C:/Users/AGACOM~1/AppData/Local/Temp/claude/d--tanzeel-Ikra-Agency/f7bd2df0-106d-4e77-8f56-77464f0d7696/scratchpad/measure-identity.js\")",
+      "Bash(node \"C:/Users/AGACOM~1/AppData/Local/Temp/claude/d--tanzeel-Ikra-Agency/f7bd2df0-106d-4e77-8f56-77464f0d7696/scratchpad/verify-identity.js\")",
+      "Bash(node \"C:/Users/AGACOM~1/AppData/Local/Temp/claude/d--tanzeel-Ikra-Agency/f7bd2df0-106d-4e77-8f56-77464f0d7696/scratchpad/export-frames.js\")",
+      "Bash(node \"C:/Users/AGACOM~1/AppData/Local/Temp/claude/d--tanzeel-Ikra-Agency/f7bd2df0-106d-4e77-8f56-77464f0d7696/scratchpad/verify-identity2.js\")"
     ],
     "additionalDirectories": [
       "d:\\tanzeel\\ikra-backups\\case-studies-v1-stack",
