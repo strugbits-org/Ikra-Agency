@@ -60,6 +60,14 @@ export type CaseProject = {
    * derived from the tallest ratio.
    */
   aspect?: number;
+  /**
+   * One-off: round this card's frame corners. Every other card's roundedness is baked into
+   * its screenshot (a browser window's own chrome), not a style — this frame is square by
+   * default, matching the reference's own square-cornered cards (see ./CaseLayers). Café
+   * Technica's photo has no such shape of its own, so it opts in here to visually match its
+   * two mockup-screenshot neighbours rather than standing out as the one sharp-cornered card.
+   */
+  rounded?: boolean;
 };
 
 export const CASE_PROJECTS: CaseProject[] = [
@@ -71,6 +79,7 @@ export const CASE_PROJECTS: CaseProject[] = [
     imageSrc: "/img/Coffee-Shop-Vibes.avif",
     link: "/work/cafe-technica",
     focus: "50% 45%",
+    rounded: true,
   },
   {
     id: "qcif",

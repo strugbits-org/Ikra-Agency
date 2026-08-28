@@ -160,7 +160,7 @@ export default function Footer() {
             </h3>
             <div className="flex flex-col items-center space-y-1 text-[15px] font-normal text-white md:items-end md:text-base lg:text-[21px]">
               <a
-                href="https://instagram.com"
+                href="https://www.instagram.com/theikraagency/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="transition-opacity hover:opacity-75"
@@ -168,7 +168,7 @@ export default function Footer() {
                 Instagram
               </a>
               <a
-                href="https://linkedin.com"
+                href="https://www.linkedin.com/company/theikraagency"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="transition-opacity hover:opacity-75"

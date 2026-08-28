@@ -226,7 +226,12 @@
       "Bash(node line-check2.js)",
       "Bash(node line-tune2.js)",
       "Bash(cp \"C:/Users/AGACOM~1/AppData/Local/Temp/pw/wow2-final.png\" \"public/img/wow-image-2.png\")",
-      "Bash(curl -s -o /tmp/pw/raw-wow2.png \"http://localhost:3000/img/wow-image-2.png?x=$\\(date +%s\\)\")"
+      "Bash(curl -s -o /tmp/pw/raw-wow2.png \"http://localhost:3000/img/wow-image-2.png?x=$\\(date +%s\\)\")",
+      "Bash(ls -la /tmp/pw/cafe-image-only.png 2>&1)",
+      "Bash(node cafe-check.js)",
+      "Bash(node cafe-round-check.js)",
+      "Bash(ls -la /tmp/pw/cafe-round-full.png /tmp/pw/*.png 2>&1 | tail -20)",
+      "Bash(echo \"EXIT:$?\")"
     ],
     "additionalDirectories": [
       "d:\\tanzeel\\ikra-backups\\case-studies-v1-stack",

@@ -226,7 +226,10 @@ export function CaseTrack({
               gradient or scrim of any kind over the artwork.
             */}
             <div
-              className="relative w-full overflow-hidden bg-ink/5"
+              className={
+                "relative w-full overflow-hidden bg-ink/5" +
+                (project.rounded ? " rounded-xl" : "")
+              }
               style={{ aspectRatio: widestAspect }}
             >
               <Image
