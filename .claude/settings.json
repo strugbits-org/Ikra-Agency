@@ -219,7 +219,8 @@
       "Bash(curl -sv http://localhost:3000/ -o /dev/null)",
       "Bash(nohup npm run dev)",
       "Bash(disown)",
-      "Bash(curl -s -o /tmp/pw/raw-qcif3.png http://localhost:3000/img/qcif-hero-2.png)"
+      "Bash(curl -s -o /tmp/pw/raw-qcif3.png http://localhost:3000/img/qcif-hero-2.png)",
+      "Bash(curl -s -o /tmp/pw/raw-qcif4.png \"http://localhost:3000/img/qcif-hero-2.png?x=$\\(date +%s\\)\")"
     ],
     "additionalDirectories": [
       "d:\\tanzeel\\ikra-backups\\case-studies-v1-stack",
