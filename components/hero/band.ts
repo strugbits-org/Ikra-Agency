@@ -5,6 +5,7 @@ import {
   DOOR_REST_Y,
   doorsFor,
 } from "./doors";
+import { GAP_COPY_INSET } from "./GapCopy";
 
 /**
  * The ribbon's geometry and its two SVG paths. Everything here is derived from the
@@ -52,7 +53,19 @@ export function bandGeometry(stageW: number, stageH: number) {
   // geometry for *this* width rather than from a module constant. BandLayer places the
   // ribbon with this same number, so the two cannot disagree.
   const doors = doorsFor(stageW);
-  const inset = doors.wedge * stageW - BAND_TUCK_PX;
+  // Below DOOR_NARROW_MAX_W the doors open top/bottom instead of left/right (see
+  // `narrow` here and the same flag in HeroLayers/sequence) — there is no side wedge
+  // to leave a horizontal gap at all, so the closing line and the (currently
+  // invisible) ribbon get the full stage width, inset by the same share GapCopy
+  // already sizes GAP_LINES against, rather than a width solved from a wedge that no
+  // longer exists on this axis. This was the actual ceiling on "until you make the
+  // leap": at the old wedge-derived gap (~66% of the stage), "make the leap" alone
+  // (7.009em, see BandLayer) is wider than the span even stacked onto its own line,
+  // so no measurement-based line-break could ever have kept it off the wedges — the
+  // gap itself had to widen.
+  const inset = doors.narrow
+    ? GAP_COPY_INSET * stageW
+    : doors.wedge * stageW - BAND_TUCK_PX;
   const width = stageW - inset * 2;
 
   // The wedges' horizontal edges. The left wedge exists only *below* its top

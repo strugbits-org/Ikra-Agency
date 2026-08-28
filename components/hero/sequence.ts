@@ -622,9 +622,6 @@ export function createHeroSequence(
       const closeRaw = close.read(readDoorVh(vh), scrollDir);
       const closeP = CLOSE_EASE(closeRaw);
       const doorNow = doorP * (1 - closeP);
-      // Shaped rather than linear, so a panel's short edge cannot climb into frame
-      // while the two are still overlapped — see doorDrift.
-      const drift = doorDrift(doorNow);
       // Read per frame off the measured width, because the panels travel further below
       // DOOR_NARROW_MAX_W — their box is wider there by exactly the same amount, so the
       // wedge they leave is narrower and the gap between them wider. Only the distance
@@ -632,14 +629,27 @@ export function createHeroSequence(
       // doorsForAperture), so `doorP`, `drift` and everything keyed to them are the
       // same numbers at every width.
       const doors = doorsFor(W);
-      gsap.set(refs.panelLeft.current, {
-        x: -doorNow * W * doors.restX,
-        y: drift * H * DOOR_REST_Y,
-      });
-      gsap.set(refs.panelRight.current, {
-        x: doorNow * W * doors.restX,
-        y: -drift * H * DOOR_REST_Y,
-      });
+      if (doors.narrow) {
+        // Mobile only: top/bottom instead of left/right (see DoorPanels). A straight
+        // slide along the one axis the panels are oversized on, with nothing on the
+        // cross axis to drift — the diagonal drift exists only to keep a panel's short
+        // edge from climbing into frame while overlapped (see doorDrift), which is a
+        // hazard purely of the perpendicular movement this orientation doesn't have.
+        gsap.set(refs.panelLeft.current, { x: 0, y: -doorNow * H * doors.restX });
+        gsap.set(refs.panelRight.current, { x: 0, y: doorNow * H * doors.restX });
+      } else {
+        // Shaped rather than linear, so a panel's short edge cannot climb into frame
+        // while the two are still overlapped — see doorDrift.
+        const drift = doorDrift(doorNow);
+        gsap.set(refs.panelLeft.current, {
+          x: -doorNow * W * doors.restX,
+          y: drift * H * DOOR_REST_Y,
+        });
+        gsap.set(refs.panelRight.current, {
+          x: doorNow * W * doors.restX,
+          y: -drift * H * DOOR_REST_Y,
+        });
+      }
 
       // --- Phase 5: the closing line, arriving on scroll and leaving with the doors
       //

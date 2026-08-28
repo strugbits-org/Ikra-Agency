@@ -21,12 +21,29 @@ import {
  * below DOOR_NARROW_MAX_W — that is what lets them travel further and still seal (see
  * doorsForAperture). The width and the travel have to come from the same geometry or
  * the wedge they leave is the wrong size.
+ *
+ * Below DOOR_NARROW_MAX_W (`doors.narrow`) this is a horizontal bar spanning the full
+ * width instead — see the doc on DoorPanels for why the axis swaps there and not the
+ * numbers. Nothing here needs the diagonal-drift overhang in that orientation: the
+ * panel only ever travels along the axis it is oversized on (see paintStage), so
+ * there is no perpendicular drift for a short edge to expose. `doors.panelW` is still
+ * the right fraction to read — it is `doorsForAperture`'s solved share of the
+ * travel axis, not tied to which axis that is — reused here as a share of *height*
+ * rather than of width, with the same DOOR_PANEL_BLEED_PX seam guard applied to
+ * whichever dimension is now doing the overlapping.
  */
-const panelBox = (doors: DoorGeometry) => ({
-  top: `${-DOOR_PANEL_OVERHANG * 100}%`,
-  height: `${(1 + 2 * DOOR_PANEL_OVERHANG) * 100}%`,
-  width: `calc(${(doors.panelW * 100).toFixed(4)}% + ${DOOR_PANEL_BLEED_PX}px)`,
-});
+const panelBox = (doors: DoorGeometry) =>
+  doors.narrow
+    ? {
+      left: 0,
+      right: 0,
+      height: `calc(${(doors.panelW * 100).toFixed(4)}% + ${DOOR_PANEL_BLEED_PX}px)`,
+    }
+    : {
+      top: `${-DOOR_PANEL_OVERHANG * 100}%`,
+      height: `${(1 + 2 * DOOR_PANEL_OVERHANG) * 100}%`,
+      width: `calc(${(doors.panelW * 100).toFixed(4)}% + ${DOOR_PANEL_BLEED_PX}px)`,
+    };
 
 /**
  * The static layers of the pinned stage, in paint order: the backdrop, the two
@@ -91,6 +108,21 @@ export function HeroBackdrop({
  * The orange doors. Oversized so the closed state fully overlaps and the diagonal
  * drift never exposes a panel's short edge. In reduced motion they render already
  * parked — the same offsets in vw/vh, since there is no ScrollTrigger to drive them.
+ *
+ * Below DOOR_NARROW_MAX_W the two panels are horizontal bars sliding open top/bottom
+ * instead of the desktop's diagonal left/right wedges — a mobile-only request: the
+ * closing line ("until you make the leap") shares GAP_LINES' own font size (see
+ * ./GapCopy), and at that size the phrase is wider than even the narrow *aperture*'s
+ * gap could ever give it, on one line or stacked onto two — so no amount of
+ * measuring where to break the line could keep "make the leap" off the wedges. A
+ * top/bottom split leaves the full stage width open instead, which is what the text
+ * actually needs; it is not available on the left/right axis at any aperture this
+ * section's wedges could plausibly leave.
+ *
+ * The refs and the DOM elements are the same two used on desktop — only *how* they
+ * are boxed, anchored and translated changes, both here and in ./sequence's
+ * `paintStage`, both keyed on the same `doors.narrow` `doorsFor` already computes.
+ * Nothing above DOOR_NARROW_MAX_W reads a different branch than it did before.
  */
 export function DoorPanels({
   leftRef,
@@ -105,26 +137,29 @@ export function DoorPanels({
   doors: DoorGeometry;
 }) {
   const box = panelBox(doors);
+  // Same magnitude either orientation (`doors.restX`, the fraction of the travel
+  // axis the panel slides across at rest) — only the axis and the sign convention
+  // per panel differ, and both stay in step with paintStage's own translate.
+  const restTransform = (sign: 1 | -1) =>
+    doors.narrow
+      ? `translate(0, ${sign * doors.restX * 100}vh)`
+      : `translate(${sign * doors.restX * 100}vw, ${-sign * DOOR_REST_Y * 100}vh)`;
   return (
     <>
       <div
         ref={leftRef}
-        className="absolute left-0 z-10 bg-accent"
+        className={`absolute z-10 bg-accent ${doors.narrow ? "top-0" : "left-0"}`}
         style={{
           ...box,
-          transform: reducedMotion
-            ? `translate(${-doors.restX * 100}vw, ${DOOR_REST_Y * 100}vh)`
-            : undefined,
+          transform: reducedMotion ? restTransform(-1) : undefined,
         }}
       />
       <div
         ref={rightRef}
-        className="absolute right-0 z-10 bg-accent"
+        className={`absolute z-10 bg-accent ${doors.narrow ? "bottom-0" : "right-0"}`}
         style={{
           ...box,
-          transform: reducedMotion
-            ? `translate(${doors.restX * 100}vw, ${-DOOR_REST_Y * 100}vh)`
-            : undefined,
+          transform: reducedMotion ? restTransform(1) : undefined,
         }}
       />
     </>

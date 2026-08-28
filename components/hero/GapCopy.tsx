@@ -23,7 +23,7 @@ const GAP_LEAD_EMS = 10.8;
  * margin is the *same* margin at every frame — the copy sits inside the opening
  * from the moment it appears, not merely once the doors have stopped.
  */
-const GAP_COPY_INSET = 0.07;
+export const GAP_COPY_INSET = 0.07;
 
 /**
  * The gap copy's size, solved from the span it has to sit in rather than declared.

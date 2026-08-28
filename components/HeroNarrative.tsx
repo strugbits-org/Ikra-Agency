@@ -111,6 +111,10 @@ export default function HeroNarrative() {
     [stageBox.w, stageBox.h],
   );
 
+  // Named once and reused below (DoorPanels, and the reduced-motion gap copy's
+  // position) rather than called again at each site — same value either way.
+  const doors = doorsFor(stageBox.w);
+
   useEffect(() => {
     setReducedMotion(
       window.matchMedia("(prefers-reduced-motion: reduce)").matches,
@@ -208,7 +212,7 @@ export default function HeroNarrative() {
             leftRef={panelLeftRef}
             rightRef={panelRightRef}
             reducedMotion={reducedMotion}
-            doors={doorsFor(stageBox.w)}
+            doors={doors}
           />
 
           <ClipWindow boxRef={videoBoxRef} videoRef={clipVideoRef} />
@@ -263,8 +267,20 @@ export default function HeroNarrative() {
           {reducedMotion && (
             /* Nothing animates here, so the opening copy has to live where it
                won't collide with the ribbon, which is pinned to the wedges in
-               both modes. */
-            <div className="absolute inset-x-8 top-[10%] z-20 text-center md:inset-x-16">
+               both modes.
+
+               Below DOOR_NARROW_MAX_W that "both modes" includes reduced motion's own
+               static parking, and the doors there are horizontal top/bottom bars (see
+               DoorPanels) rather than side wedges — a flat top-[10%] is inside the top
+               bar's own height (`doors.wedge`, the fraction it covers at rest) on a
+               phone, which is what put "growth creates a gap" half behind orange. Clear
+               it by that same fraction instead, with a small margin of its own. */
+            <div
+              className="absolute inset-x-8 z-20 text-center md:inset-x-16"
+              style={{
+                top: doors.narrow ? `${(doors.wedge * 100 + 4).toFixed(2)}%` : "10%",
+              }}
+            >
               <GapCopy />
             </div>
           )}
