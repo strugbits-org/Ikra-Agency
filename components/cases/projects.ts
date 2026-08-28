@@ -78,13 +78,15 @@ export const CASE_PROJECTS: CaseProject[] = [
     description:
       "A brand, a sub-brand system and a website that let Queensland’s digital research partner restructure how it works.",
     // The delivered site itself. It is the only QCIF asset that is *about the work* rather
-    // than about the client's people, which is what a case-study card should show. Flattened
-    // to drop its alpha channel — a handful of corner pixels from the mockup's own rounded
-    // chrome were transparent, which under `object-cover` would show the frame's bg-ink/5
-    // through as a faint grey nick at each corner. 1325 x 800.
+    // than about the client's people, which is what a case-study card should show. The
+    // supplied export had a ~15px transparent margin baked in on every side (so `object-cover`
+    // showed the frame's bg-ink/5 through as a white-ish band) plus the mockup's own rounded
+    // corners — trimmed to the mockup's edges, then those corners flattened to this section's
+    // resting grey (ink/5 over --color-gray) instead of white so the last few px blend in
+    // rather than reading as a stray white nick. 1293 x 770.
     imageSrc: "/img/qcif-hero-2.png",
     // A capture: the frame takes its ratio so nothing is cropped and no mat shows.
-    aspect: 1325 / 800,
+    aspect: 1293 / 770,
     link: "/work/qcif",
     focus: "50% 50%",
   },

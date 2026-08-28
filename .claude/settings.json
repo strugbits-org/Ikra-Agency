@@ -211,7 +211,15 @@
       "Bash(node qcif-check.js)",
       "Bash(node qcif-check2.js)",
       "Bash(git check-ignore *)",
-      "Bash(curl -s -o /tmp/pw/raw-qcif.png http://localhost:3000/img/qcif-hero-2.png)"
+      "Bash(curl -s -o /tmp/pw/raw-qcif.png http://localhost:3000/img/qcif-hero-2.png)",
+      "Bash(rm -rf .next/cache/images)",
+      "Bash(curl -s -o /tmp/pw/raw-qcif2.png http://localhost:3000/img/qcif-hero-2.png)",
+      "Bash(curl -sf http://localhost:3000 -o /dev/null)",
+      "Bash(echo \"exit:$?\")",
+      "Bash(curl -sv http://localhost:3000/ -o /dev/null)",
+      "Bash(nohup npm run dev)",
+      "Bash(disown)",
+      "Bash(curl -s -o /tmp/pw/raw-qcif3.png http://localhost:3000/img/qcif-hero-2.png)"
     ],
     "additionalDirectories": [
       "d:\\tanzeel\\ikra-backups\\case-studies-v1-stack",
