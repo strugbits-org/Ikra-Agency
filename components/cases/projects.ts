@@ -75,8 +75,12 @@ export const CASE_PROJECTS: CaseProject[] = [
   {
     id: "qcif",
     title: "QCIF",
+    // Trimmed from the full case study's summary (content.ts), which runs to three lines at
+    // this card's narrower column — see the doc on `description` above: two lines is the
+    // budget, and a third pushes the caption's own block taller than its neighbours', which
+    // under the cell's vertical centring reads as this card sitting out of line with them.
     description:
-      "A brand, a sub-brand system and a website that let Queensland’s digital research partner restructure how it works.",
+      "A brand, sub-brand system and website for Queensland’s digital research partner.",
     // The delivered site itself. It is the only QCIF asset that is *about the work* rather
     // than about the client's people, which is what a case-study card should show. The
     // supplied export had a ~15px transparent margin baked in on every side (so `object-cover`
@@ -93,19 +97,19 @@ export const CASE_PROJECTS: CaseProject[] = [
   {
     id: "auto-maxx",
     title: "Auto Maxx Pensacola",
+    // Trimmed to two lines for the same reason as QCIF's — see the note there. This one
+    // wrapped to three on its own, independent of any change to a neighbour.
     description:
-      "A custom AI-powered CRM and calling system that chases every enquiry for a dealership’s sales team.",
+      "A custom AI-powered CRM that chases every enquiry for a dealership’s sales team.",
     // The product itself, which is what the study is about — this client's work has no
     // photography and a stock forecourt would be a picture of a car dealership rather than
-    // a picture of the job. The capture is 835px wide, so it upscales past ~1900; a wider
-    // one is the only thing that would improve this card.
-    imageSrc: "/img/WowImage.png",
+    // a picture of the job. Same treatment as QCIF's export: a ~22px transparent margin
+    // above and below the mockup trimmed off, then its rounded corners flattened straight
+    // onto this section's resting grey rather than left transparent (which under
+    // `object-cover` would show as white/mat instead of blending in).
+    imageSrc: "/img/wow-image-2.png",
     // A capture: the frame takes its ratio so nothing is cropped and no mat shows.
-    // Matches the current file's own dimensions (794 x 490) — the previous 835/495
-    // was measured off an earlier crop of this same screenshot that had a grey mat
-    // baked in around the browser mockup; the file has since been replaced with a
-    // tighter crop, so this ratio was re-measured to match it.
-    aspect: 794 / 490,
+    aspect: 835 / 451,
     link: "/work/auto-maxx",
     focus: "50% 50%",
   },
