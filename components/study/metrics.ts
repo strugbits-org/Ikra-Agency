@@ -448,6 +448,19 @@ export const BRAND_MARK_MAX = fluid(180, 300, 360);
 export const QCIF_HERO_ASPECT = 1080 / 517;
 
 /**
+ * Cafe Technica's hero video, the same story as QCIF's above and from the same 1080 x 1350
+ * frame — read off `tkhd`, decoded and walked pixel by pixel, stable across thirteen
+ * timestamps spanning its 33s. The padding here is flat black (0,0,0 at all four corners,
+ * every timestamp), which is already this band's own `dark` tone (`bg-black`, see Tone in
+ * ./primitives) — unlike QCIF's, this one asset needed no matching colour of its own.
+ *
+ * The mockup sits at y:[397, 952] — 555px tall, centred (397 top against 398 bottom) — and
+ * x:[95, 984], with the same margins-cover-can't-crop caveat QCIF's docblock explains.
+ * `CAFE_HERO_ASPECT` is `1080 / 555` for the same reason QCIF's is `1080 / 517`.
+ */
+export const CAFE_HERO_ASPECT = 1080 / 555;
+
+/**
  * The Auto Maxx hero screenshot's own 835 x 495.
  *
  * Same story as QCIF's: the capture already carries browser chrome of its own, so the

@@ -17,11 +17,14 @@
  * ## The imagery is placeholder, and knowingly so
  *
  * `public/img` holds one photograph shot for this study (`Coffee-Shop-Vibes.avif`), which the
- * testimonial band uses and the two site mockups borrow. The masthead has no photograph at
- * all — the space beside its mockup is a line of copy, not a frame.
+ * testimonial band uses and the outcome band's mockup borrows. The masthead's own mockup was
+ * drawn (`SitePreview`) for the same reason — no capture of the homepage existed — until a
+ * real video walkthrough arrived; see `masthead.media` and `CAFE_HERO_ASPECT`. The outcome
+ * band still draws its own, since that capture hasn't arrived.
  */
 
 import {
+  CAFE_HERO_ASPECT,
   CARD_TINT_CRUSHED,
   CARD_MAX_VH,
   CRM_HERO_ASPECT,
@@ -312,6 +315,12 @@ export const CAFE_TECHNICA: CaseStudy = {
       "They bring coffee machines back to life.",
       "We did the same for their brand.",
     ],
+    media: {
+      src: "https://video.wixstatic.com/video/f415e2_81d9014a017b460094db1910806fe86a/720p/mp4/file.mp4",
+      alt: "A walkthrough of the Café Technica website",
+      aspect: CAFE_HERO_ASPECT,
+      video: true,
+    },
     columns: [
       [
         "Café Technica sell, service and rent coffee machines across Tasmania, supply spare parts and give quality second-hand machines another working life.",
