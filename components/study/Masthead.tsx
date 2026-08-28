@@ -40,14 +40,15 @@ import {
  * lockup is tight to the top edge and the row below it cannot grow without pushing the
  * intro under the fold.
  *
- * ## The thing beside the headline is either a drawn mockup or a supplied image
+ * ## The thing beside the headline is either a drawn mockup or a supplied capture
  *
  * Cafe Technica has no capture of its own homepage, so `SitePreview` draws one inside
  * `BrowserMock` — copy rather than a screenshot, which stays sharp at both the sizes the
- * frame appears at. QCIF supplied a real screenshot that already carries its own browser
- * chrome, so it is placed as-is: wrapping it would put a second frame around the first, and
- * drawing type over it would invent copy the client did not write. Which one a study gets is
- * decided by whether its record has a `media`.
+ * frame appears at. QCIF supplied a real capture that already carries its own chrome — a
+ * screenshot at first, now a video walkthrough — so it is placed as-is: wrapping it would put
+ * a second frame around one it already has, and drawing type over it would invent copy the
+ * client did not write. Which one a study gets is decided by whether its record has a
+ * `media`, and `media.video` decides `<video>` over `<Image>` inside it.
  *
  * ## Why the row's tracks are a CSS variable rather than a Tailwind class
  *
@@ -107,23 +108,43 @@ export default function Masthead({ study }: { study: CaseStudy }) {
               empty second and fourth tracks take care of themselves. */}
           <div className="lg:col-start-3">
             {media ? (
-              /* The asset's own aspect on the box, so `object-cover` has nothing to crop and
-                 the row's height is a function of the column rather than of the viewport —
-                 the same arrangement MediaSplit uses, and what makes the swap to the video
-                 this is standing in for a one-element change. */
+              /* The asset's own aspect on the box, so the row's height is a function of the
+                 column rather than of the viewport — the same arrangement MediaSplit uses.
+                 QCIF's video carries its own vertical letterboxing (see QCIF_HERO_ASPECT for
+                 the measured crop), so this box is already sized to the mockup and not the
+                 clip's full padded frame. */
               <div
                 className="relative w-full overflow-hidden [aspect-ratio:var(--hero-media-aspect)]"
                 style={{ "--hero-media-aspect": media.aspect } as CSSProperties}
               >
-                <Image
-                  src={media.src}
-                  alt={media.alt}
-                  fill
-                  sizes={`(min-width: 1024px) ${Math.round(HERO_ROW.mock)}vw, 100vw`}
-                  className="object-cover"
-                  style={{ objectPosition: media.focus }}
-                  priority
-                />
+                {media.video ? (
+                  // `object-cover` does the cropping QCIF_HERO_ASPECT sets up: it scales to the
+                  // clip's full width and crops only the height it overflows by, which is
+                  // exactly the padding above and below the mockup — see the constant's own
+                  // docblock for why the default centering needs no object-position override.
+                  // Autoplaying and looped like the other footage in this codebase (see
+                  // hero/footage.ts), muted so autoplay is allowed at all.
+                  <video
+                    className="absolute inset-0 h-full w-full object-cover"
+                    src={media.src}
+                    aria-label={media.alt}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="auto"
+                  />
+                ) : (
+                  <Image
+                    src={media.src}
+                    alt={media.alt}
+                    fill
+                    sizes={`(min-width: 1024px) ${Math.round(HERO_ROW.mock)}vw, 100vw`}
+                    className="object-cover"
+                    style={{ objectPosition: media.focus }}
+                    priority
+                  />
+                )}
               </div>
             ) : study.preview ? (
               <BrowserMock label={`The ${study.title} website`}>

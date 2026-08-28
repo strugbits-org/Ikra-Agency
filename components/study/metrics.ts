@@ -427,12 +427,25 @@ export const BRAND_MARK_ASPECT = 305 / 81;
 export const BRAND_MARK_MAX = fluid(180, 300, 360);
 
 /**
- * The hero screenshot's own 557 x 337.
+ * The hero video's frame is 1080 x 1350 (read off its `tkhd` track header), but the browser
+ * mockup inside it is not full-bleed: the clip pads it top and bottom with flat colour, and
+ * decoding a frame to a canvas and walking it pixel by pixel — stable at thirteen timestamps
+ * spread across the clip's 33s, so this is the mockup's resting frame and not a moment it
+ * animates through — finds the mockup at y:[416, 933] of that 1350, i.e. 517px tall, centred
+ * (416 top against 417 bottom) rather than pinned to an edge.
  *
- * The asset already carries its own browser chrome, which is why the masthead places it bare
- * rather than inside `BrowserMock` — see the head of ./Masthead.
+ * `QCIF_HERO_ASPECT` is `1080 / 517`, not `1080 / 1350`: with the box wider than the frame's
+ * own 4:5, `object-cover` scales to the frame's full 1080 width and crops only the height it
+ * overflows by, so setting the crop window's height to exactly the mockup's own removes all
+ * of the vertical padding and none of the mockup — and because both are centred within a
+ * millimetre of each other, the default `object-position: 50% 50%` lands it with no offset to
+ * state. The mockup is also inset left and right (x:[105, 974] of 1080, margins equal to
+ * within a pixel), but `cover` cannot crop the axis it isn't scaling by — removing that too
+ * would need a zoom past 1:1, which isn't what was asked for. Left alone, those side margins
+ * just read as breathing room, and now that `--color-navy` is the clip's own padding colour
+ * (see app/globals.css) they're invisible against the field regardless.
  */
-export const QCIF_HERO_ASPECT = 557 / 337;
+export const QCIF_HERO_ASPECT = 1080 / 517;
 
 /**
  * The Auto Maxx hero screenshot's own 835 x 495.

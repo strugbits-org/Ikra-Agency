@@ -26,16 +26,24 @@
 
   /*
    * `--color-navy` is the QCIF study's dark field, and it is the client's own colour rather
-   * than a choice: sampled off the browser chrome in `qcif-hero.jpg`, the screenshot they
-   * supplied, at seven points around the frame — #14385b #18395c #002549 #3e5064 #0e223a
-   * #082b50 #113253, mean #153352.
+   * than a choice. It was first sampled off the browser chrome in `qcif-hero.jpg`, the
+   * screenshot they originally supplied, at seven points around the frame — #14385b #18395c
+   * #002549 #3e5064 #0e223a #082b50 #113253, mean #153352.
+   *
+   * The masthead now plays their video walkthrough instead (see QCIF_HERO_ASPECT in
+   * study/metrics.ts), and that clip fills its own letterboxing with a flat #0e3156 — sampled
+   * straight off a decoded frame, and stable across the whole clip. Close to the old mean but
+   * not equal, and the difference is exactly what showed as a seam around the video's box: two
+   * near-navys sitting edge to edge. This field now takes the video's own colour instead, so
+   * every navy band on the page — not just the one behind the video — reads as one field with
+   * no boundary.
    *
    * A second study on a second field is the reason `Tone` is an enumeration rather than a
    * className: a case study is presented on its client's ground, so a third one may well add
    * a fourth entry here. What it must not do is reach for `--color-ink`, which is this
    * site's own near-black and belongs to the marketing page.
    */
-  --color-navy: #153352;
+  --color-navy: #0e3159;
 }
 
 @theme inline {

@@ -113,15 +113,23 @@ export type CaseStudy = {
      */
     headlineClassName?: string;
     /**
-     * A supplied image in place of the drawn site mockup.
+     * A supplied image or video in place of the drawn site mockup.
      *
      * `SitePreview` exists because there was no capture of the Cafe Technica homepage and a
      * stock photograph in a browser frame reads as a stock photograph in a browser frame.
-     * QCIF supplied a real screenshot — and one that already carries its own browser chrome —
-     * so it is placed as-is, with nothing drawn over it. `aspect` is the asset's own, so the
-     * frame never crops.
+     * QCIF supplied a real capture — first a screenshot, now a video walkthrough, both
+     * already carrying their own chrome/framing — so it is placed as-is, with nothing drawn
+     * over it. `aspect` is the asset's own, so the frame never crops it; `video` switches the
+     * element from `<Image>` to `<video>` without touching anything else here.
      */
-    media?: { src: string; alt: string; aspect: number; focus?: string };
+    media?: {
+      src: string;
+      alt: string;
+      aspect: number;
+      focus?: string;
+      /** Renders `src` as a looping, muted `<video>` instead of an `<Image>`. */
+      video?: boolean;
+    };
     /** The two narrative columns beside the client block. */
     columns: readonly (readonly string[])[];
   };
@@ -522,11 +530,12 @@ export const CAFE_TECHNICA: CaseStudy = {
  * they share is every component and every measured figure — see BandKey above, and the head
  * of ./CaseStudyPage for why the difference is expressed as a list rather than as guards.
  *
- * Three assets came with it. `qcif-hero.jpg` is a real screenshot of the delivered site and
- * already carries its own browser chrome, so the masthead places it bare instead of drawing
- * one — see `masthead.media`. `qcif-logo.png` is the client's mark, cropped to its alpha for
- * the reason `BRAND_MARK_ASPECT` records. Both stand in for video that is coming later, and
- * both sit in aspect boxes so that swap is a one-element change.
+ * Three assets came with it. The masthead's hero was a screenshot at first and is now a
+ * supplied video walkthrough of the delivered site — see `masthead.media` and `video`; the
+ * aspect box existed for exactly this swap, so it cost one flag and one constant
+ * (`QCIF_HERO_ASPECT`, now the clip's own 1080 x 1350). `qcif-logo.png` is the client's mark,
+ * cropped to its alpha for the reason `BRAND_MARK_ASPECT` records, and still stands in for a
+ * video of its own that hasn't arrived yet.
  */
 export const QCIF: CaseStudy = {
   slug: "qcif",
@@ -551,10 +560,10 @@ export const QCIF: CaseStudy = {
       "How a hyper-intelligent team made a quantum-leap in branding and used their website to restructure workflow.",
     ],
     media: {
-      src: "/img/qcif-hero.jpg",
-      alt: "The QCIF website, open at its home page",
+      src: "https://video.wixstatic.com/video/f415e2_cd72b016cd814670ad6ba7dc07493a99/720p/mp4/file.mp4",
+      alt: "A walkthrough of the QCIF website",
       aspect: QCIF_HERO_ASPECT,
-      focus: "50% 50%",
+      video: true,
     },
     columns: [
       [
