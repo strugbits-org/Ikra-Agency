@@ -61,11 +61,20 @@ export type CaseProject = {
    */
   aspect?: number;
   /**
-   * One-off: round this card's frame corners. Every other card's roundedness is baked into
-   * its screenshot (a browser window's own chrome), not a style — this frame is square by
-   * default, matching the reference's own square-cornered cards (see ./CaseLayers). Café
-   * Technica's photo has no such shape of its own, so it opts in here to visually match its
-   * two mockup-screenshot neighbours rather than standing out as the one sharp-cornered card.
+   * Round this card's frame corners. The frame is square by default, matching the
+   * reference's own square-cornered cards (see ./CaseLayers) — this is an opt-in per card,
+   * not a global style.
+   *
+   * Café Technica needs it because its photo has no rounding of its own. QCIF and Auto Maxx
+   * need it for a subtler reason: their screenshots *did* originally show a browser window's
+   * own rounded chrome, but only because the raw export had slack canvas around the mockup
+   * for the curve to read against. Once that mockup is trimmed edge-to-edge to fill the card
+   * with no margin (see the imageSrc notes below — the fix for the white/grey mat those
+   * exports had baked in), the image *is* the frame, pixel for pixel, so there is no longer
+   * any surrounding canvas left for a baked-in corner curve to be visible over — a few
+   * differently-shaded corner pixels inside an otherwise edge-to-edge rectangle just reads
+   * as a hard rectangle. Full-bleed and a visibly rounded corner are mutually exclusive
+   * without an actual clip, so all three cards opt in here for the same final look.
    */
   rounded?: boolean;
 };
@@ -102,6 +111,7 @@ export const CASE_PROJECTS: CaseProject[] = [
     aspect: 1293 / 770,
     link: "/work/qcif",
     focus: "50% 50%",
+    rounded: true,
   },
   {
     id: "auto-maxx",
@@ -121,6 +131,7 @@ export const CASE_PROJECTS: CaseProject[] = [
     aspect: 835 / 451,
     link: "/work/auto-maxx",
     focus: "50% 50%",
+    rounded: true,
   },
   // A fourth study goes here. Not a limit — the track grows by one cell and the pin by 50vw,
   // which is half a screen more scrolling at a 2:1 viewport, and nothing else has to change.
