@@ -78,12 +78,13 @@ export const CASE_PROJECTS: CaseProject[] = [
     description:
       "A brand, a sub-brand system and a website that let Queensland’s digital research partner restructure how it works.",
     // The delivered site itself. It is the only QCIF asset that is *about the work* rather
-    // than about the client's people, which is what a case-study card should show — but it
-    // is only 557px wide, so it upscales past about a 1300px viewport. A wider capture is
-    // the one thing that would improve this card.
-    imageSrc: "/img/qcif-hero.jpg",
+    // than about the client's people, which is what a case-study card should show. Flattened
+    // to drop its alpha channel — a handful of corner pixels from the mockup's own rounded
+    // chrome were transparent, which under `object-cover` would show the frame's bg-ink/5
+    // through as a faint grey nick at each corner. 1325 x 800.
+    imageSrc: "/img/qcif-hero-2.png",
     // A capture: the frame takes its ratio so nothing is cropped and no mat shows.
-    aspect: 557 / 337,
+    aspect: 1325 / 800,
     link: "/work/qcif",
     focus: "50% 50%",
   },
@@ -159,9 +160,9 @@ export const CASE_REVEAL = {
    * types, which is exactly when the field most needs naming.
    */
   fields: [
-    { name: "name", label: "You Name", type: "text", autoComplete: "name" },
-    { name: "email", label: "Your email", type: "email", autoComplete: "email" },
-    { name: "company", label: "Company name", type: "text", autoComplete: "organization" },
+    { name: "name", label: "Your Name", type: "text", autoComplete: "name" },
+    { name: "email", label: "Your Email", type: "email", autoComplete: "email" },
+    { name: "company", label: "Company Name", type: "text", autoComplete: "organization" },
   ],
   submit: "Join The Waitlist",
 } as const;
