@@ -186,7 +186,7 @@ export function CaseTrack({
                viewport is the pin's whole length, read straight off the DOM in ./measure.
                `relative` so the track is the cells' `offsetParent`, which is what makes
                their measured `offsetLeft` mean "distance from the track's left edge". */
-            "relative flex h-full w-max flex-nowrap"
+          "relative flex h-full w-max flex-nowrap"
       }
       style={{ willChange: reducedMotion ? undefined : "transform" }}
     >

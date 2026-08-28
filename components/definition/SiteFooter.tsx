@@ -1,6 +1,7 @@
 "use client";
 
-import Image from "next/image";
+// Only used by the commented-out photo row below — restore this import alongside it.
+// import Image from "next/image";
 import type { RefObject } from "react";
 import { FOOTER_DOT_SIZE } from "./dots";
 
@@ -15,7 +16,10 @@ const FOOTER_HEADING_SIZE = "clamp(19px, 1.9vw, 34px)";
 const FOOTER_BODY_SIZE = "clamp(13px, 1.1vw, 19px)";
 
 /**
- * The three photographs above the columns, in the order they sit across the row.
+ * The three photographs that used to sit above the columns, replaced by a single video
+ * (see the render below) — kept here, commented out rather than deleted, so restoring
+ * them is a matter of un-commenting this and the JSX that mapped over it, not
+ * rebuilding either.
  *
  * Filenames carry spaces, which `next/image` encodes for the optimiser — but they are
  * a hazard worth knowing about rather than tidying silently, since renaming them would
@@ -26,55 +30,47 @@ const FOOTER_BODY_SIZE = "clamp(13px, 1.1vw, 19px)";
  * caviar and the hand are the point of all three, and in the first and third they sit
  * low in the original.
  */
-const FOOTER_IMAGES = [
-  {
-    src: "/img/caviar luxury.jpg",
-    alt: "Caviar spooned onto a guest's hand at a table",
-    position: "50% 62%",
-  },
-  {
-    src: "/img/caviar bumps.jpg",
-    alt: "Guests in black tie with caviar served on the hand, champagne in hand",
-    position: "50% 45%",
-  },
-  {
-    src: "/img/caviar luxury 2.jpg",
-    alt: "A guest tasting caviar from the back of her hand",
-    position: "50% 68%",
-  },
-];
+// const FOOTER_IMAGES = [
+//   {
+//     src: "/img/caviar luxury.jpg",
+//     alt: "Caviar spooned onto a guest's hand at a table",
+//     position: "50% 62%",
+//   },
+//   {
+//     src: "/img/caviar bumps.jpg",
+//     alt: "Guests in black tie with caviar served on the hand, champagne in hand",
+//     position: "50% 45%",
+//   },
+//   {
+//     src: "/img/caviar luxury 2.jpg",
+//     alt: "A guest tasting caviar from the back of her hand",
+//     position: "50% 68%",
+//   },
+// ];
 
 /**
- * The image row's height, as a custom property so the merged box below can be a
- * multiple of it rather than a second clamp restating the same arithmetic.
+ * The row's height, as a custom property so the merged box could be a multiple of it
+ * rather than a second clamp restating the same arithmetic — now the video's height
+ * too (see the render below), bumped slightly from what the three photographs used,
+ * since the video is centred by its own aspect rather than cropped to fill the row and
+ * so has nothing to lose from a little extra room.
  *
- * **A height, not an aspect ratio, and that is load-bearing.** Each box is as wide as
- * the column beneath it and all three originals are portrait, so honouring their aspect
- * would make the row ~490px tall on a desktop. This footer has to stay inside one
- * viewport: it is the second screen of the camera's track, `camEnd` seats its bottom
- * edge, and anything that overflows is trimmed off the bottom — which is where the
- * columns are, and therefore where the dots are trying to land. Fixing the height and
- * cropping with `object-cover` bounds the row by construction at every viewport, which
- * an aspect ratio cannot.
+ * **A height, not an aspect ratio, and that is load-bearing.** This footer has to stay
+ * inside one viewport: it is the second screen of the camera's track, `camEnd` seats its
+ * bottom edge, and anything that overflows is trimmed off the bottom — which is where
+ * the columns are, and therefore where the dots are trying to land. Fixing the height
+ * bounds the row by construction at every viewport, which an aspect ratio cannot.
  *
  * Much shorter below `md`, because that is where the budget is tight rather than where
  * the screen is small: the columns *stack* there, so they are three times as tall and
- * the footer already overflows the viewport on its own. 12vh keeps this row's
- * contribution to about 100px.
+ * the footer already overflows the viewport on its own.
  *
- * 24vh on `md` and up, from 17. The binding case is not a big screen but a short one —
- * a 1024×600 window leaves the least slack of any desktop size, and 24vh clears it with
- * ~40px to spare while a 1440×900 has ~220px. The gain is in the crop rather than the
- * size: at 17vh a panel was a 2.5:1 slice of a portrait original, and at 24vh it is
- * 1.4–1.8:1 on a desktop and actually portrait on a tablet, which is what these
- * photographs want.
- *
- * None of this moves the dots. Their landing slots sit at `frameH − columnsHeight −
- * bottomPadding`, which is independent of everything above the columns — so the row can
- * be retuned freely without touching the fall. See the note in the component below.
+ * 27vh on `md` and up (was 24, for the photographs). The binding case is not a big
+ * screen but a short one — a 1024×600 window leaves the least slack of any desktop
+ * size — so a raise has to be checked there first.
  */
 const IMAGE_ROW_VAR =
-  "[--img-h:clamp(80px,12vh,160px)] md:[--img-h:clamp(120px,24vh,340px)]";
+  "[--img-h:clamp(90px,14vh,180px)] md:[--img-h:clamp(135px,47vh,380px)]";
 
 const FOOTER_COLUMNS = [
   {
@@ -127,7 +123,8 @@ export default function SiteFooter({
   footerRef,
   registerReveal,
   registerSlot,
-  registerImage,
+  // registerImage — only called by the commented-out photo row above; restore this
+  // alongside it, and the prop back below in DefinitionSection's <SiteFooter>.
   reducedMotion,
 }: {
   footerRef: RefObject<HTMLDivElement | null>;
@@ -140,7 +137,7 @@ export default function SiteFooter({
    */
   registerReveal: (index: number, el: HTMLDivElement | null) => void;
   registerSlot: (index: number, el: HTMLSpanElement | null) => void;
-  registerImage: (index: number, el: HTMLDivElement | null) => void;
+  // registerImage?: (index: number, el: HTMLDivElement | null) => void;
   reducedMotion: boolean;
 }) {
   return (
@@ -152,36 +149,19 @@ export default function SiteFooter({
       className={`w-full px-8 md:px-16 ${IMAGE_ROW_VAR} ${reducedMotion ? "py-24" : "py-8 md:pt-[7vh] md:pb-8"}`}
     >
       <div className="mx-auto w-full max-w-7xl">
-        {/* The three photographs, directly above the dots.
+        {/* The three photographs used to sit here, directly above the dots, and slide
+            together into one on the tail's clock — see IMAGE_IN/IMAGE_ANCHOR/
+            IMAGE_MERGE_EASE in ./timeline and the loop over refs.images in
+            ./sequence. Both are left exactly as they were: with nothing below calling
+            registerImage, refs.images.current stays empty and that loop simply does
+            nothing, so restoring the merge is un-commenting this block and the array
+            above it, not rebuilding either.
 
-            Same grid as the columns below — same track count and the same gaps at
-            every breakpoint — so each box is exactly its column's width without
-            that width ever being restated. That is the whole reason this is a grid
-            rather than three absolutely-placed boxes: "as wide as its column" then
-            holds through both breakpoints and any later change to the gaps.
-
-            Three across even below `md`, where the text columns stack. A stacked
-            image row would be three full-width portraits tall, which no camera
-            window can hold, and the merge would be a vertical collapse rather than
-            the coming-together it is meant to read as.
-
-            Under reduced motion the *same* row renders at zero gap, because that
-            state is exactly the end state — three panels edge to edge making one
-            continuous image. Nothing is substituted or hidden, which is why there is
-            one branch here rather than two renderings to keep in step. */}
         <div
           className={`mb-6 grid grid-cols-3 md:mb-14 ${reducedMotion ? "gap-0" : "gap-7 md:gap-10 lg:gap-14"
             }`}
         >
           {FOOTER_IMAGES.map((img, i) => (
-            /* `willChange` because all three carry a transform for the whole
-               gesture, and the close runs alongside three falling dots and a
-               panning camera — this is the frame budget's tightest moment.
-
-               Hidden from the first paint for the same reason the columns are:
-               the stage clips this away until the camera moves, but a restored
-               scroll position lands mid-section. Left visible under reduced
-               motion, where no clock ever runs to raise it. */
             <div
               key={img.src}
               ref={(el) => registerImage(i, el)}
@@ -196,15 +176,41 @@ export default function SiteFooter({
                 src={img.src}
                 alt={img.alt}
                 fill
-                /* A third of the row at every breakpoint, since the row is
-                   `grid-cols-3` throughout — so this is honest rather than the
-                   usual `100vw` hedge. */
                 sizes="33vw"
                 className="object-cover"
                 style={{ objectPosition: img.position }}
               />
             </div>
           ))}
+        </div>
+        */}
+
+        {/* In its place: one looping video, plain rather than choreographed — there
+            is no merge to time it against any more. Same footprint as the photo row
+            it replaced: full width of this content box and `--img-h` tall, with
+            `object-cover` cropping the video's own 16:9 to fit exactly the way it
+            cropped each photograph to its portrait original.
+
+            Reveals through the same `revealP` as the columns below (registerReveal,
+            not registerImage), at the index past the credits bar's reserved slot —
+            see the comment on that slot further down — so it resolves in with
+            everything else rather than needing its own clock. */}
+        <div
+          ref={(el) => registerReveal(FOOTER_COLUMNS.length + 1, el)}
+          style={reducedMotion ? undefined : { opacity: 0 }}
+          className="relative mb-6 w-full overflow-hidden md:mb-14"
+        >
+          <video
+            className="block w-full object-cover"
+            style={{ height: "var(--img-h)" }}
+            src="/video/ikra-video.mp4"
+            aria-label="ikra showreel"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+          />
         </div>
 
         <div className="grid gap-7 md:grid-cols-3 md:gap-10 lg:gap-14">

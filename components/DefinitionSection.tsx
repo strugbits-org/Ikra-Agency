@@ -218,9 +218,10 @@ export default function DefinitionSection() {
             registerSlot={(i, el) => {
               slotRefs.current[i] = el;
             }}
-            registerImage={(i, el) => {
-              imageRefs.current[i] = el;
-            }}
+            // registerImage — SiteFooter's photo row is commented out, so nothing
+            // populates imageRefs any more (see the note there); restore both
+            // together. imageRefs itself is left wired into createDefinitionSequence
+            // below, so it costs nothing to sit empty in the meantime.
             reducedMotion={reducedMotion}
           />
         </div>
