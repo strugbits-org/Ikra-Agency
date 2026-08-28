@@ -197,7 +197,41 @@ export default function SmoothScrollProvider({
 
   return (
     <>
-      <div id="smooth-wrapper" ref={wrapperRef}>
+      {/* `overflow-x-hidden` is a page-level backstop, not a fix on whichever
+          section is responsible this week — DefinitionSection's growing photo-circle
+          is the current offender (see its own docblock on why it scales well past
+          the viewport, and why the frame around it clips with `clip-path` rather
+          than `overflow-hidden`): `clip-path` only hides the pixels outside it, it
+          doesn't stop the oversized box from *contributing* to scrollable overflow,
+          so the circle's real, invisible footprint was widening this wrapper's
+          horizontal extent. Wide screens never notice, because a mouse has no
+          horizontal swipe; on a phone it's a drag away, and it was corrupting the
+          layout viewport itself under it — which is what was reaching the hero's
+          door geometry (doorsFor reads that same measured width) on the way back up.
+
+          On ScrollSmoother itself (`≥768px`) this is redundant — the plugin already
+          sets its own `overflow: hidden` on this element — so the class only ever
+          does anything below that breakpoint, where SmoothScrollProvider's mount
+          effect skips creating a smoother and this div is otherwise bare.
+
+          It belongs here and not on `html`/`body`: both of those already carry an
+          explicit `height: 100%`, and giving either of them a non-`visible`
+          `overflow-x` forces its *own* `overflow-y` to `auto` per the CSS spec's
+          "only one axis visible" rule — against a box with a real fixed height,
+          `auto` genuinely clips, and with `html` and `body` both affected the usual
+          root-to-body propagation (the rule that lets `html` stand in for the
+          viewport and leaves `body` a plain in-flow box) stops applying, so `body`
+          became a second, nested scroll container and started scrolling on its own
+          `scrollTop` instead of the page scrolling at all — `window.scrollY` sat at
+          0, and so did every ScrollTrigger. This div has no explicit height of its
+          own even on mobile (it sizes to its content), so the same coupling firing
+          on its `overflow-y` is inert: a box with `height: auto` cannot have
+          vertical overflow against itself. */}
+      <div
+        id="smooth-wrapper"
+        ref={wrapperRef}
+        className="overflow-x-hidden"
+      >
         <div id="smooth-content">{children}</div>
       </div>
       {/* Belongs to the scroll system rather than to the page: it reads the

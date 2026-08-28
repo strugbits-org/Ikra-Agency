@@ -250,7 +250,10 @@
       "Bash(rm -f \"/c/Users/AGA Computer/AppData/Local/Temp/pw/scroll-lock-check\"*.js \"/c/Users/AGA Computer/AppData/Local/Temp/pw/scroll-lock-desktop.js\" \"/c/Users/AGA Computer/AppData/Local/Temp/pw/scroll-lock-reduced\"*.js)",
       "Bash(tasklist //FI \"IMAGENAME eq node.exe\")",
       "Bash(node spinner-check.js)",
-      "Bash(rm -f \"/c/Users/AGA Computer/AppData/Local/Temp/pw/spinner-check.js\" \"/c/Users/AGA Computer/AppData/Local/Temp/pw/spinner-locked.png\" \"/c/Users/AGA Computer/AppData/Local/Temp/pw/spinner-unlocked.png\")"
+      "Bash(rm -f \"/c/Users/AGA Computer/AppData/Local/Temp/pw/spinner-check.js\" \"/c/Users/AGA Computer/AppData/Local/Temp/pw/spinner-locked.png\" \"/c/Users/AGA Computer/AppData/Local/Temp/pw/spinner-unlocked.png\")",
+      "Bash(node find-overflow.js)",
+      "Bash(node find-overflow2.js)",
+      "Bash(rm -f \"C:/Users/AGA Computer/AppData/Local/Temp/pw/find-overflow.js\" \"C:/Users/AGA Computer/AppData/Local/Temp/pw/find-overflow2.js\" \"C:/Users/AGA Computer/AppData/Local/Temp/pw/check-viewport.js\" \"C:/Users/AGA Computer/AppData/Local/Temp/pw/full-check.js\" \"C:/Users/AGA Computer/AppData/Local/Temp/pw/mobile-back-at-top.png\")"
     ],
     "additionalDirectories": [
       "d:\\tanzeel\\ikra-backups\\case-studies-v1-stack",
