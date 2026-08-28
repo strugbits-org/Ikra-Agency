@@ -127,8 +127,15 @@ export const CASE_PROJECTS: CaseProject[] = [
     // onto this section's resting grey rather than left transparent (which under
     // `object-cover` would show as white/mat instead of blending in).
     imageSrc: "/img/wow-image-2.png",
-    // A capture: the frame takes its ratio so nothing is cropped and no mat shows.
-    aspect: 835 / 451,
+    // The file's own ratio is 835/451 (1.851) — wider than QCIF's 1293/770 (1.679). Only one
+    // card can set the row's shared frame (`widestAspect` in ./CaseLayers takes the max across
+    // every `aspect` here), and if this one's true ratio won that race it would push the shared
+    // frame wider than QCIF's own image, cropping *that* capture's top and bottom to fit — the
+    // exact harm this field exists to prevent, just moved onto a different card. Capped to
+    // QCIF's ratio instead, so QCIF stays the reference and renders with zero crop; this image
+    // absorbs a ~9% crop off its own left/right edges under `object-cover` instead, the same
+    // trade-off a non-widest card always makes here (see the doc on `aspect` above).
+    aspect: 1293 / 770,
     link: "/work/auto-maxx",
     focus: "50% 50%",
     rounded: true,
