@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { showRouteCover } from "@/components/routeTransition";
-import type { ReactNode, RefObject } from "react";
+import type { MouseEvent, ReactNode, RefObject } from "react";
 import {
   CASE_CLOSING,
   CASE_EXPLORE,
@@ -88,8 +88,21 @@ function CaseLink({
   // compiled at this point, so nothing the router exposes fires until well after the screen
   // has already gone cream. `SmoothScrollProvider` takes it off again once the new page is
   // up, reset and re-measured — see `components/RouteCover`.
+  //
+  // Only for a plain left click, though — the same guard `next/link` uses internally to
+  // decide whether *it* will navigate. A modified click (Ctrl/Cmd/Shift/middle-button) opens
+  // the study in a new tab and leaves this one exactly where it was, so raising the cover
+  // there covers a page whose route never changes — and the only thing that ever takes the
+  // cover down is `SmoothScrollProvider`'s effect on `pathname`, which then never fires.
+  // That's a black screen stuck up forever in the original tab.
+  const onClick = (e: MouseEvent<HTMLAnchorElement>) => {
+    if (e.defaultPrevented || e.button !== 0) return;
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    showRouteCover();
+  };
+
   return href ? (
-    <Link href={href} className={cls} onClick={showRouteCover}>
+    <Link href={href} className={cls} onClick={onClick}>
       {inner}
     </Link>
   ) : (
