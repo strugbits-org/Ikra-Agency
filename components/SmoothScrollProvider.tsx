@@ -7,6 +7,10 @@ import RouteCover from "./RouteCover";
 import ScrollBar from "./ScrollBar";
 import { hideRouteCover } from "./routeTransition";
 import { readInitialScrollLock, subscribeInitialScrollLock } from "./scrollLock";
+import {
+  readTailScrollLock,
+  subscribeTailScrollLock,
+} from "./definition/tailScrollLock";
 
 /** Keys that move the page without a wheel or a touch — held during the initial lock. */
 const SCROLL_KEYS = new Set([
@@ -95,16 +99,23 @@ export default function SmoothScrollProvider({
   }, []);
 
   /**
-   * Holds scroll input off the page while the home page's hero is still running its
-   * load timeline — see ./scrollLock for why this lives here rather than in the hero
-   * itself. `.paused()` is ScrollSmoother's own "nothing will scroll" switch and
-   * covers desktop; below `md` there is no smoother to ask (see the mount effect
-   * above), so the wheel/touch/keyboard listeners are what actually hold a phone
-   * still there. Both run together rather than one implying the other, since which
-   * one is doing the work depends on the viewport.
+   * Holds scroll input off the page for either of two reasons: the home page's hero
+   * is still running its load timeline (see ./scrollLock), or DefinitionSection's
+   * footer tail has been outrun by the reader's own scroll speed and needs the rest
+   * of its gesture to finish before the pin is allowed to release (see
+   * ./definition/tailScrollLock — same external-store shape as ./scrollLock, for the
+   * same reason). Two independent sources feeding one freeze rather than two
+   * separate freezes, because there is only one scroll to hold.
    *
-   * Reads the store's current value on mount rather than assuming unlocked, because
-   * React fires a child's effects before its parent's: on the home page,
+   * `.paused()` is ScrollSmoother's own "nothing will scroll" switch and covers
+   * desktop; below `md` there is no smoother to ask (see the mount effect above), so
+   * the wheel/touch/keyboard listeners are what actually hold a phone still there.
+   * Both run together rather than one implying the other, since which one is doing
+   * the work depends on the viewport — this is also why the tail's freeze works
+   * identically on every breakpoint without knowing which mechanism is in play.
+   *
+   * Reads both stores' current values on mount rather than assuming unlocked,
+   * because React fires a child's effects before its parent's: on the home page,
    * HeroNarrative's own mount effect — which locks — has already run by the time
    * this one does.
    */
@@ -114,7 +125,8 @@ export default function SmoothScrollProvider({
       if (SCROLL_KEYS.has(e.code)) e.preventDefault();
     };
 
-    const apply = (isLocked: boolean) => {
+    const apply = () => {
+      const isLocked = readInitialScrollLock() || readTailScrollLock();
       smootherRef.current?.paused(isLocked);
       document.documentElement.classList.toggle("scroll-locked", isLocked);
       if (isLocked) {
@@ -130,13 +142,17 @@ export default function SmoothScrollProvider({
       }
     };
 
-    apply(readInitialScrollLock());
-    const unsubscribe = subscribeInitialScrollLock(() =>
-      apply(readInitialScrollLock()),
-    );
+    apply();
+    const unsubscribeInitial = subscribeInitialScrollLock(apply);
+    const unsubscribeTail = subscribeTailScrollLock(apply);
     return () => {
-      unsubscribe();
-      apply(false);
+      unsubscribeInitial();
+      unsubscribeTail();
+      smootherRef.current?.paused(false);
+      document.documentElement.classList.remove("scroll-locked");
+      window.removeEventListener("wheel", preventScroll);
+      window.removeEventListener("touchmove", preventScroll);
+      window.removeEventListener("keydown", preventKeyScroll);
     };
   }, []);
 

@@ -12,6 +12,7 @@ import {
 } from "./dots";
 import { heroWash } from "../hero/handoff";
 import { createMeasure } from "./measure";
+import { lockTailScroll, unlockTailScroll } from "./tailScrollLock";
 import {
   DEF_MOBILE_STATEMENT_LIFT_END_PCT,
   DICT_AT,
@@ -291,6 +292,18 @@ export function createDefinitionSequence(
       // PIN_VH can't depend on anything measured.
       const dictAbove = m.dictHeight > 0 ? -dictY / m.dictHeight : 0;
       runTail(dictAbove >= LOGO_FADE_ABOVE_FRAC || vh >= phases.TAIL_AT);
+
+      // A reader who outscrolls TAIL_VH before the tail's clock (tail.t) reaches
+      // TAIL_SECONDS would otherwise get the pin released out from under the
+      // gesture — the stage scrolls away mid-dissolve/pan/fall. `progress` is
+      // ScrollTrigger's own clamp, so this is true on the exact frame the pin's
+      // scroll allowance runs out; checked here rather than in onLeave, since
+      // onUpdate is guaranteed to fire with progress pinned at 1 on that frame
+      // regardless of how GSAP orders the two internally. See ./tailScrollLock —
+      // its own onComplete releases this the instant the gesture actually finishes.
+      if (progress >= 1 && tailOn && tail.t < TAIL_SECONDS) {
+        lockTailScroll();
+      }
     }
 
     /**
@@ -453,7 +466,17 @@ export function createDefinitionSequence(
         ease: "none",
         overwrite: "auto",
         onUpdate: () => renderTail(tail.t),
+        // Only ever locked while playing forward (see render()'s lockTailScroll
+        // call), so this is the release for it — the instant the gesture
+        // actually finishes, however far behind the scroll it was.
+        onComplete: () => {
+          if (go) unlockTailScroll();
+        },
       });
+      // Reversing away always releases it too — belt and suspenders, since a
+      // freeze blocks scroll outright and so can't itself be what triggers a
+      // reversal, but this keeps the lock's state honest either way.
+      if (!go) unlockTailScroll();
     }
     renderTail(0);
 
@@ -601,6 +624,10 @@ export function createDefinitionSequence(
       sizeObserver.disconnect();
       // Created inside runTail, so the context never collected it.
       tailTween?.kill();
+      // In case the section unmounts (route change) while a freeze from
+      // lockTailScroll is still active — otherwise the store is left locked
+      // for whatever the reader navigates to next.
+      unlockTailScroll();
       trigger.kill();
       veilTrigger.kill();
       statementTrigger.kill();
