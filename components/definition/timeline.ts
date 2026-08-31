@@ -2,210 +2,72 @@ import { gsap } from "@/lib/gsap";
 import { CLOSE_VH, HERO_GRAY_TAIL_VH } from "../hero/timeline";
 
 /**
- * The definition section's timeline, in vh of actual scrolling through the pin —
- * same convention as the hero's, and for the same reason: the pin runs `top top` →
- * `bottom bottom`, so progress 0→1 covers `height − 100vh`, not the whole height.
+ * The definition section's timeline, in vh of actual scrolling through the pin — same
+ * convention as the hero's (pin runs top top → bottom bottom, so progress 0→1 covers
+ * height − 100vh). Written as a chain of derivations, not a list of numbers, so retiming
+ * one beat carries the rest along.
  *
- * Written as a chain of derivations rather than a list of numbers, so retiming any
- * beat carries the rest along instead of quietly opening a gap or an overlap.
+ * Everything is scrubbed except the tail: crossing TAIL_AT starts a cue that plays to
+ * completion on its own clock (see TAIL_AT).
  *
- * Everything here is scrubbed except the tail, which is a *cue*: crossing TAIL_AT
- * starts a move that plays to completion on its own clock. See TAIL_AT for why that
- * one stretch cannot be scroll-driven.
+ * Phases (concurrent once the statement is gone, so listed by what they belong to rather
+ * than strictly by start time):
  *
- * Phases, in vh of actual scrolling through the pin (see PIN_VH). Once the
- * statement is gone the window and the definition run concurrently, so the phases
- * are listed by what they belong to rather than strictly by start time:
- *
- *   (before)  the statement is already resolving as this section arrives. Its
- *             reveal is cued off the hero's wash to gray — the same instant, ~10vh
- *             before that section's pin releases — so the gray arriving and the
- *             text arriving are one movement, and the first line is legible on the
- *             frame it clears the bottom edge rather than after a wait on an empty
- *             screen. See STATEMENT_LIFT_VH. It finishes 55vh before the
- *             pin, which is the settled beat this next phase then interrupts.
- *     0–50vh  the statement slides up and out of frame, fading as it goes.
- *   20–120vh  the round window opens until it fills the screen. The photo behind
- *             it neither moves nor scales — it is a full-bleed viewport-cover
- *             layer, counter-scaled each frame against the window's own scale
- *             (see placePhoto), so the window uncovers more of a sharp photo
- *             instead of magnifying a small one. Coverage is exact rather than
- *             eyeballed: the window scales to the farthest viewport corner from
- *             its own centre.
- *   70–120vh  the photo dissolves, starting at the growth's midpoint. That is
- *             deliberately *before* coverage, so a fifth to a third of the screen
- *             is still gray and the photo reads as a circle blooming and
- *             dissolving rather than a full-bleed frame that arrives and sits.
- *   measured  the wordmark slides left into the final composition, clearing the
- *             right half for the definition. The only phase with no vh window of
- *             its own, and it must stay that way: it is driven off the definition's
- *             *position*, spread over the last MARK_APPROACH_FRAC of that block's
- *             run at it and finishing as it arrives. At the current fraction of 1
- *             that is the whole approach, so it opens with the climb at 50vh and
- *             lands at 73.5–75.4vh on a desktop, 81.7 at 1024×1366 — later on a
- *             tall viewport, which is why the landing is not a constant. Eased at
- *             both ends (MARK_SLIDE_EASE); see MARK_APPROACH_FRAC for why the span
- *             is at its ceiling and for the two vh-window versions that failed.
- *   50–140vh  the definition travels up the right-hand side, from below the fold
- *             to clear off the top. No fade — a pure move, and the window still
- *             being longer than the distance is what keeps it from rushing —
- *             but only by 20% now rather than 70% (DICT_VH). Shortening it costs
- *             the settled side-by-side composition first, since the wordmark's
- *             cue cannot fire until the definition has climbed most of the way
- *             up; 28–51vh of that beat is left, by viewport.
- *   measured  the tail is cued, and the wordmark's dissolve is its first beat. The
- *             mark is a *condition*, not an offset: it fires once the definition
- *             stands LOGO_FADE_ABOVE_FRAC of its own height above the top edge, which
- *             lands at 121–129vh across the viewports measured, with LOGO_FADE_AT
- *             (131vh) as a constant backstop so PIN_VH stays constant. Everything
- *             past this point comes off the scrub: crossing it starts a timed
- *             gesture that runs to completion whether or not the scrolling
- *             continues, and rewinds if it is crossed back. See TAIL_AT for why this
- *             one stretch cannot be scroll-driven — every earlier phase holds a pose
- *             when the scroll stops, and a thrown ball does not, and neither does a
- *             half-dissolved wordmark under three solid dots.
- *      0–0.8s the wordmark dissolves where it stands. Its three dots are separate
- *             solid elements standing on the artwork's own, so the letterforms thin
- *             out from under them and the dots are left hanging in mid-air. On this
- *             clock rather than the scrub precisely so the letterforms can never be
- *             found parked at 15% with the dots already solid on top of them.
- *    0.8–1.7s the camera pans down the track onto the footer — after the dissolve,
- *             not across it (PAN_AT): the wordmark rides the track and the dots do
- *             not, so panning early would slide the letterforms out from under their
- *             own dots. Nothing in the footer moves under its own power; it is
- *             already sitting in the layout, and this is the page arriving at it.
- *   ~1.6–3.6s its contents resolve from transparent — all of it as one, over
- *             exactly the span the dots are in the air, so the falls and the
- *             footer are one gesture with one ending. No stagger, deliberately:
- *             staggering guarantees frames where part of the footer has resolved
- *             and part has not. Most of it plays after the camera has stopped,
- *             which is the point — a fade that fits inside the pan is spent
- *             while the footer is still rising.
- *   ~1.6–3.6s the dots fall — all three released together, on a moment solved
- *             per viewport (see `measure`) so the beat before it is only as long
- *             as the camera needs. Not an interpolation with a bounce ease on
- *             it: the vertical is a solved ballistic trajectory — thrown up as
- *             it lets go, accelerating down, three decaying parabolic bounces,
- *             then still. Each dot's flight lasts its own share of DROP_SECONDS
- *             so all three obey one gravity, and they are given different lift,
- *             restitution and sideways drift so no two paths are the same. Both
- *             endpoints are fixed points on screen with the camera in neither,
- *             so the dots hang in the viewport and fall through it while the
- *             page pans behind them.
- *  131–155vh  the last of the scroll, and all the gesture gets (TAIL_VH). It drives
- *             none of it, and is deliberately shorter than the ~3.6s it takes: the
- *             reader who stops to watch gets the gesture free, and every vh here is
- *             finished footer they then have to grind through before CaseStudies.
- *             See TAIL_VH for the trade, which was made in that reader's favour.
+ *   (before)  the statement is already resolving, cued off the hero's wash to gray — see
+ *             STATEMENT_LIFT_VH.
+ *     0–50vh  the statement slides up and out, fading as it goes.
+ *   20–120vh  the round window opens to fill the screen; the photo behind it is a
+ *             full-bleed layer counter-scaled against the window (see placePhoto).
+ *   70–120vh  the photo dissolves, starting at the growth's midpoint.
+ *   measured  the wordmark slides left — no vh window of its own; driven off the
+ *             definition's position (see MARK_APPROACH_FRAC).
+ *   50–140vh  the definition climbs the right-hand side, from below the fold to clear
+ *             off the top (DICT_VH).
+ *   measured  the tail is cued once the definition stands LOGO_FADE_ABOVE_FRAC of its own
+ *             height above the top edge (LOGO_FADE_AT is the constant backstop).
+ *      0–0.8s the wordmark dissolves in place, leaving its three dots hanging.
+ *    0.8–1.7s the camera pans onto the footer (after the dissolve, not across it).
+ *   ~1.6–3.6s the footer's contents resolve, and the dots fall — both over the same span.
+ *  131–155vh  the last of the scroll, TAIL_VH — room for the gesture, not a driver of it.
  */
 
 /** The statement slides up and out of frame, fading as it goes. */
 export const STATEMENT_VH = 50;
 
 /**
- * The statement's *entrance* — the rise and fade it arrives on.
+ * The statement's entrance — rise and fade as it arrives.
  *
- * The move itself is unchanged: 32px of rise and an opacity, out of a CSS
- * `ease-out`, which is exactly what RevealBlock does everywhere else on the page.
- * What changed is the clock under it.
- *
- * It used to be RevealBlock: an IntersectionObserver waiting for 35% of the
- * paragraph to be on screen, then a fixed 1s CSS transition. Both halves of that
- * are wrong for a block that arrives on a hand-off. The threshold cannot be met
- * until the statement is already climbing the screen, so it is preceded by a
- * stretch of blank gray with nothing in it; and the transition then runs on
- * wall-clock time, so the paragraph resolves whether or not the reader is still
- * scrolling and cannot be scrubbed back. It reads as an event that happened near
- * the text rather than as the text arriving.
- *
- * It was scrubbed for a while, across the hand-off from the hero's wash to this
- * section's top edge reaching 55%. That fixed the threshold half of the problem but
- * kept the other one in a new form: the paragraph resolved at the reader's scroll
- * rate, so stopping anywhere in the window left it posed at 40% — visible, half
- * faded, plainly waiting for more input. On a gray screen with nothing else on it,
- * that is the one place a half-finished pose has nowhere to hide.
- *
- * So it is a *travel* now rather than a reveal, and scrubbed rather than cued. It was a
- * cue for a while, matching the hero's own hand-off moves, and that was wrong for one
- * reason: a cue resolves the paragraph wherever it happens to be, and where it happens
- * to be is ~20vh below its section's top edge — which itself only clears the bottom of
- * the screen as the hero unpins. So it faded in perfectly, below the fold, and the
- * reader had to scroll again to reach it. It has to stay level with an edge that is
- * moving, which is a job for scroll position and not for a clock.
- *
- * That mark sits *behind* the viewport's bottom edge, halfway through the hero's gray
- * tail, and being behind it is the whole point. It used to be 98 — the section's top
- * edge just clearing the bottom, the first frame the paragraph could be seen in —
- * which put it strictly *after* the veil had finished dissolving the hero's wordmark
- * out. Three things that belong to one hand-off then needed three separate scrolls:
- * gray arrives, scroll, logo fades, scroll, text begins.
- *
- * It is the tail's *full* length now — the earliest this can be placed at all, since
- * before it the hero is still pinned and this section is not merely below the fold but
- * behind a fixed, opaque stage. So the veil's fade and this reveal start on the same
- * frame, and the paragraph is most of the way up by the time its first line clears the
- * bottom edge: whatever of the section can be seen has text in it.
- *
- * Which is the honest limit of what timing can do here. The stretch of bare gray that
- * is left is not this cue waiting — it is the section physically rising into view, and
- * no cue can put a paragraph on screen while a fixed full-viewport stage is over it.
- * Removing it means overlapping this section up into the hero's tail and sliding the
- * pinned stage with it, which re-bases every offset measured in this file.
- *
- * The move itself is unchanged from the RevealBlock it began as: 32px of rise and an
- * opacity out of an `ease-out`. Only its clock has changed, twice.
+ * Scrubbed, not cued: it has to stay level with the section's top edge as that edge rises
+ * into view, and only scroll position can track a moving edge. The move itself is 32px of
+ * rise + opacity out of an ease-out, same as RevealBlock elsewhere on the page.
  */
-// Negative: the paragraph starts *above* its resting place, not below it, and that sign
-// is the fix rather than the size. It sits ~20vh below its section's top edge, and that
-// edge only clears the bottom of the screen as the hero unpins — so starting it low put
-// it further off screen still, and every version of "rise into place" made the reader
-// scroll further to find it. Starting it high puts it on screen the moment the edge
-// arrives; the page then carries it up faster than this settles it down, so the net
-// travel is still upward, just gentle. That is what "already coming from the bottom"
-// has to mean when the thing it is arriving over is a pinned, full-viewport stage.
+// Negative: the paragraph starts above its resting place. It sits ~20vh below the
+// section's top edge, and that edge only clears the bottom of the screen as the hero
+// unpins — so lifting it by a real fraction of the viewport brings it into view as the
+// edge arrives, rather than resolving it in place while still below the fold.
 //
-// A fraction of the viewport, not a fixed 32px, and the difference is the whole point.
-// The paragraph sits ~20vh below its section's top edge, and that edge only clears the
-// bottom of the screen when the hero unpins — so a 32px rise resolved it *in place*,
-// still below the fold, and the reader had to scroll again to reach it. Lifting it by a
-// real slice of the viewport brings it up into view as the edge arrives instead: it
-// travels up while the page does, and lands as the gray settles.
-//
-// Sized against the hero rather than picked, and this is the constraint that was
-// missing. The paragraph has to be on screen at the *earliest* offset the wash can
-// finish at, which is the hero's DOOR_CLOSE_AT — the wash is cued there, so a reader
-// who stops on that mark is looking at a completed gray screen. At that offset this
-// section's top edge is CLOSE_VH + HERO_GRAY_TAIL_VH below the fold, and the
-// paragraph sits STATEMENT_PAD_VH under that edge, so the lift has to clear the sum
-// of the three or there is nothing to fade in. See the assertion below.
+// Sized against the hero, not picked: it must be on screen by the earliest offset the
+// wash can finish at (the hero's DOOR_CLOSE_AT), where this section's top edge sits
+// CLOSE_VH + HERO_GRAY_TAIL_VH below the fold and the paragraph a further
+// STATEMENT_PAD_VH under that — see the assertion below.
 export const STATEMENT_LIFT_VH = 0.62;
 
 /**
- * How far the paragraph sits below its section's top edge, in vh, at the smallest
- * viewport worth budgeting for. The frame's `md:pt-12` is 48px, which is 5.3vh on a
- * 900px screen and 8vh on a 600px one; the larger figure is the one the lift has to
- * clear.
+ * How far the paragraph sits below the section's top edge, in vh, at the smallest
+ * viewport worth budgeting for.
  */
 const STATEMENT_PAD_VH = 8;
+
 /**
- * Where the paragraph's *travel* starts, as the section's top edge against the
- * viewport. Its fade is not on this at all — see STATEMENT_LIFT_VH.
+ * Where the paragraph's travel starts, as the section's top edge against the viewport —
+ * not its fade, which reads the hero's wash instead (see STATEMENT_LIFT_VH).
  *
- * Placed at the hero's DOOR_CLOSE_AT, which is the earliest scroll offset at which
- * the reader can be looking at a finished wash: crossing that mark starts a clock,
- * and if they stop there the doors shut and the stage goes gray without another pixel
- * of scrolling. The paragraph therefore has to be *on screen already* by then, or
- * there is a stretch of gray with nothing on it however the fade is timed.
- *
- * `100 + CLOSE_VH + HERO_GRAY_TAIL_VH` is that mark expressed from this section's own
- * top edge: the hero's pin releases at 100%, its close ends CLOSE_VH before that plus
- * the tail, so this is DOOR_CLOSE_AT exactly. Written as a sum of the hero's own
- * constants so retuning either carries this along.
+ * Placed at the hero's DOOR_CLOSE_AT (`100 + CLOSE_VH + HERO_GRAY_TAIL_VH` from this
+ * section's own top edge): the earliest offset a reader can be looking at a finished
+ * wash, so the paragraph must already be on screen by then.
  */
 export const STATEMENT_REVEAL_AT_PCT = 100 + CLOSE_VH + HERO_GRAY_TAIL_VH;
-// Scrubbed across the section's arrival rather than cued, because what it is doing now
-// is travel rather than a reveal — it has to stay level with the edge coming up, and a
-// timed move cannot. Position-mapped, so a fast scroll gets the same journey, faster.
+// Scrubbed, not cued — it has to stay level with the rising edge, which a timed move can't.
 export const STATEMENT_LIFT_END_PCT = 60;
 
 /** The scroll the lift is spread over, in vh. */
@@ -213,16 +75,10 @@ export const STATEMENT_LIFT_VH_SPAN =
   STATEMENT_REVEAL_AT_PCT - STATEMENT_LIFT_END_PCT;
 
 /**
- * The lift must not exceed the span it is spread over, or the paragraph moves *down*
- * the screen while the reader scrolls down.
- *
- * Its position is `sectionTop + pad + y`, and sectionTop falls 1vh per vh of scroll
- * while `y` climbs LIFT/SPAN per vh, so the net rate is `LIFT/SPAN − 1`. Above 1 the
- * sign flips. That was visible with the ease applied to the travel as well as the
- * fade: `power1.out` leaves the curve at twice the average rate, making the first
- * third of the reveal run at 2·40/60 − 1 = +0.33 — the paragraph sinking as the page
- * came up, then turning round and rising. Hence raw progress for `y` and the ease for
- * opacity only (see paintStatement), and hence this floor under the ratio.
+ * The lift must not exceed its span, or the paragraph moves down the screen while the
+ * reader scrolls down: position is `sectionTop + pad + y`, and the net rate is
+ * `LIFT/SPAN − 1`, which flips sign above 1. `y` uses raw progress, not eased, for this
+ * reason — see paintStatement.
  */
 if (process.env.NODE_ENV !== "production") {
   const lift = STATEMENT_LIFT_VH * 100;
@@ -234,9 +90,8 @@ if (process.env.NODE_ENV !== "production") {
       `${rate.toFixed(2)}× the page's own rate. Lengthen the span or shorten the lift.`,
     );
   }
-  // The other side of it: too *short* a lift and the paragraph is still below the fold
-  // at the offset the hero's wash can already have finished, which is the blank gray
-  // screen this whole arrangement exists to remove.
+  // Too short a lift instead leaves the paragraph below the fold at the offset the
+  // hero's wash can already have finished — the blank gray screen this exists to remove.
   const needed = CLOSE_VH + HERO_GRAY_TAIL_VH + STATEMENT_PAD_VH;
   if (lift <= needed) {
     console.error(
@@ -248,202 +103,80 @@ if (process.env.NODE_ENV !== "production") {
   }
 }
 
-// The round window opens until it covers the frame, and the photo inside
-// dissolves across the second half of that — derived from the growth rather than
-// stated separately, so "starts at the halfway point" cannot drift.
+// The round window opens until it covers the frame, and the photo inside dissolves
+// across the second half of that — derived from the growth rather than stated
+// separately, so "starts at the halfway point" cannot drift.
 export const GROW_AT = 20;
 export const GROW_VH = 50;
 export const FADE_AT = GROW_AT + GROW_VH / 2;
 export const FADE_VH = GROW_VH / 2;
 
 /**
- * The definition's climb up the right-hand side, from below the fold to clear off
- * the top.
+ * The definition's climb up the right-hand side, from below the fold to clear off the
+ * top. Longer than the distance it covers (travel ≈ H + its own height), so it crosses
+ * slower than the page scrolls and holds visible mid-climb rather than being carried off.
  *
- * Longer than the distance it covers, which is the property that matters rather
- * than the number: the block travels H + its own height, so a *longer* window
- * means it crosses slower than the page scrolls and holds visible in the middle
- * instead of being carried off with the layout. That travel is about 147vh on a
- * 16:9 desktop and about 171vh on a short viewport or a phone, where the block is
- * taller relative to the screen.
- *
- * It came down from 250 because the climb was costing two and a half viewports of
- * scrolling to move one block out of the way. At 170 the rate is 0.86× page speed
- * on a 16:9 desktop, 0.82× on a tall one — and about 1.0× on the short cases,
- * which is the one thing worth knowing before changing it again: there the window
- * has met the travel, so the block now keeps pace with the layout instead of
- * lagging it, and the "holds visible in the middle" property is spent. It reads
- * fine — a block moving with the page still crosses the screen over a viewport of
- * scrolling — but going below about 150 would put it genuinely *faster* than the
- * page there, which stops reading as a climb and starts reading as being flung
- * off. That is the floor.
- *
- * Most of what the old length used to buy is recovered elsewhere rather than
- * given up: the 30vh hold that followed it is gone, and the wordmark's dissolve no
- * longer costs scroll at all — it is a beat of the tail's own clock now
- * (LOGO_FADE_ABOVE_FRAC), cued off this block's measured position rather than
- * scrubbed across the 30vh in front of it. So the stretch from the statement leaving
- * to the dots letting go is 71–79vh rather than 280.
- *
- * Shortening it squeezes the composition as well, since the wordmark's slide is
- * measured against this window — see MARK_APPROACH_FRAC. The settled side-by-side beat
- * runs 25–47vh at this length depending on the viewport, against 60–75 before,
- * and that is the real cost — it is why this is not shorter still. The narrow end
- * of that range is a tall desktop, where the definition is short relative to the
- * screen and so crosses the wordmark soonest.
+ * 90 is a floor, not a preference: below it the block moves faster than the page, which
+ * reads as being flung off rather than climbing. The wordmark's slide is measured against
+ * this window (see MARK_APPROACH_FRAC), so shortening it further squeezes that too.
  */
 export const DICT_AT = STATEMENT_VH;
 export const DICT_VH = 90;
 
 /**
- * The wordmark's slide out of the centre and over to the left. It has no cue of its
- * own — the move is a response to the definition arriving alongside it, so its timing
- * is computed per frame from where the two actually are (see the phase in ./sequence).
+ * The wordmark's slide out of centre to the left, in response to the definition arriving
+ * alongside it — not on its own clock. Has no vh window of its own and must not be given
+ * one: a fixed window can't know where the definition actually is on a given viewport (two
+ * earlier attempts at one each failed at a different end — see ./sequence for the current
+ * shape). MARK_APPROACH_FRAC is the share of the definition's approach to the wordmark
+ * that the slide is spread over; it always finishes exactly as the definition arrives.
  *
- * **It has no window in vh, and it must not be given one.** The move is a response to
- * the definition coming up at it, so it is driven off the *gap between the two* rather
- * than off the clock — see the phase in ./sequence. That is the whole of what these two
- * constants say, and both are shaped so no arithmetic can put the slide before the
- * thing it is responding to.
+ * 1 is the ceiling and it's held there: at 0.5 the slide ran at 3.1–3.8× page speed and
+ * read as flung rather than moved; at 1 the worst instant is still below that old constant
+ * rate. Above 1 the slide would start part-done on the frame the phase opens.
  *
- * Two vh-window versions came before it and each failed at one end. The first started
- * the slide MARK_LEAD_VH (15vh) before the two came level and ran it for MARK_VH
- * (50vh), so it *finished* 35vh after the definition had arrived — the wordmark was
- * still 70% out in the middle of the frame with the body text painted over it, which
- * at 1024×1366 was 114px of shared band. Anchoring the same window to the far end
- * instead fixed the landing and broke the opening: the slide then began at ~48vh
- * against a definition that does not start climbing until 50, so the wordmark drifted
- * off centre with nothing on screen to explain it.
+ * Slowing it further means lengthening DICT_VH instead (see there), not raising this.
  *
- * Both are the same fault. A window in vh cannot know where the definition is, and
- * "when the wordmark should move" is a question about exactly that. The definition's
- * own progress can be read directly, so it is.
- *
- * MARK_APPROACH_FRAC is the share of the definition's run at the wordmark — from
- * clearing the bottom of the screen to touching it — that the slide is spread over.
- * Raise it and the wordmark reacts from further away; lower it and it leaves the move
- * later and quicker. Whatever it is set to, the slide still finishes exactly as the
- * definition arrives.
- *
- * **1 is the ceiling, and it is at it, because the rate at 0.5 was indefensible.** That
- * approach is a far smaller slice of the climb than it reads as: measured, touchP is
- * 0.261–0.282 across 1280–1920 desktops, because the definition starts a whole frame
- * below the fold and first touches the wordmark while it is still low on the screen. At
- * 0.5 the entire slide therefore had 11.8–12.7vh of scroll — roughly one wheel notch —
- * to carry 293px (1280) to 524px (1920) of travel, i.e. **3.1× to 3.8× the page's own
- * speed**. That is what made the wordmark read as flung aside rather than moved.
- *
- * At 1 it gets the whole approach, which halves it to 1.54–1.91× average, and
- * MARK_SLIDE_EASE takes the ends off at a 1.57× peak — so the worst instant of the new
- * curve (2.42× at 1280/1440/1600, 3.00× at 1920) is still below the *constant* rate of
- * the old one. Slower at every point, not merely on average. 1024×1366 is the easy case
- * either way and always was: a 240px-floored wordmark has only 216px to go and touchP is
- * 0.353 there, so it ran at 1.0× before and peaks at 0.78× now.
- *
- * Above 1 it *can* be raised into trouble, which is the one thing the old note here had
- * backwards: the span outruns the approach, `touchP − markSpan` goes negative, and
- * `markP` is already positive at `dictP` 0 — so the wordmark would be part-slid on the
- * frame the phase opens. At exactly 1 the slide starts on the frame the definition does,
- * never before.
- *
- * **So this knob is spent, and the next one is DICT_VH.** The span is `touchP · DICT_VH`
- * with touchP measured off the boxes, so the only way left to slow the slide is to
- * lengthen the climb — and that retimes LOGO_FADE_AT, TAIL_AT and PIN_VH with it, and
- * slows the definition itself from 0.86× page speed toward 0.6×. It is a section-wide
- * decision rather than a tweak to this move, which is why it is not made here. Wide
- * viewports are what would want it: the travel grows with the width while the span is
- * near-constant in vh, so 1920 stays the worst case at any fraction.
- *
- * MARK_CLEAR_PX is the gap the definition's top edge keeps from the wordmark's bottom
- * edge on the frame the slide completes. In px rather than vh because it is a gap
- * between two boxes, not a beat. Note it works against the span: a larger clearance is
- * an earlier touch, so it shortens the slide as well as raising it.
+ * MARK_CLEAR_PX is the gap the definition's top edge keeps from the wordmark's bottom on
+ * the frame the slide completes — in px since it's a gap between boxes, not a beat.
  */
 export const MARK_APPROACH_FRAC = 1;
 export const MARK_CLEAR_PX = 24;
 
 /**
- * Soft at both ends. The slide is a *response* rather than a transition — it should
- * neither snap into motion on the frame the definition appears at the bottom edge nor
- * stop dead on the frame it arrives — and the ends are where a linear ramp reads as
- * jerk. Endpoints are unchanged by it, so the landing that MARK_APPROACH_FRAC exists to
- * guarantee is untouched.
- *
- * `sine.inOut` and not a power curve: its peak rate is 1.57× the average against 2× for
- * `power1.inOut`. With the span already at its ceiling the middle of the curve is the
- * only place left that can give speed back, so the gentler peak is the whole reason to
- * pick it.
+ * Soft at both ends — a response shouldn't snap into motion or stop dead — without
+ * touching the endpoints MARK_APPROACH_FRAC guarantees. sine.inOut over a power curve:
+ * lower peak rate (1.57× average vs 2×), which matters with the span already at its ceiling.
  */
 export const MARK_SLIDE_EASE = gsap.parseEase("sine.inOut");
 
 /**
- * The wordmark dissolves in place — letterforms only. The three dots are
- * separate solid elements sitting exactly on top of the artwork's own, so what
- * the eye sees is the "ikra." melting away and leaving its dots behind, hanging
- * in mid-air. Nothing is masked or cut out; the dots simply outlast the thing
- * they came from.
+ * The wordmark dissolves in place — letterforms only. The three dots are separate solid
+ * elements already sitting on the artwork's own, so the "ikra." melts away and leaves its
+ * dots behind, hanging in mid-air.
  *
- * Two things about it changed together, and they are the same change: the dissolve
- * is **cued off where the definition actually is** rather than off a mark in vh, and
- * it is the **first beat of the tail's timeline** rather than a scrubbed phase in
- * front of it. Neither works without the other.
+ * LOGO_FADE_ABOVE_FRAC is a measured condition, not a fraction of the climb: the share of
+ * the definition standing above the fold depends on H/D (viewport height vs. block
+ * height), which varies 2.0–4.2 across viewports — so a fixed fraction of the climb left
+ * anywhere from 22% to 54% of the block actually above the fold. This states the picture
+ * directly and ./sequence reads it per frame off the definition's rendered `y`.
  *
- * ## Where it starts: a measured condition, not a fraction of the climb
+ * LOGO_FADE_CAP_FRAC / LOGO_FADE_AT is the constant backstop: PIN_VH is the section's CSS
+ * height and can't depend on anything measured, so the cue fires at whichever of the
+ * measured condition or this cap comes first. It doesn't bind on any measured viewport.
  *
- * The brief is "start the dissolve once the definition is 30–40% above the top of
- * the screen", and a point in the climb cannot say that. The share of the block
- * standing above the fold at climb fraction F is `F − (1 − F)·H/D` — it depends on
- * the viewport's height against the block's own, and `H/D` measures 2.0–4.2 across
- * 1024–2560 because `dictHeight` is pinned near 344px while H is not. So the old
- * LOGO_FADE_FRAC of 0.85 left anywhere from **22% to 54%** of the block above the
- * fold: 46% at 1440, 25% at 1024×1366. One number, five different pictures.
+ * The floor under both is paint order: the dots paint above the definition and are lit as
+ * this cue fires, so it must land after the definition's bottom edge clears the wordmark's
+ * top — asserted in ./measure against the real boxes.
  *
- * LOGO_FADE_ABOVE_FRAC states the picture instead, and ./sequence reads it per frame
- * off the definition's own rendered `y`. Measured, it holds 0.31–0.34 everywhere.
+ * It's the tail's first beat (see TAIL_AT), not a scrubbed phase in front of it, because a
+ * scrub freezes wherever the reader stops — and a wordmark half-dissolved under three solid
+ * dots, or three solid dots alone on flat gray, has no good reading. On the tail's clock the
+ * whole run from first letterform to last dot is one gesture.
  *
- * ## The cap, and why there is one
- *
- * PIN_VH is the section's CSS `height`, so it has to be a constant — nothing
- * measured can size it, and a cue with no upper bound could in principle sit past
- * the end of the pin. LOGO_FADE_CAP_FRAC bounds it, and LOGO_FADE_AT is that bound
- * expressed in vh: the cue fires at whichever comes first. It is a backstop and not
- * a beat — it binds on no viewport that has been measured (the condition lands at
- * 0.79–0.88 of the climb, against a cap of 0.9), and if it ever does bind, the
- * dissolve is merely a little late rather than wrong.
- *
- * ## The floor under it is paint order, and it is asserted
- *
- * The dots are children of the stage, so they paint above the frame's entire
- * contents including the definition, and they are lit as this cue fires — so the
- * cue must land *after* the definition's bottom edge has cleared the wordmark's top,
- * or the dots show through the body text. That crossing completes at
- * `(H + D − markTop)/(H + D)` of the climb: measured, 0.63–0.74 (an earlier note here
- * claimed 0.71–0.77, which was wrong in the unsafe direction). Against a cue at
- * 0.79–0.88 the worst margin is 4.1vh, at 1920×700. Both sides are computed from the
- * real boxes in ./measure and the assertion there fires if they ever cross.
- *
- * ## Why it is on the tail's clock: the "only dots" state
- *
- * As a scrubbed phase this had a length in vh (30), and a scrub freezes wherever the
- * reader stops. Stop a fifth of the way in and the composition is letterforms at 15%
- * with three fully solid dots standing on them; stop later and it is three solid
- * orange dots alone on flat gray, which reads as a bug rather than as a beat. There
- * is no retiming that removes it, because the state is the scrub.
- *
- * So the dissolve is the tail's first beat (see TAIL_AT), and the run from the first
- * letterform going to the last dot landing is **one clock, one gesture** — it plays
- * out whether or not the reader keeps scrolling, and rewinds as one if they turn
- * round. That also retires the two-clock patch paintDots used to need: with the
- * dissolve and the fall on the same clock the dots' crossfade is a plain function of
- * `t`, with nothing to keep in sync.
- *
- * LOGO_FADE_SECONDS is its length on that clock; DOT_CROSSFADE_LEAD is how far into
- * it the dots begin coming up. They lag deliberately — each dot is a solid element
- * standing on the artwork's own, and the two together must always paint one solid
- * dot, so the overlay comes up across the back of the artwork's fade rather than
- * snapping on (which made the second and third appear to jump, on any sub-pixel
- * difference in size). A fraction rather than a duration, so retiming the dissolve
- * carries it along.
+ * LOGO_FADE_SECONDS is its length on that clock; DOT_CROSSFADE_LEAD is how far into it the
+ * dots' own crossfade begins — lagged so the artwork's fading dot and the overlay always
+ * read as one solid dot rather than the overlay snapping on.
  */
 export const LOGO_FADE_ABOVE_FRAC = 0.35;
 export const LOGO_FADE_CAP_FRAC = 0.9;
@@ -452,127 +185,58 @@ export const LOGO_FADE_SECONDS = 0.8;
 export const DOT_CROSSFADE_LEAD = 0.2;
 
 /**
- * The tail — the camera onto the footer, and the dots' fall — is the one thing
- * here that is NOT scrubbed. Crossing TAIL_AT fires a timed timeline that runs
- * to completion on its own clock, exactly like HeroNarrative's ribbon and its
- * orange→gray wash, and for exactly the same reason: there is no stopping place
- * that can leave it half done.
+ * The tail — camera onto the footer, dots' fall, wordmark dissolve — is the one thing here
+ * that is NOT scrubbed. Crossing TAIL_AT fires a timed timeline that runs to completion on
+ * its own clock, same reasoning as HeroNarrative's wash: everything before this point holds
+ * a pose when scroll stops, and a thrown ball frozen mid-air does not read as a ball.
  *
- * That is not a preference, it is what the content demands. Everything before
- * this point holds a *pose* when the scroll stops — a half-risen statement, a
- * part-open window, a half-faded wordmark all read as compositions. A thrown
- * ball does not. Frozen between two bounces it stops being a ball with weight
- * and becomes an orange circle parked in mid-air, and no amount of retiming
- * fixes that, because a scrubbed animation freezes by definition.
+ * The dissolve is inside this timeline (not before it) so the ordering — dots must outlast
+ * the wordmark — holds by construction on one clock, rather than depending on a scrubbed
+ * fade finishing before scroll happens to reach here.
  *
- * The camera is inside the same timeline rather than left on the scrub, because
- * the fall must not begin until the footer has stopped moving (see below). Two
- * clocks would mean that ordering could be broken by how fast someone happened
- * to be scrolling; on one clock it holds by construction.
- *
- * Relative timings are carried over unchanged — the pan is the same fraction of
- * the gesture it used to be of the scroll, and so is every fall — so this is the
- * same animation on a different clock, not a new one.
- *
- * **The wordmark's dissolve is now inside it too**, which is why this mark is the
- * dissolve's own and not a mark after it. It used to sit at `LOGO_FADE_AT +
- * LOGO_FADE_VH`: the letterforms faded on the scrub, and only once they were gone
- * did the tail begin. That ordering was right — the dots have to outlast the thing
- * they came from — but paying for it with a scrubbed dissolve bought a resting state
- * with no reading, three solid dots on flat gray (see LOGO_FADE_ABOVE_FRAC). Pulling
- * the dissolve inside keeps the ordering *by construction*, on one clock, and costs
- * the reader nothing: the fade is a beat of the gesture rather than a stretch of
- * scroll in front of it, so the whole tail is cued LOGO_FADE_VH's old 30vh earlier
- * and PIN_VH comes down with it.
- *
- * ./sequence fires this on `dictAbove >= LOGO_FADE_ABOVE_FRAC || vh >= TAIL_AT` — the
- * measured condition, with this mark as the backstop. Either way it is one boolean
- * through one latch, so both directions still go through `runTail`.
+ * ./sequence fires this on the measured condition (LOGO_FADE_ABOVE_FRAC) or this mark as
+ * backstop, either way through one latch (`runTail`) so both directions agree.
  */
 export const TAIL_AT = LOGO_FADE_AT;
 
 /**
- * Pinned scroll the gesture is given. Not a scrub: the animation is over in
- * TAIL_SECONDS whatever happens here. It is only the room that keeps an ordinary
- * scroll from outrunning it — cross this faster than TAIL_VH/TAIL_SECONDS and the pin
- * releases while the dots are still in the air.
+ * Pinned scroll given to the gesture. Not a scrub — the animation finishes in
+ * TAIL_SECONDS regardless; this only keeps an ordinary scroll from outrunning it.
  *
- * 24, down from 180 by way of 80 — and small enough that it is no longer really a
- * guard. That is deliberate, because as a guard it could never have worked: the
- * gesture is on a clock and this is scroll, so a reader who crosses TAIL_AT and stops
- * gets the animation for free and still has every remaining vh of this to grind
- * through on a finished footer. At 180 that was up to ~170vh of nothing. The buffer
- * only ever helped the reader who kept moving, and punished the one who stopped to
- * watch.
+ * Held small (24) deliberately: it can't work as a guard against every scroll speed
+ * anyway (the gesture is clocked, this is scroll), so a large buffer only punishes the
+ * reader who stops to watch — they'd get the animation for free and then grind through
+ * whatever vh is left over a finished footer. CaseStudies follows this section, so being
+ * outrun is not free the way it once was — but nothing tears: dots and footer are both
+ * inside the stage and `tailTween` paints through `renderTail` independent of the pin, so
+ * the composition leaves as one piece if the pin releases mid-flight.
  *
- * **The invariant this number is held against is the wait *after* the gesture, not the
- * section's total length.** CaseStudies follows this section now, so being outrun is
- * no longer free the way it was when nothing did: the stage scrolls away and uncovers
- * the next section while the dots are still falling and the photographs still merging.
- * Covering the ~3.6s gesture against an ordinary 54vh/s scroll wants ~150 here — and
- * that was tried, and rejected on report: it puts ~53vh of finished footer between the
- * dots landing and CaseStudies arriving, in both directions, which is exactly the
- * grind the drop from 180 was meant to remove. The reader who stops to watch is the
- * one being optimised for, and they are the one that length punishes.
- *
- * So the trade is taken the other way, knowingly. Nothing tears when the pin releases
- * mid-flight: the dots and the footer are both inside the stage, so the composition
- * leaves as one piece and the fall still completes correctly relative to it —
- * `tailTween` paints through `renderTail` rather than through the ScrollTrigger, so
- * losing the pin does not stop the clock. A fast reader may simply scroll past the end
- * of it.
- *
- * `scrub: 1` helps rather than hurts at this length: it lags the cue by up to a
- * second, so the gesture tends to fire right as the scroll runs out, which is where it
- * wants to be seen.
- *
- * This is the only consumer of PIN_VH's slack, so it is also the one knob for the
- * hand-off to CaseStudies. Raising it delays that hand-off vh for vh.
+ * The one knob for the hand-off to CaseStudies — raising it delays that hand-off vh for vh.
  */
 export const TAIL_VH = 24;
 
 /**
- * The camera onto the footer.
- *
- * The footer is not animated. It is the second screen of a track inside the
- * pinned stage, and this is the camera moving down onto it — travelling a
- * *measured* distance, so it comes to rest with the footer's bottom edge on the
- * viewport's whatever height its own content makes it.
- *
- * It has to be finished before the earliest dot touches down: the dots fall to
- * where the columns come to rest, so a column still creeping upward underneath
- * one is a dot landing on a moving floor.
+ * The camera onto the footer — not animated content, just the camera moving down a
+ * measured distance onto the track's second screen, coming to rest with the footer's
+ * bottom edge on the viewport's. Must finish before the earliest dot touches down, or a
+ * dot lands on a still-moving floor.
  */
 export const PAN_SECONDS = 0.9;
 
 /**
- * When the camera starts, on the tail's clock — after the dissolve, not over it.
- *
- * Serial rather than overlapped, and this is a paint-order constraint like the one
- * under LOGO_FADE_ABOVE_FRAC rather than a matter of pacing. The dots are children of
- * the *stage* and the wordmark is inside the *track*, which is the thing the camera
- * moves. Pan while the letterforms are still visible and they slide up out from under
- * their own dots — the one composition this whole arrangement exists to protect.
- *
- * It costs the gesture LOGO_FADE_SECONDS of length, which TAIL_SECONDS picks up
- * below, and it buys back more than that in scroll: the dissolve used to be 30vh of
- * scrubbing in front of the tail and is now 0.8s inside it.
+ * When the camera starts, on the tail's clock — after the dissolve, not over it: the
+ * dots are children of the stage but the wordmark is inside the track the camera moves,
+ * so panning early would slide the letterforms out from under their own dots.
  */
 export const PAN_AT = LOGO_FADE_SECONDS;
 export const PAN_END = PAN_AT + PAN_SECONDS;
 
 /**
- * The longest fall. Every other dot's flight is a fraction of this, in
- * proportion to how long its own trajectory takes — which is what puts all three
- * under one gravity rather than three (see planFall).
- *
- * All three let go at the same instant. They used to be staggered, and that
- * stagger was the one thing that could put the composition in a state with no
- * reading: the wordmark gone, one dot falling, the other two hanging in mid-air.
- * Nothing of the choreography is lost — they still separate on the first frame
- * and land at different times, because their lift, restitution, drift, drag and
- * kick all differ and their flights are different lengths. What is lost is the
- * state where only *some* of them are moving.
+ * The longest fall — every other dot's flight is a fraction of this (see planFall), which
+ * puts all three under one shared gravity. All three let go at the same instant:
+ * staggering their release was what could leave the composition with no reading (wordmark
+ * gone, one dot falling, two still hanging) — they still separate and land at different
+ * times since their lift, restitution, drift, drag and kick all differ.
  */
 export const DROP_SECONDS = 2;
 
@@ -580,103 +244,61 @@ export const DROP_SECONDS = 2;
 export const DROP_MARGIN_SECONDS = 0.1;
 
 /**
- * How much of a fall has gone by the time it first touches down, at its smallest
- * across every viewport — the room the camera has to fit into.
- *
- * Small because a dot spends only about a third of its flight descending and the
- * rest bouncing. The binding case is a short phone, where the stacked footer can
- * leave the middle slot almost exactly level with its own dot, so that fall is
- * over almost immediately while another dot's flight is what sets the length of
- * the whole thing.
- *
- * A floor on the measured value, used only to size TAIL_SECONDS. The real
- * release is solved per viewport in `measure`; if a layout ever comes in under
- * this, the dev assertion there fires.
+ * How much of a fall has gone by its first touchdown, at its smallest across every
+ * viewport — the room the camera has to fit into. Small because a dot spends only about a
+ * third of its flight descending; binds on a short phone, where the stacked footer can
+ * leave a slot almost level with its own dot. A floor on the measured value, used only to
+ * size TAIL_SECONDS — the real release is solved per viewport in `measure`.
  */
 export const DROP_LEAD_MIN = 0.11;
 
 /**
- * The gesture's length, derived: the latest a release can be placed, plus the
- * longest fall that then has to play out from it.
- *
- * From PAN_END rather than PAN_SECONDS, so it carries the dissolve the camera now
- * waits behind. That is the whole of what pulling the dissolve inside the tail costs.
+ * The gesture's length: the latest a release can be placed, plus the longest fall that
+ * then has to play out. From PAN_END rather than PAN_SECONDS, so it carries the dissolve
+ * the camera now waits behind.
  */
 export const TAIL_SECONDS =
   PAN_END + DROP_MARGIN_SECONDS - DROP_LEAD_MIN * DROP_SECONDS +
   DROP_SECONDS;
 
 /**
- * Rewinding is quicker than playing, on the same reasoning as HeroNarrative's
- * wash: the reader has turned round and wants the previous composition back, not a
- * replay. Rate is held constant either way — a reversal from halfway takes half as
- * long — so the gesture always moves at one speed rather than at whatever speed the
- * interruption implies.
- *
- * It is no longer racing the wordmark's fade, which is the reason it can stay at
- * roughly 2.5× play speed now that TAIL_SECONDS has grown: the dissolve is *inside*
- * this timeline, so rewinding brings the letterforms back as part of the same run
- * rather than against it. Held at the ratio rather than the number for that reason —
- * 1.1 against the old 2.8s.
+ * Rewinding is quicker than playing — the reader turned round and wants the previous
+ * composition back, not a replay. Held as a ratio rather than a fixed number, so it scales
+ * if TAIL_SECONDS does.
  */
 export const TAIL_BACK_SECONDS = 1.4;
 
 /**
  * The three photographs above the footer's columns, and their merge into one.
  *
- * **On the tail's clock, not on the scrub**, and that is the one decision here worth
- * defending because the brief asked for scroll progress. The merge shares a moment
- * with the dots' fall, and mixing clocks over a shared moment is the single most
- * expensive mistake in this codebase — the hero's orange→gray wash, its door close and
- * this section's own wordmark slide were all the same bug. Two clocks over one moment
- * drift apart by exactly the reader's speed, so which of the two appears to lead is
- * decided by the wheel. On the tail's own clock the merge is frame-locked to the fall
- * at every speed and in both directions, and a cue cannot skip or compress frames the
- * way a scrub does when it is crossed quickly — so the speed-independence the brief
- * actually wanted is stronger here than a scrub could give.
+ * On the tail's clock, not the scrub — mixing clocks over a shared moment (this merge and
+ * the dots' fall) is this codebase's most expensive recurring bug, since two clocks drift
+ * apart by exactly the reader's speed. On one clock the merge is frame-locked to the fall
+ * at every speed and in both directions.
  *
- * IMAGE_IN is when the three resolve, as a fraction of the camera's pan. They come up
- * *with* the camera and finish before it stops, which buys the beat this whole
- * arrangement depends on: a moment where they are unmistakably three separate
- * photographs, before anything converges. Without it the merge is over before the eye
- * has established there was ever more than one image.
+ * IMAGE_IN is when the three resolve, as a fraction of the camera's pan — with the camera,
+ * finishing before it stops, so there's a beat where they read as three separate
+ * photographs before anything converges. The merge itself runs over exactly the dots'
+ * flight, so the photograph locks up as the last dot lands.
  *
- * The merge itself runs over exactly the dots' flight — release to last touchdown — so
- * the photograph locks up on the frame the last dot settles. One gesture with one
- * ending, rather than two things that happen to finish near each other.
- *
- * **The merge closes the gaps; it does not stack.** All three survive, none scales, and
- * none passes over another: each keeps its width and height for the whole gesture and
- * only slides horizontally until its edges meet its neighbours'. The end state is one
- * continuous wide photograph made of three adjacent panels, so the travel per panel is
- * exactly the grid's own gap — solved from the measured boxes in ./measure rather than
- * from the gap value, so it follows the `gap-7 / md:gap-10 / lg:gap-14` steps without
- * any of them being restated here.
+ * The merge closes gaps; it does not stack — each panel keeps its width and height and
+ * only slides horizontally until edges meet, so the end state is one continuous
+ * photograph. Travel per panel is solved from the measured boxes (see ./measure) rather
+ * than the grid's gap value, so it tracks breakpoint changes without restating them.
  */
 export const IMAGE_IN = [0, 0.75] as const;
 
 /**
- * Which panel holds still, and therefore where the combined image ends up.
- *
- * The middle one, so the block closes inward symmetrically and its centre never moves —
- * that is what keeps the finished photograph centred over the columns and the dots
- * without a second constant to place it. Anchoring on an end panel instead would drag
- * the whole block sideways as it closed.
+ * Which panel holds still, and so where the combined image ends up. The middle one, so the
+ * block closes inward symmetrically with its centre never moving — anchoring an end panel
+ * would drag the whole block sideways as it closed.
  */
 export const IMAGE_ANCHOR = 1;
 
 /**
- * How far past touching each seam closes, in px.
- *
- * The panels have to meet *perfectly* or the join is not seamless, and merely equal
- * edges are not enough: ScrollSmoother scrolls by fractional pixels and these are
- * transformed boxes, so on the frame they meet, rounding can leave a hairline of footer
- * behind them straight down the join. The same problem as the hero's door panels, and
- * the same fix (see DOOR_PANEL_BLEED_PX) — close a hair past touching so the edges tuck
- * instead of abutting.
- *
- * Not the overlap this merge is explicitly not doing: it costs one column of pixels off
- * an outer panel and guarantees the seam.
+ * How far past touching each seam closes, in px. Equal edges alone aren't enough —
+ * ScrollSmoother scrolls by fractional pixels, so rounding can leave a hairline of footer
+ * showing at the join. Same problem and fix as the hero's door panels (DOOR_PANEL_BLEED_PX).
  */
 export const IMAGE_SEAM_BLEED_PX = 1;
 
@@ -687,23 +309,12 @@ export const PIN_VH = TAIL_AT + TAIL_VH;
 export const SECTION_VH = PIN_VH + 100;
 
 /**
- * Mobile-only: shortens the statement's *entrance* span — the scroll it
- * takes the paragraph to go from first appearing to fully settled (see
- * paintStatement/statementTrigger). Nothing else about the section changes
- * on mobile: the pin's own phases (window growing, photo dissolving,
- * definition climbing, the tail) are the same vh on every viewport.
+ * Mobile-only: shortens the statement's entrance span (see statementTrigger) — nothing
+ * else about the section's timing changes on mobile.
  *
- * STATEMENT_REVEAL_AT_PCT stays exactly as it is — it's hero-linked (the
- * statement must not start settling before the hero's wash can be complete).
- * The span is free to shrink from the *other* end: raising this constant
- * shortens STATEMENT_LIFT_VH_SPAN.
- *
- * Bounded by the same rate ≤ 1 requirement the desktop assertion checks
- * (`STATEMENT_LIFT_VH · 100 ≤ span`, i.e. `≤ STATEMENT_REVEAL_AT_PCT − 62`):
- * push this higher than ~83 and the paragraph would visibly move down the
- * screen while scrolling down. 78 keeps a real margin (rate ≈ 0.93) while
- * cutting the span from 85 to 67 — about 21% less scroll for the same
- * entrance.
+ * STATEMENT_REVEAL_AT_PCT stays fixed (hero-linked), so the span shrinks from this end
+ * instead. Bounded by the same rate ≤ 1 requirement as the desktop assertion — push this
+ * above ~83 and the paragraph would visibly move down the screen while scrolling down.
  */
 export const DEF_MOBILE_STATEMENT_LIFT_END_PCT = 78;
 
@@ -721,53 +332,37 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 /**
- * The cross-fade out of the hero, in vh — see the veil in the markup.
+ * The cross-fade out of the hero — see the veil in the markup. Spans HERO_GRAY_TAIL_VH
+ * (imported, not copied, so it can't drift from the hero's own value) plus the 100vh after
+ * it, where the hero's released stage scrolls up and this section's top edge scrolls in.
  *
- * HERO_GRAY_TAIL_VH is the pinned scroll the hero has left once it begins washing
- * over to gray. The dissolve runs across exactly that, so it costs no extra
- * scroll and needs no constant of its own — and it is imported rather than
- * copied, which it used to be (as the hero's HOLD_VH), because a copy is only
- * right until one of the two moves.
- *
- * Spanning the wash rather than only the dead tail after it is deliberate, and it
- * is what makes the hero's tail safe to be as short as it now is. The wash is a
- * timed tween, so a reader crossing those few vh quickly un-pins that section
- * while it is still part orange; this fade covers the rest of the distance to the
- * same --color-gray. Two ramps to one colour compose into one monotonic ramp —
- * there is no frame where the stage moves back toward orange — so what the eye
- * gets is the gray arriving, possibly a little faster at the end, and never a
- * hand-over. Without it, that last stretch would be a snap.
- *
- * VEIL_VH adds the 100vh after that, where the hero's released stage scrolls up
- * and this section's top edge scrolls in — the crossing where the two sections
- * would otherwise both be visible.
+ * Spans the wash itself, not just the dead tail after it: the wash is a timed tween, so a
+ * fast reader can un-pin the hero while it's still part orange — this fade covers the rest
+ * of the distance to the same gray, so the two ramps compose into one monotonic fade with
+ * no hand-over.
  */
 export const VEIL_VH = HERO_GRAY_TAIL_VH + 100;
 
 /**
- * How far the veil overhangs past this section's own top edge, in px. Without it
- * a hairline of the hero's bright orange background flickers along that edge:
- * three separately-rounded boxes meet there, and ScrollSmoother scrolls by
- * fractional pixels so the rounding lands differently frame to frame.
+ * How far the veil overhangs past this section's own top edge, in px. Without it a
+ * hairline of the hero's bright orange flickers along that edge, since three
+ * separately-rounded boxes meet there and ScrollSmoother scrolls by fractional pixels.
  */
 export const VEIL_OVERHANG_PX = 4;
 
 /**
- * CSS `ease-out`, which is what RevealBlock used and therefore what this has to
- * keep: cubic-bezier(0, 0, 0.58, 1) sits within a couple of percent of power1.out
- * across the whole curve, and on a fade that difference is not visible.
+ * CSS `ease-out`, which is what RevealBlock used and therefore what this has to keep:
+ * cubic-bezier(0, 0, 0.58, 1) sits within a couple of percent of power1.out across the
+ * whole curve, and on a fade that difference is not visible.
  */
 export const STATEMENT_REVEAL_EASE = gsap.parseEase("power1.out");
 
 /**
- * The statement's fade, read off the hero's wash rather than off scroll.
- *
- * Ease-*in*, which is the opposite of what a reveal normally wants, and deliberate:
- * the wash is already `sine.inOut`, so it comes up quickly through its middle. A
- * reveal curve on top of that would put the words at half strength while the stage
- * behind them was still half orange. Easing in holds the paragraph back until the
- * gray is most of the way home, so the text arrives *onto* gray rather than over the
- * turn-over, and the two still finish together.
+ * The statement's fade, read off the hero's wash rather than scroll. Ease-in, the opposite
+ * of a normal reveal: the wash is already sine.inOut and comes up quickly through its
+ * middle, so a reveal curve on top would show the words at half strength while the stage
+ * was still half orange. Easing in holds the paragraph back until the gray is most of the
+ * way home, so it arrives onto gray rather than over the turnover.
  */
 export const STATEMENT_FADE_EASE = gsap.parseEase("power2.in");
 
@@ -778,35 +373,15 @@ export const PAN_EASE = gsap.parseEase("power1.inOut");
 export const LOGO_FADE_EASE = gsap.parseEase("sine.inOut");
 
 /**
- * The footer's contents resolving in — on the tail's clock, across exactly the
- * span the dots spend in the air.
+ * The footer's contents resolving in — on the tail's clock, across exactly the dots'
+ * flight, so the two are one gesture and can't drift (reads the same m.releaseAt and
+ * DROP_SECONDS the falls do).
  *
- * Tied to the falls rather than given a window of its own, so the two are one
- * gesture and cannot drift: the dots let go and the footer begins to resolve;
- * the last dot settles and the footer is finished. One ending, one reading. That
- * also means there is nothing to keep in sync — it reads m.releaseAt and
- * DROP_SECONDS, the same two numbers the falls do.
+ * All of it together, no stagger — a stagger guarantees a stretch where some blocks are
+ * resolved and others aren't, the same half-finished state the dots' simultaneous release
+ * exists to avoid.
  *
- * All of it together, with no stagger, and the stagger was the defect. Spreading
- * four items across a window guarantees a stretch where some are resolved and
- * others are not, which is precisely the half-finished state this exists to
- * avoid — the same defect the dots had before their release was made
- * simultaneous, and removed for the same reason. Nothing is lost: a stagger
- * across four blocks of text at this size reads as unevenness rather than as
- * choreography, and the whole footer resolving as one is a larger, plainer event
- * than four pieces arriving in turn.
- *
- * It runs to completion, being on that clock, so no stopping place leaves the
- * footer part-resolved for longer than the gesture has left to play.
- *
- * The dots land on the slots, which sit *above* each heading and are invisible —
- * they only reserve the pad. So nothing a dot touches is being faded.
- *
- * Opacity only, deliberately — no rise, no scale. The dots aim at slots measured
- * out of this layout, and a transform here would move them on screen without
- * moving what was measured, so every landing would be off by however far the
- * reveal still had to travel. It is also why nothing here disturbs `measure`:
- * opacity is the one visual change that costs no geometry.
+ * Opacity only — no rise or scale, since the dots aim at slots measured out of this layout
+ * and a transform here would move them without moving what was measured.
  */
-/** No accent at either end, same as the wordmark's dissolve. */
 export const FOOTER_REVEAL_EASE = gsap.parseEase("sine.inOut");

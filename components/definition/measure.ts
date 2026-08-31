@@ -37,11 +37,10 @@ export type MeasureRefs = {
 };
 
 /**
- * Everything the per-frame handler needs from the layout, re-read whenever it can
- * have moved rather than measured once at mount. `cy` is why that matters: it aligns
- * the photo layer with the viewport, so a stale one leaves the growing window
- * uncovering the section background past the layer's edge — which reads as a
- * straight-edged crop on the photo.
+ * Everything the per-frame handler needs from the layout, re-read whenever it can have
+ * moved rather than measured once at mount. `cy` is why that matters: a stale value leaves
+ * the growing window uncovering the section background past the photo layer's edge, which
+ * reads as a straight-edged crop.
  */
 export type Measurements = {
   baseSize: number;
@@ -50,15 +49,12 @@ export type Measurements = {
   frameH: number;
   statementTravel: number;
   /**
-   * `STATEMENT_LIFT_VH` converted to px, cached here rather than read as
-   * `window.innerHeight` inside the entrance's own per-frame paint. Below `md` a real
-   * touch scroll leaves the address bar mid-collapse for stretches of the gesture, and
-   * `innerHeight` tracks it live — so a value multiplied by it on every frame drifts by
-   * however much the chrome has moved since the last frame, independent of scroll
-   * progress. That reads as the statement's entrance flickering in place while the
-   * reader is scrolling smoothly in one direction. Re-read on the same cadence as
-   * everything else here (refresh, resize) rather than live, so the entrance ignores
-   * the chrome the way `render`'s own exit travel already does.
+   * STATEMENT_LIFT_VH converted to px, cached here rather than read live from
+   * `window.innerHeight`. Below `md`, a real touch scroll leaves the address bar
+   * mid-collapse for stretches of the gesture, and `innerHeight` tracks it live — so a
+   * value multiplied by it every frame would drift independent of scroll progress, which
+   * reads as the entrance flickering. Re-read on the same cadence as everything else here
+   * (refresh, resize) instead.
    */
   statementLiftPx: number;
   markX: number;
@@ -74,11 +70,8 @@ export type Measurements = {
   releaseAt: number;
   /**
    * How far each photograph slides for the row to close into one continuous image —
-   * horizontal only, and the panel's size is never touched.
-   *
-   * Solved from the measured boxes rather than from the grid's `gap`, so it tracks the
-   * `gap-7 / md:gap-10 / lg:gap-14` steps without any of them being named twice, and
-   * would still be right if the panels were ever sized unevenly.
+   * horizontal only, panel size untouched. Solved from the measured boxes rather than the
+   * grid's `gap`, so it tracks breakpoint gap changes without restating them.
    */
   images: ({ dx: number } | null)[];
   slots: ({ x: number; y: number; size: number } | null)[];
@@ -92,20 +85,15 @@ export type Measurements = {
 };
 
 /**
- * Position within `root`, accumulated up the offsetParent chain.
+ * Position within `root`, accumulated up the offsetParent chain — not
+ * getBoundingClientRect, which includes transforms and is only meaningful before anything
+ * has animated. offsetTop/offsetLeft are layout values, so this stays correct mid-scroll
+ * with the circle scaled six times over.
  *
- * Deliberately not getBoundingClientRect: rects include transforms, so a
- * rect-based measurement is only meaningful before anything has animated.
- * offsetTop/offsetLeft are layout values, so this can run mid-scroll with
- * the circle scaled six times over and still report where things *live*.
- *
- * Two roots are used. The composition is measured against `frame`, which
- * is the track's first screen and so sits at track origin — before the pin
- * engages the frame is still at its document position, and once pinned its
- * top is the viewport top, so an offset inside it *is* the on-screen
- * position. The footer's dot slots are measured against `track`, which
- * folds in the frame's own height, and the camera's `y` converts both to
- * the same screen space.
+ * Two roots are used: the composition is measured against `frame` (the track's first
+ * screen, so an offset inside it is the on-screen position both before and after the pin
+ * engages); the footer's dot slots are measured against `track`, which folds in the
+ * frame's own height, and the camera's `y` converts both to the same screen space.
  */
 function offsetIn(el: HTMLElement, root: HTMLElement) {
   let x = 0;
@@ -122,13 +110,11 @@ function offsetIn(el: HTMLElement, root: HTMLElement) {
 }
 
 /**
- * The layout figures and the function that refreshes them, handed back together
- * because that is how they are used: `measure()` writes into the same `m` every
- * caller reads, so the object identity is the contract and nothing ever re-reads a
- * stale copy.
+ * The layout figures and the function that refreshes them, handed back together: `measure`
+ * writes into the same `m` every caller reads, so the object identity is the contract.
  *
  * Called on ScrollTrigger's refresh, on `document.fonts.ready`, and from a
- * ResizeObserver — see ./sequence for why each of those is load-bearing.
+ * ResizeObserver — see ./sequence for why each is load-bearing.
  */
 export function createMeasure(els: MeasureEls, refs: MeasureRefs) {
   const { circle, frame, track } = els;
@@ -156,8 +142,7 @@ export function createMeasure(els: MeasureEls, refs: MeasureRefs) {
   };
 
   function measure() {
-    // Computed style rather than a rect, so the scale transform on the circle
-    // doesn't affect it.
+    // Computed style, not a rect, so the circle's scale transform doesn't affect it.
     m.baseSize = parseFloat(getComputedStyle(circle).width) || 1;
     const circleAt = offsetIn(circle, frame);
     m.cx = circleAt.x + m.baseSize / 2;
@@ -165,17 +150,16 @@ export function createMeasure(els: MeasureEls, refs: MeasureRefs) {
     m.frameH = frame.offsetHeight || 1;
     m.statementLiftPx = STATEMENT_LIFT_VH * window.innerHeight;
 
-    // Exactly to where the statement's own bottom edge meets the frame's top,
-    // so it is fully gone rather than relying on the fade to hide a stub.
+    // To exactly where the statement's bottom edge meets the frame's top, so it's fully
+    // gone rather than relying on the fade to hide a stub.
     const statement = refs.statement.current;
     m.statementTravel = statement
       ? offsetIn(statement, frame).y + statement.offsetHeight
       : 0;
 
-    // The wordmark's final resting place: hard left against the frame's
-    // padding, and up to the vertical middle. Its centre line is kept too,
-    // since the wordmark's cue is derived from where the definition is
-    // relative to it, and its box because the dots are placed inside it.
+    // The wordmark's resting place: hard left against the frame's padding, up to vertical
+    // middle. Centre line and box are kept too — the slide's cue reads the former, the
+    // dots' placement the latter.
     const mark = refs.mark.current;
     const padLeft = parseFloat(getComputedStyle(frame).paddingLeft) || 0;
     if (mark) {
@@ -189,22 +173,17 @@ export function createMeasure(els: MeasureEls, refs: MeasureRefs) {
       m.markToMiddle = m.markCentreY - m.frameH / 2;
     }
 
-    // So the definition's travel can end with the whole block clear of the
-    // top rather than at a guessed offset.
+    // So the definition's travel can end with the whole block clear of the top rather than
+    // a guessed offset.
     const dict = refs.dictionary.current;
     m.dictHeight = dict?.offsetHeight ?? 0;
 
-    // The settled composition's one hard geometric requirement: the panel's resting
-    // box has to clear the wordmark's. Asserted on the measured boxes rather than on
-    // the constants they were solved from, which makes this the real property and not
-    // a proxy for it — a change to the frame's padding, to MARK_WIDTH, or to the
-    // panel's own width all show up here, and they move one box without the other
-    // because the two scale by different laws (see DictionaryPanel).
+    // Hard requirement: the definition's resting box must clear the wordmark's. Checked on
+    // the measured boxes rather than the constants they came from, so a change to the
+    // frame's padding, MARK_WIDTH, or the panel's width all show up here.
     //
-    // `offsetWidth > 0` is the visibility gate: below `lg` the panel is `hidden` and
-    // the definition renders in normal flow instead, where there is nothing to clear.
-    // offsetLeft is a layout value, so this reads correctly mid-flight with GSAP's `y`
-    // on the element.
+    // `offsetWidth > 0` gates on visibility — below `lg` the panel is hidden and the
+    // definition renders in flow instead, with nothing to clear.
     if (
       process.env.NODE_ENV !== "production" &&
       dict &&
@@ -229,22 +208,13 @@ export function createMeasure(els: MeasureEls, refs: MeasureRefs) {
       }
     }
 
-    // The tail's other hard requirement, and the one under the dissolve's cue: the
-    // dots are children of the stage, so they paint above the frame's whole contents
-    // including the definition — and they are lit as the cue fires. So the cue must
-    // land *after* the definition's bottom edge has cleared the wordmark's top, or
-    // three solid dots show through the body text on its way past.
+    // The tail's other hard requirement: the dots paint above the definition and are lit
+    // when the cue fires, so the cue must land after the definition's bottom edge clears
+    // the wordmark's top — or three solid dots show through the body text.
     //
-    // Both sides are solved from the measured boxes rather than stated, because both
-    // move with the viewport. The block travels H + its own height D over the climb,
-    // so its bottom edge clears a line at `markTop` when `(H + D − markTop)/(H + D)`
-    // of that is done; and the cue's condition — `f` of the block standing above the
-    // fold — is met at `(f + H/D)/(1 + H/D)`, capped by LOGO_FADE_CAP_FRAC.
-    //
-    // Measured, the crossing lands at 0.63–0.74 against a cue at 0.79–0.88, worst
-    // margin 4.1vh at 1920×700. A docblock here once put the crossing at 0.71–0.77,
-    // which was wrong in the unsafe direction — hence computing it rather than
-    // writing it down.
+    // Both sides are solved from the measured boxes, since both move with the viewport:
+    // the block's bottom clears `markTop` at `(H + D − markTop)/(H + D)` of the climb; the
+    // cue fires at `(f + H/D)/(1 + H/D)`, capped by LOGO_FADE_CAP_FRAC.
     if (
       process.env.NODE_ENV !== "production" &&
       dict &&
@@ -272,19 +242,14 @@ export function createMeasure(els: MeasureEls, refs: MeasureRefs) {
       }
     }
 
-    // How far the camera travels: enough to bring the footer's bottom edge
-    // onto the viewport's. Measured rather than "one viewport" so the footer
-    // can be whatever height its own content makes it — a low band on a
-    // desktop, most of the screen once the columns stack on a phone — and
-    // still come to rest properly seated.
+    // How far the camera travels: enough to bring the footer's bottom edge onto the
+    // viewport's. Measured rather than "one viewport" so the footer can be whatever height
+    // its own content makes it.
     //
-    // Both clamps matter. Zero, so a footer shorter than the space below it
-    // cannot pan backwards. And the footer's own top, because a footer
-    // *taller* than the viewport cannot seat both edges: it has to lose one,
-    // and it must be the bottom. Losing the top would take the first
-    // column's dot off the screen with it, and a dot that lands somewhere
-    // the reader cannot see is the one failure this whole sequence cannot
-    // survive. On a short phone that trims a little of the bottom padding.
+    // Both clamps matter: zero, so a short footer can't pan backwards; the footer's own
+    // top, because a footer taller than the viewport must lose its bottom edge rather than
+    // its top — losing the top would take the first column's dot off screen, which this
+    // sequence can't survive.
     const footer = refs.footer.current;
     if (footer) {
       const footerTop = offsetIn(footer, track).y;
@@ -295,17 +260,8 @@ export function createMeasure(els: MeasureEls, refs: MeasureRefs) {
     }
 
     // How far each photograph slides for the row to close into one continuous image.
-    //
-    // Walked outward from the anchor in both directions, accumulating widths: the
-    // left edge each panel has to reach is simply its neighbour's right edge. That
-    // states the "edges meet" condition directly rather than deriving it from the
-    // grid's gap, so it needs no breakpoint knowledge and survives unequal widths.
-    //
-    // Measured against `track` only because everything else here is — these are
-    // differences between siblings, so the origin cancels. offsetLeft is a layout
-    // value, so it reads correctly while the merge already has transforms on these
-    // elements, which matters because a refresh mid-gesture re-measures and then
-    // repaints at wherever the tail's clock has reached.
+    // Walked outward from the anchor, accumulating widths, so each panel's target left
+    // edge is simply its neighbour's right edge — no gap value restated.
     const panels = refs.images.current;
     const anchor = panels[IMAGE_ANCHOR];
     if (!anchor) {
@@ -317,7 +273,7 @@ export function createMeasure(els: MeasureEls, refs: MeasureRefs) {
       let edge = anchorLeft;
       for (let i = IMAGE_ANCHOR; i >= 0; i--) {
         if (i < IMAGE_ANCHOR) edge -= panels[i]?.offsetWidth ?? 0;
-        // Tucked a hair under, so rounding cannot open a hairline at the join.
+        // Tucked a hair under, so rounding can't open a hairline at the join.
         targetLeft[i] = edge + (i < IMAGE_ANCHOR ? IMAGE_SEAM_BLEED_PX : 0);
       }
       // And to the right.
@@ -331,10 +287,8 @@ export function createMeasure(els: MeasureEls, refs: MeasureRefs) {
       );
     }
 
-    // Where each dot is going. The dot element takes the slot's size, and the
-    // slot is itself derived from the wordmark's dot (see FOOTER_DOT_SIZE), so
-    // this is the size the dot had on the wordmark — the flight neither grows nor
-    // shrinks it, whatever the viewport resolves those terms to.
+    // Where each dot is going. The dot takes the slot's size, itself derived from the
+    // wordmark's dot (see FOOTER_DOT_SIZE), so the flight neither grows nor shrinks it.
     m.slots = LOGO_DOTS.map((_, i) => {
       const slot = refs.slots.current[i];
       if (!slot) return null;
@@ -345,14 +299,10 @@ export function createMeasure(els: MeasureEls, refs: MeasureRefs) {
       return { x: at.x + size / 2, y: at.y + size / 2, size };
     });
 
-    // Both ends of every fall, and the trajectory between them, solved here
-    // rather than per frame — none of it changes until the layout does.
-    //
-    // The release point is the wordmark at rest, i.e. after its slide left,
-    // which is settled 150vh before any of this begins. Taking the rest
-    // position rather than the live one is what lets the trajectory be
-    // planned ahead: a dot cannot be handed a fall if its floor is still
-    // being decided.
+    // Both ends of every fall, solved here rather than per frame since none of it changes
+    // until the layout does. The release point is the wordmark at rest (settled 150vh
+    // before any of this begins), not the live position, so the trajectory can be planned
+    // ahead.
     const restX = m.markX - m.markToLeft;
     const restY = m.markY - m.markToMiddle;
     m.dots = LOGO_DOTS.map((d, i) => {
@@ -364,11 +314,9 @@ export function createMeasure(els: MeasureEls, refs: MeasureRefs) {
         fromX: restX + d.cx * m.markW,
         fromY,
         toX: slot.x,
-        // 1 by construction now that the slot is sized from this same product
-        // (see FOOTER_DOT_SIZE), so the glide below is a no-op on scale. Kept as
-        // a ratio rather than dropped: it is the thing that guarantees the dot
-        // leaves at the wordmark's size, and a rounded slot measurement or a
-        // future change at either end should be absorbed here, not seen.
+        // 1 by construction, since the slot is sized from this same product (see
+        // FOOTER_DOT_SIZE) — kept as a ratio rather than dropped, so a rounded slot
+        // measurement or a future change at either end is absorbed here, not seen.
         scale0: (d.d * m.markW) / slot.size,
         fall: planFall(
           slot.y + m.camEnd - fromY,
@@ -378,11 +326,10 @@ export function createMeasure(els: MeasureEls, refs: MeasureRefs) {
       };
     });
 
-    // One gravity for all three: the longest trajectory gets the whole
-    // budget and the others get the same fraction of it that their own
-    // flight time is of that one. A dot with half the drop then finishes
-    // early and sits there, which is what actually happens when you drop two
-    // balls from different heights.
+    // One gravity for all three: the longest trajectory gets the whole budget and the
+    // others get the same fraction of it their own flight time is of that one — a dot
+    // with half the drop finishes early and sits there, same as dropping two real balls
+    // from different heights.
     const longest = Math.max(
       1,
       ...m.dots.map((d) => d?.fall.total ?? 0),
@@ -391,25 +338,18 @@ export function createMeasure(els: MeasureEls, refs: MeasureRefs) {
       if (d) d.fall.share = d.fall.total / longest;
     }
 
-    // And when they may let go: as late as they can, but early enough that
-    // the *soonest* of them to touch down still does so after the camera has
-    // stopped. Since each flight lasts DROP_SECONDS·total/longest, a dot's
-    // lead to its own first landing is DROP_SECONDS·land/longest — exact,
-    // and free, because the falls are already solved.
-    //
-    // Solved here rather than written as a constant because the lead swings
-    // by more than a fixed margin can absorb: it is about a third of a fall
-    // on a desktop and an eighth on a short phone, where the stacked footer
-    // can leave a slot almost level with its own dot. A single hand-set
-    // release has to be conservative enough for the worst of those, which
-    // then leaves the dots hanging that much longer on every other viewport.
+    // When they may let go: as late as possible, but early enough that the soonest
+    // landing still happens after the camera has stopped. Solved rather than a fixed
+    // constant, because the needed lead swings too much across viewports (about a third
+    // of a fall on desktop, an eighth on a short phone) for one hand-set value to fit all
+    // of them without over-holding most of them.
     const lead = Math.min(
       ...m.dots.map((d) =>
         d ? (DROP_SECONDS * d.fall.land) / longest : Infinity,
       ),
     );
-    // From PAN_END, not PAN_SECONDS: the camera now sits behind the wordmark's
-    // dissolve (see PAN_AT), so the moment it stops is that much later.
+    // From PAN_END, not PAN_SECONDS: the camera now sits behind the wordmark's dissolve
+    // (see PAN_AT), so the moment it stops is that much later.
     m.releaseAt = Math.max(
       0,
       PAN_END +
