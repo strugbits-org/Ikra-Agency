@@ -322,7 +322,7 @@ export const GAP_LINES: GapLine[] = [
     in: null,
     out: [LEAD_OUT_AT, LEAD_OUT_AT + COPY_OUT_VH],
   },
-  follower("between who you've become", 0),
+  follower("between who you've become and", 0),
   follower("how the world sees you", 1),
   follower("holding your business back", 2),
 ];
