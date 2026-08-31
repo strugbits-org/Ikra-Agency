@@ -273,7 +273,7 @@ export default function HeroNarrative() {
           >
             eventually, success becomes your
             <br />
-            biggest branding problem
+            biggest problem
           </p>
 
           <div
