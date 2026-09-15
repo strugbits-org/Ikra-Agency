@@ -7,7 +7,7 @@ import {
   BODY_LEADING,
   COLUMN,
   COLUMN_PCT,
-  FLANK_H,
+  FLANK_ASPECT,
   FLANK_INSET_PCT,
   FLANK_TOP_NUDGE,
   FLANK_W,
@@ -266,7 +266,7 @@ function MediaLeftBlock({ founder }: { founder: Founder }) {
 
 /**
  * The second Olya block: the same column, centred, with the same photograph repeated at each
- * side in landscape.
+ * side, each a square frame so the round end of the shape beat is a true circle.
  *
  * **It really is the same person's block twice, and that is transcribed rather than
  * inherited.** The reference runs Olya's quote and story through once in the composition
@@ -294,14 +294,14 @@ function FlankedBlock({ founder }: { founder: Founder }) {
         className="absolute hidden lg:block"
         style={{ ...flank, left: `${FLANK_INSET_PCT}%` }}
       >
-        <MediaFrame founder={founder} aspect={FLANK_W / FLANK_H} at="row" />
+        <MediaFrame founder={founder} aspect={FLANK_ASPECT} at="row" />
       </div>
       <div
         aria-hidden
         className="absolute hidden lg:block"
         style={{ ...flank, right: `${FLANK_INSET_PCT}%` }}
       >
-        <MediaFrame founder={founder} aspect={FLANK_W / FLANK_H} at="row" />
+        <MediaFrame founder={founder} aspect={FLANK_ASPECT} at="row" />
       </div>
 
       <div

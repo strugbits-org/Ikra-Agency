@@ -153,6 +153,17 @@ export const MEDIA_TOP_NUDGE = fluid(8, 17, 19);
 export const FLANK_W = 347;
 export const FLANK_H = 274;
 export const FLANK_INSET = 78;
+
+/**
+ * The flanking frames render **square**, not at the measured 347 x 274.
+ *
+ * The shape beat is a corner radius in percent, and 50% of a 1.267:1 box is an ellipse, not a
+ * circle — so a landscape frame cannot reach the round end of the round/square pair at all,
+ * whatever the radius says. The box is squared on the measured width (the width is what places
+ * the pair against `FLANK_INSET` and the column between them; the height is free), so the
+ * frames now draw a true circle at 50% and the same square at 0%.
+ */
+export const FLANK_ASPECT = 1;
 export const FLANK_W_PCT = share(FLANK_W);
 export const FLANK_INSET_PCT = share(FLANK_INSET);
 export const FLANK_TOP_NUDGE = fluid(30, 68, 76);

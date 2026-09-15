@@ -7,7 +7,7 @@ import {
   type WixImage,
 } from "@/lib/wix";
 import type { Shape } from "./timeline";
-import { FLANK_H, FLANK_W, MEDIA } from "./metrics";
+import { FLANK_W, MEDIA } from "./metrics";
 
 /**
  * The founders section's words and photographs, which live in the client's Wix CMS rather
@@ -80,8 +80,11 @@ const paragraphsOf = (v: unknown) =>
  * larger than its measured box.
  */
 function mediaFor(img: WixImage, layout: Layout): FounderMedia {
-  const [w, h] =
-    layout === "flanked" ? [FLANK_W, FLANK_H] : [MEDIA, MEDIA];
+  // Both boxes are square (see FLANK_ASPECT) — a landscape crop behind a square frame would
+  // be centre-cropped by object-fit anyway, and asking the CDN for the box the page draws is
+  // what keeps the photograph sharp at the size it is shown.
+  const size = layout === "flanked" ? FLANK_W : MEDIA;
+  const [w, h] = [size, size];
   return {
     src: wixImageUrl(img, w, h),
     srcSet: wixSrcSet(img, w, h),
