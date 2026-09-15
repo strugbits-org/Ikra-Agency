@@ -67,6 +67,19 @@
    * but next/font was still preloading its woff2 on every route including the home page.
    */
   --font-serif: "Times New Roman", Times, serif;
+  /*
+   * The founders section's display italic, and nothing else's. Unlike `--font-serif` above
+   * this one *is* a webfont, because the face was identified off the reference recording
+   * rather than chosen — Playfair Display Italic, against nine other candidates that miss the
+   * measured line width by 8% to 24% (see `about/metrics`' QUOTE). There is no system
+   * equivalent to fall back on the way Times has one.
+   *
+   * `--font-playfair` is declared by `next/font` on `AboutSection`'s own element and nowhere
+   * else, so this utility only resolves to Playfair inside that section; anywhere else it
+   * degrades to the stack below. That scoping is the point — the previous Playfair in this
+   * repo sat in the root layout and was preloaded on every route while rendering on none.
+   */
+  --font-display: var(--font-playfair), Georgia, "Times New Roman", serif;
 }
 
 @media (prefers-reduced-motion: reduce) {

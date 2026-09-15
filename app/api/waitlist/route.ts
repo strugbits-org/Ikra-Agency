@@ -5,10 +5,13 @@
  * Two calls, because the client ID alone only proves the request is coming from this site's
  * headless app — it isn't itself a bearer credential: first trade it for a short-lived visitor
  * access token (the same identity an anonymous visitor on the Wix site would get), then use that
- * token to create the submission. No client secret and no site ID are needed for either call —
- * the client ID is already scoped to one site because it's created inside that site's own
- * Headless Settings.
+ * token to create the submission. That first call is `lib/wix`'s, shared with the founders
+ * section's CMS read, which is also where the token's caching and its expiry margin live. No
+ * client secret and no site ID are needed for either call — the client ID is already scoped to
+ * one site because it's created inside that site's own Headless Settings.
  */
+
+import { wixVisitorToken } from "@/lib/wix";
 
 const WIX_FIELD_TARGETS = {
   name: "first_name_abf7",
@@ -32,18 +35,13 @@ export async function POST(request: Request) {
     return Response.json({ error: "Email is required" }, { status: 400 });
   }
 
-  const tokenRes = await fetch("https://www.wixapis.com/oauth2/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ clientId, grantType: "anonymous" }),
-  });
-
-  if (!tokenRes.ok) {
-    console.error("[waitlist] token exchange failed", await tokenRes.text());
+  let accessToken: string;
+  try {
+    accessToken = await wixVisitorToken();
+  } catch (err) {
+    console.error("[waitlist] token exchange failed", err);
     return Response.json({ error: "Could not reach Wix" }, { status: 502 });
   }
-
-  const { access_token: accessToken } = await tokenRes.json();
 
   const submissionRes = await fetch("https://www.wixapis.com/forms/v4/submissions", {
     method: "POST",

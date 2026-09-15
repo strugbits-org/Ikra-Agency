@@ -1,30 +1,35 @@
 import type { Metadata } from "next";
 import PlaygroundNarrative from "@/components/PlaygroundNarrative";
+import AboutSection from "@/components/AboutSection";
+import { foundersFromWix } from "@/components/about/content";
 
 export const metadata: Metadata = {
   title: "ikra — playground",
   description: "Work upstream.",
 };
 
-export default function PlaygroundPage() {
+/**
+ * The founders' copy is fetched on the server and the page is cached for an hour rather than
+ * rendered per request — stating it here is what keeps the *page* from going dynamic just
+ * because something inside it talked to a third party.
+ *
+ * A literal, and it has to be: Next reads route segment config statically, so
+ * `WIX_REVALIDATE_SECONDS` — which is the same 3600 and is what `wixQuery` tags its own fetch
+ * with — cannot be imported into this position. Change both or neither.
+ *
+ * The figure the build reports for this route is 30m rather than 1h, and that is right: the
+ * shortest revalidate among a segment's fetches governs, and the token exchange's is half an
+ * hour for a reason `lib/wix` sets out. This is the ceiling, not the period.
+ */
+export const revalidate = 3600;
+
+export default async function PlaygroundPage() {
+  const founders = await foundersFromWix();
+
   return (
     <main>
       <PlaygroundNarrative />
-      {/*
-        A stand-in for whatever comes next, and it is here because the first section's last
-        beat needs it: once the copy parks, the pin releases and the section scrolls away
-        *over* what follows, which is the reveal the reference ends on. With nothing under it
-        there is no reveal to look at — the page would simply stop.
-
-        Deliberately plain and deliberately light: in the reference the section that appears
-        is a pale field, and the only thing this has to do is be a different ground arriving
-        from below. Replace it with the real one.
-      */}
-      <section className="flex min-h-screen items-center justify-center bg-gray px-8">
-        <p className="max-w-xl text-center text-lg text-ink/50">
-          Next section goes here.
-        </p>
-      </section>
+      <AboutSection founders={founders} />
     </main>
   );
 }
