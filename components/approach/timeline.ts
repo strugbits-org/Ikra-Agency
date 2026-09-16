@@ -38,16 +38,37 @@ import { CELL_COUNT } from "./metrics";
 /* ── the reveal ───────────────────────────────────────────────────────────────── */
 
 /**
- * Where the fill completes, as a percentage of the viewport height from its top — measured
- * 88px of 953.
+ * Where the rail's centre is when the reveal hands over, as a percentage of the viewport height
+ * from its top. It is the only figure the reveal needs, because the fill starts as the rail's
+ * centre crosses the fold (measured railY 1039 against a fold at 1040, so exactly), so the
+ * scroll it takes is `100 - REVEAL_END_PCT` and is derived below rather than stated twice.
  *
- * It is the only figure the reveal needs, because the fill starts as the rail's centre crosses
- * the fold (measured railY 1039 against a fold at 1040, so exactly). The scroll the reveal
- * takes is therefore `100 - REVEAL_END_PCT` and is derived below rather than stated twice.
+ * **The reference measures 10 and this is 25, which is the one figure here deliberately not
+ * transcribed.** Its fill completes 88px below the top of a 953px viewport, and that is right
+ * for what the recording shows — a three-point rail that finishes drawing and then simply
+ * scrolls away. It is wrong for what this section does that the reference never has to: with
+ * more points than fit, **this mark is also where the stage pins**, so the rail stops there and
+ * stays for the whole traverse. At 10 that is 64px of air above a rail with a screen of copy
+ * hanging off it — the row reads as jammed against the top edge of the window rather than
+ * placed in it, and the vertical scroll reads as having run on too long before the horizontal
+ * one took over.
+ *
+ * A quarter of the viewport leaves ~206px above the rail at the reference height, against this
+ * section's own 180px PAD_TOP — so during the traverse the rail sits roughly where its own top
+ * padding would have put it, which is why the gap reads as composition rather than as slack.
+ *
+ * What it costs is that everything paced off the reveal is now spread over 75vh rather than 90:
+ * a step at three points costs 18.8vh instead of 22.5, and the traverse keeps station with it
+ * because `travelPerScroll` is derived from the same figure. Both stay well inside the
+ * assertions at the foot of this file — a step is still nearly two wheel notches — so the
+ * three-point composition the client approved moves at 1.2x and is otherwise untouched.
  */
-export const REVEAL_END_PCT = 10;
+export const REVEAL_END_PCT = 25;
 
-/** The scroll one screen-width of rail takes, in vh. 90, and measured 90.7. */
+/**
+ * The scroll one screen-width of rail takes, in vh. Measured 90.7 at the reference's own
+ * hand-over mark; 75 at the one above, for the reason it gives.
+ */
 export const REVEAL_VH = 100 - REVEAL_END_PCT;
 
 /**
