@@ -308,7 +308,8 @@
       "Bash(sed -i 's|clipLeft: \\(getComputedStyle\\(stage\\).clipPath.match\\(/-?\\\\[\\\\\\\\d.\\\\]+px/g\\) ?? \\\\[\\\\]\\).slice\\(-1\\)\\\\[0\\\\],|clipLeft: clipL,|' six.mjs)",
       "Bash(node gutter.mjs)",
       "Bash(node pop2.mjs)",
-      "Bash(sed -i 's/waitUntil: \"networkidle\"/waitUntil: \"domcontentloaded\"/' resp2.mjs)"
+      "Bash(sed -i 's/waitUntil: \"networkidle\"/waitUntil: \"domcontentloaded\"/' resp2.mjs)",
+      "Bash(grep -n \"^#\\\\|^###\\\\|^- \\\\`components/\" CLAUDE.md)"
     ],
     "additionalDirectories": [
       "d:\\tanzeel\\ikra-backups\\case-studies-v1-stack",

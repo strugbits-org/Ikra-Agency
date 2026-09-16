@@ -16,8 +16,10 @@ import {
  * body is dropped rather than rendered as a gap, and an unreachable CMS yields an empty array
  * rather than an exception (see `approachFromWix`). Nothing downstream knows Wix exists.
  *
- * There is no geometry here yet — the section that renders these is not built. What this fixes
- * is the shape the layers will be handed, so the design work starts against a settled type.
+ * There is no geometry here — the shape below is the whole of what the layers are handed, and
+ * everything the section does with it (the cell count, the rail, the walk) is derived from the
+ * *number* of points rather than from anything in a row. So a fourth point is a CMS row and
+ * nothing else.
  */
 
 export type ApproachPoint = {
