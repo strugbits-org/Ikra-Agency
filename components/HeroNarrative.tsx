@@ -23,10 +23,18 @@ import { lockInitialScroll, unlockInitialScroll } from "@/components/scrollLock"
 /**
  * A ceiling on how long the initial scroll lock can hold, independent of whether
  * the load timeline itself ever reports landing (see ./hero/intro). Every real path
- * through it unlocks well inside this — `document.fonts.ready` plus its own ~1.5s
- * of fades — so this only fires if something has actually gone wrong (a font
- * promise that never settles, an exception mid-timeline), and exists so that
- * failure mode is "the intro didn't play" rather than "the page cannot scroll".
+ * through it unlocks well inside this — a bounded wait on `document.fonts.ready`
+ * plus its own ~1.5s of fades — so this only fires if something has actually gone
+ * wrong (an exception mid-timeline, a promise that never settles), and exists so
+ * that failure mode is "the intro didn't play" rather than "the page cannot scroll".
+ *
+ * **It lands the entrance as well as releasing the scroll, and that is the whole
+ * difference between a usable failure and the one a client reported.** Unlocking
+ * alone leaves every layer at the opacity 0 the entrance starts from, so the page
+ * was scrollable but blank — a flat orange screen that only resolved once the reader
+ * scrolled far enough for the sequence to call `hurry` itself. Calling it here means
+ * the worst case is the entrance arriving without its fade, on a page that shows its
+ * own content unprompted.
  */
 const SCROLL_LOCK_SAFETY_MS = 6000;
 
@@ -133,7 +141,13 @@ export default function HeroNarrative() {
     // rather than the moment that effect runs so there is no gap between paint and
     // the lock engaging for the reader to scroll through.
     lockInitialScroll();
-    const safety = window.setTimeout(unlockInitialScroll, SCROLL_LOCK_SAFETY_MS);
+    const safety = window.setTimeout(() => {
+      // `hurry` is the entrance's own "finish now" and unlocks as it lands, so this is
+      // the same hand-off a scroll would have triggered — idempotent, and null once the
+      // entrance has landed under its own power, which is every ordinary load.
+      hurryIntroRef.current?.();
+      unlockInitialScroll();
+    }, SCROLL_LOCK_SAFETY_MS);
     return () => window.clearTimeout(safety);
   }, []);
 

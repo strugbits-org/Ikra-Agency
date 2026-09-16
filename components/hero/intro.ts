@@ -35,6 +35,17 @@ import { holeClip } from "./doors";
  */
 const HURRY_SCALE = 6;
 
+/**
+ * The longest this will wait on `document.fonts.ready` before playing the entrance
+ * anyway.
+ *
+ * Comfortably past a normal settle — the face is preloaded by `next/font`, so it is tens
+ * of milliseconds — and well under HeroNarrative's SCROLL_LOCK_SAFETY_MS, so a load that
+ * does take this path still plays its *whole* entrance (1.5s here, then a 0.2s delay and
+ * ~1.5s of fades) rather than being cut short by the lock's own ceiling.
+ */
+const FONT_WAIT_MS = 1500;
+
 export function playHeroIntro(
   box: HTMLDivElement,
   headline: HTMLParagraphElement,
@@ -114,11 +125,36 @@ export function playHeroIntro(
       land();
     };
 
-    // Held until the webfont has settled. `display: swap` means the first paint is
-    // in the fallback face, and fading in across that metrics change is the other
-    // half of the flicker. Waiting costs a few ms and the swap happens while the
-    // headline is still fully transparent.
-    document.fonts.ready.then(() => {
+    // Held until the webfont has settled, and **never for longer than FONT_WAIT_MS**.
+    // `display: swap` means the first paint is in the fallback face, and fading in
+    // across that metrics change is the other half of the flicker. Waiting normally
+    // costs a few ms and the swap happens while the headline is still fully
+    // transparent.
+    //
+    // **The bound is the load-bearing part.** Nothing else between mount and `land` is
+    // asynchronous, so this promise is the *single* gate on the entrance — and a gate
+    // that does not open leaves the box, the logo and the headline at the opacity 0 set
+    // above, over this section's flat `bg-accent`: a solid orange screen with the
+    // loading cue spinning on it (see HeroLoadingCue), and nothing to end it but the
+    // safety timer and a reader scrolling into `hurry`. That is exactly what a client
+    // reported on a Mac and what does not reproduce on a warm cache, because
+    // `document.fonts.ready` is not promised to be prompt: WebKit settles it against the
+    // document's own loading rather than the font's alone, so a still-downloading video
+    // or image can hold it, and a rejection would strand it outright. Racing it costs, at
+    // worst, a swap landing during a fade the headline is still transparent for.
+    //
+    // The timer is cleared on either outcome — a pending `setTimeout` would hold the
+    // resolved promise's closure alive for a second and a half after an ordinary load.
+    let fontTimer = 0;
+    const fontsSettled = Promise.race([
+      document.fonts.ready.catch(() => undefined),
+      new Promise<void>((resolve) => {
+        fontTimer = window.setTimeout(resolve, FONT_WAIT_MS);
+      }),
+    ]);
+
+    fontsSettled.then(() => {
+      window.clearTimeout(fontTimer);
       if (cancelled || introDone.current) return;
       ctx.add(() => {
         // Three plain opacity fades on absolute start times. The footage gets the
@@ -139,6 +175,7 @@ export function playHeroIntro(
 
     return () => {
       cancelled = true;
+      window.clearTimeout(fontTimer);
       hurry.current = null;
     };
   });

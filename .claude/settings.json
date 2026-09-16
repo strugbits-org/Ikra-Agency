@@ -311,7 +311,9 @@
       "Bash(sed -i 's/waitUntil: \"networkidle\"/waitUntil: \"domcontentloaded\"/' resp2.mjs)",
       "Bash(grep -n \"^#\\\\|^###\\\\|^- \\\\`components/\" CLAUDE.md)",
       "Bash(node -e \"const fs=require\\('fs'\\);const p='.env';const t=fs.readFileSync\\(p,'utf8'\\);fs.writeFileSync\\(p,t.replace\\(/^WIX_REVALIDATE_SECRET=.*\\\\r?\\\\n?/m,''\\)\\);console.log\\('secret removed from .env'\\)\")",
-      "PowerShell(npx tsc --noEmit -p tsconfig.json)"
+      "PowerShell(npx tsc --noEmit -p tsconfig.json)",
+      "PowerShell($p = \"C:\\\\Users\\\\AGACOM~1\\\\AppData\\\\Local\\\\Temp\\\\pw\"; if \\(Test-Path $p\\) { Get-ChildItem $p | Select-Object -First 5 Name }; \\(Invoke-WebRequest -Uri http://localhost:3000 -UseBasicParsing -TimeoutSec 5\\).StatusCode)",
+      "Bash(node fonts-stall-check.js)"
     ],
     "additionalDirectories": [
       "d:\\tanzeel\\ikra-backups\\case-studies-v1-stack",
