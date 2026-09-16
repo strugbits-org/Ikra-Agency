@@ -260,7 +260,17 @@
       "Bash(ls \"C:/Users/AGA Computer/AppData/Local/npm-cache/_npx/\" 2>&1 | head -20)",
       "Read(//c/Users/AGA Computer/AppData/Local/npm-cache/_npx/**)",
       "Bash(node \"C:/Users/AGACOM~1/AppData/Local/Temp/claude/d--tanzeel-Ikra-Agency/f7bd2df0-106d-4e77-8f56-77464f0d7696/scratchpad/tail-freeze-test.js\")",
-      "Bash(kill 869)"
+      "Bash(kill 869)",
+      "mcp__claude_ai_Wix__WixREADME",
+      "mcp__claude_ai_Wix__ListWixSites",
+      "mcp__claude_ai_Wix__ReadFullDocsArticle",
+      "mcp__claude_ai_Wix__CallWixSiteAPI",
+      "Bash(node --env-file=.env \"C:/Users/AGACOM~1/AppData/Local/Temp/claude/d--tanzeel-Ikra-Agency/b8f7ef4e-5778-4531-9a2e-b197b1bbe5f7/scratchpad/verify-approach.mjs\")",
+      "Bash(ls -la \"/c/Users/AGA Computer/Videos/Captures/\" 2>/dev/null | head -40)",
+      "Read(//c/Users/AGA Computer/Videos/Captures//**)",
+      "Bash(python -c \"import imageio_ffmpeg, PIL, numpy; print\\('ok', imageio_ffmpeg.get_ffmpeg_exe\\(\\)\\)\")",
+      "Bash(python -c \"import PIL, numpy; print\\('pil+numpy ok'\\)\")",
+      "Bash(python -m pip install imageio-ffmpeg)"
     ],
     "additionalDirectories": [
       "d:\\tanzeel\\ikra-backups\\case-studies-v1-stack",

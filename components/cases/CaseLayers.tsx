@@ -201,7 +201,7 @@ export function CaseTrack({
               </span>
             ))}
           </h2>
-          <CaseLink label={CASE_VIEW_ALL} href={null} className="mt-10 lg:mt-12" />
+          {/* <CaseLink label={CASE_VIEW_ALL} href={null} className="mt-10 lg:mt-12" /> */}
         </div>
       </Cell>
 
@@ -284,7 +284,7 @@ export function CaseTrack({
               </span>
             ))}
           </p>
-          <CaseLink label={CASE_VIEW_ALL} href={null} className="mt-10 lg:mt-12" />
+          {/* <CaseLink label={CASE_VIEW_ALL} href={null} className="mt-10 lg:mt-12" /> */}
         </div>
       </Cell>
 

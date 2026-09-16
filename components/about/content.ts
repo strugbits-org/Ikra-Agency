@@ -1,9 +1,11 @@
 import {
   FOUNDERS_COLLECTION,
   parseWixImage,
+  wixParagraphs,
   wixQuery,
   wixSrcSet,
   wixImageUrl,
+  wixText,
   type WixImage,
 } from "@/lib/wix";
 import type { Shape } from "./timeline";
@@ -59,20 +61,14 @@ export type Founder = {
 const LAYOUTS: Layout[] = ["media-left", "flanked"];
 const SHAPES: Shape[] = ["round-to-square", "square-to-round"];
 
-const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
-
 /**
- * Paragraphs are blank-line separated in one TEXT field rather than a rich-text field or a
- * repeater. Rich text would arrive as Wix's own Ricos JSON and need a renderer for markup
- * this section does not use — there is no bold, no link and no list anywhere in the reference
- * — and a repeater would make one block four rows to edit. A blank line is what the person
- * typing it will type anyway.
+ * `str` and `paragraphsOf` were this module's own until a second collection needed the same
+ * two coercions; they are `wixText`/`wixParagraphs` in `lib/wix` now, where the reasoning for
+ * the blank-line convention lives with them. Aliased here so the normalisation below still
+ * reads as the field-by-field defence it is.
  */
-const paragraphsOf = (v: unknown) =>
-  str(v)
-    .split(/\r?\n\s*\r?\n/)
-    .map((p) => p.replace(/\s*\r?\n\s*/g, " ").trim())
-    .filter(Boolean);
+const str = wixText;
+const paragraphsOf = wixParagraphs;
 
 /**
  * The CDN boxes each layout asks for. Requested at the reference's own rendered size — the

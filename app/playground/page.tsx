@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import PlaygroundNarrative from "@/components/PlaygroundNarrative";
 import AboutSection from "@/components/AboutSection";
 import { foundersFromWix } from "@/components/about/content";
+import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
   title: "ikra — playground",
@@ -30,6 +31,8 @@ export default async function PlaygroundPage() {
     <main>
       <PlaygroundNarrative />
       <AboutSection founders={founders} />
+      <Footer />
+
     </main>
   );
 }

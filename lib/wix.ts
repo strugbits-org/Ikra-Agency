@@ -33,6 +33,12 @@ const QUERY_URL = "https://www.wixapis.com/wix-data/v2/items/query";
 export const FOUNDERS_COLLECTION = "Founders";
 
 /**
+ * The collection behind the approach section's three points. Same shape of thing as
+ * FOUNDERS_COLLECTION and created the same way — `read: ANYONE`, everything else `ADMIN`.
+ */
+export const APPROACH_COLLECTION = "Approach";
+
+/**
  * How long a page holds its copy of the CMS before asking again. An hour: this is a founders'
  * section, not a feed, and the cost of it being an hour stale is nil against a Wix round trip
  * on a cold render.
@@ -102,6 +108,32 @@ export async function wixVisitorToken(): Promise<string> {
 }
 
 export type WixDataItem = Record<string, unknown>;
+
+/**
+ * A CMS TEXT field as a trimmed string, or `""` for anything that is not one.
+ *
+ * Here rather than in a section's own content module because a CMS row is not typed and every
+ * section reading one has the same problem: a field can be absent, `null`, or a number because
+ * somebody typed a year into a text box. One coercion, used at every boundary.
+ */
+export const wixText = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+
+/**
+ * A CMS TEXT field split into paragraphs on blank lines, with single newlines inside a
+ * paragraph treated as wrapping rather than as breaks.
+ *
+ * **Blank-line separation is this site's CMS authoring convention, not one section's**, which
+ * is why it lives here and is named in the `displayName` of every field that uses it
+ * ("Body (blank line between paragraphs)"). The alternative at the time was a rich-text field,
+ * which arrives as Wix's own Ricos JSON and would need a renderer for markup none of these
+ * sections use, or a repeater, which makes one block several rows to edit. A blank line is what
+ * the person typing it will type anyway.
+ */
+export const wixParagraphs = (v: unknown) =>
+  wixText(v)
+    .split(/\r?\n\s*\r?\n/)
+    .map((p) => p.replace(/\s*\r?\n\s*/g, " ").trim())
+    .filter(Boolean);
 
 /**
  * One page of a collection, sorted. Returns the `data` objects rather than the envelope,
