@@ -43,6 +43,12 @@ export type ApproachMeasure = {
   overflow: number;
   /** Each dot's centre, in track coordinates. */
   dotX: number[];
+  /**
+   * One dot's radius. Read here rather than in the paint, which used to take an `offsetWidth`
+   * per dot per frame — a forced layout on every frame of the scroll *and* of the cue's own
+   * ticker, for a figure that only moves on a resize.
+   */
+  dotR: number;
   /** Where the fill's leading edge parks on screen during the traverse, in px from the left. */
   lead: number;
   /** Px of horizontal travel per px of vertical scroll — see travelPerScroll. */
@@ -62,6 +68,8 @@ export function measureApproach(refs: ApproachRefs): ApproachMeasure {
   const dotX = dots.map((el) =>
     el ? el.offsetLeft + el.offsetWidth / 2 : 0,
   );
+  // Every dot is the same size, so the first one that exists speaks for all of them.
+  const dotR = (dots.find((el) => el)?.offsetWidth ?? 0) / 2;
 
   /**
    * The lead is the last on-screen dot's position, so it is read off the measured dot rather
@@ -79,6 +87,7 @@ export function measureApproach(refs: ApproachRefs): ApproachMeasure {
     trackW,
     overflow: Math.max(0, trackW - visible),
     dotX,
+    dotR,
     lead,
     pace: travelPerScroll(visible, viewportH),
     viewportH,
@@ -106,6 +115,35 @@ export const reachTotal = (m: ApproachMeasure) => m.trackW;
  */
 export const totalVh = (m: ApproachMeasure) =>
   m.visible > 0 ? (REVEAL_VH * reachTotal(m)) / m.visible : REVEAL_VH;
+
+/**
+ * Where the fill is allowed to come to rest, as fractions of the rail — **one stop per point,
+ * and one scroll gesture per stop**. See ./timeline's STEP_SECONDS for the brief this answers.
+ *
+ * A stop is a dot's **coverage** point, `centre + radius`, not its centre: the dot a step lands
+ * on has to be solid when the line stops, and the bounce fires on that same frame (./timeline's
+ * BOUNCE_AT_COVERAGE, which is also why it compares against just under 1 — the number below is
+ * what the paint divides and multiplies back).
+ *
+ * Two of the stops anyone would expect are deliberately not here:
+ *
+ *   - **The first dot has none.** Its centre sits one radius into the rail, so it is covered
+ *     64px into a 1685px line — a gesture ending there moves almost nothing and reads as the
+ *     section failing to respond to the scroll at all. The opening gesture runs to the *second*
+ *     dot and lights both on the way.
+ *   - **The last stop is the rail's end, not the last dot.** The rail runs on past it — 416px
+ *     in the reference, which is the reference's own composition — so a line that stopped on
+ *     the final dot would leave that tail permanently unlit.
+ *
+ * The two cancel, which is what keeps it exactly one stop per point and therefore keeps
+ * ./timeline's SEGMENT_VH at a flat 30vh however many rows the client adds.
+ */
+export function stopsFor(m: ApproachMeasure): number[] {
+  const total = reachTotal(m);
+  if (total <= 0) return [1];
+  const atDots = m.dotX.slice(1).map((x) => (x + m.dotR) / total);
+  return [...atDots.filter((s) => s < 1), 1];
+}
 
 /**
  * The track's translation for a given reach, in px, and the one place the two phases meet.

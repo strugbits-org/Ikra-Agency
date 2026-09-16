@@ -288,7 +288,16 @@
       "Bash(node resp.mjs)",
       "Bash(sed -i 's/document.querySelector\\(\"\\\\[data-bar-fill\\\\],\\\\[data-approach-stack\\\\]\"\\)/\\(window.innerWidth>=1024?document.querySelector\\(\"[data-bar-fill]\"\\):document.querySelector\\(\"[data-approach-stack]\"\\)\\)/' resp.mjs)",
       "Bash(sed -i 's/const SIZES=.*/const SIZES=[[390,844],[768,1024]];/' resp.mjs)",
-      "Bash(OUT=fin node shot.mjs)"
+      "Bash(OUT=fin node shot.mjs)",
+      "Bash(node steps.mjs)",
+      "Bash(node rates2.mjs)",
+      "Bash(grep -E \"^D:\\\\\\\\\\\\\\\\tanzeel.*\\\\.\\(tsx|ts\\)$\")",
+      "Bash(node resp2.mjs)",
+      "Bash(sed -e 's/for \\(const motion of \\\\[\"no-preference\", \"reduce\"\\\\]\\)/for \\(const motion of [\"reduce\"]\\)/' -e 's/waitUntil: \"networkidle\"/waitUntil: \"domcontentloaded\"/' resp2.mjs)",
+      "Bash(node resp3.mjs)",
+      "Bash(sed -i 's/return {x:Math.round\\(r.left-40\\),y:Math.round\\(r.top-40\\),w:260,h:Math.round\\(r.height\\)+80};/return {x:Math.round\\(r.left-40\\),y:Math.round\\(r.top-40\\),width:260,height:Math.round\\(r.height\\)+80};/' pop.mjs)",
+      "Bash(node pop.mjs)",
+      "Bash(sed -i 's/while\\(s.railY>360\\)/while\\(s.railY>620\\)/' pop.mjs)"
     ],
     "additionalDirectories": [
       "d:\\tanzeel\\ikra-backups\\case-studies-v1-stack",

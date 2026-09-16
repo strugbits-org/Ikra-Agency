@@ -1,4 +1,3 @@
-import { gsap } from "@/lib/gsap";
 import { CELL_COUNT } from "./metrics";
 
 /**
@@ -22,12 +21,18 @@ import { CELL_COUNT } from "./metrics";
  *
  * So the bounce here is **an addition, not a transcription** — see BOUNCE_AMP.
  *
- * The other departure is the clock: the reference's scrub can be flicked past, and the brief
- * is that the gesture plays whole at any scroll rate. That is `hero/flooredCue`'s shape, and
- * it is imported rather than reimplemented. One consequence is load-bearing: the fill and the
- * horizontal traverse are **the same number** (`reach` in ./sequence, which ./measure's
- * `trackXFor` is a pure function of), not two clocks over one
- * moment, which is this repo's most expensive recurring bug.
+ * The other departure is the clock, and it is now a larger one than the reference's scrub.
+ * The brief is that the gesture plays whole at any scroll rate, which is `hero/flooredCue`'s
+ * shape and is imported rather than reimplemented — but **the gesture is one step of the rail,
+ * not the whole of it**: one scroll runs the line to the next dot and stops there, and the next
+ * scroll takes it to the one after. See STEP_SECONDS for the client's own wording and
+ * ./measure's `stopsFor` for where the line is allowed to rest. That is not something the
+ * recording could have suggested; its fill is continuous.
+ *
+ * One consequence is load-bearing and survives the change: the fill and the horizontal traverse
+ * are **the same number** (`reach` in ./sequence, which ./measure's `trackXFor` is a pure
+ * function of), not two clocks over one moment, which is this repo's most expensive recurring
+ * bug. Stepping the fill therefore steps the traverse with it, one cell per gesture, for free.
  */
 
 /* ── the reveal ───────────────────────────────────────────────────────────────── */
@@ -46,22 +51,57 @@ export const REVEAL_END_PCT = 10;
 export const REVEAL_VH = 100 - REVEAL_END_PCT;
 
 /**
- * How long the reveal takes on its own clock when the reader is not outrunning it.
+ * The scroll one step gets, in vh — **30, whatever the point count is**, which is what lets
+ * the crossover below be a single stable number rather than something to re-derive every time
+ * the client adds a CMS row.
  *
- * The reference cannot supply this — its fill is scrubbed, so its apparent speed is the
- * reader's own and the same recording gives a different figure on every flick. 1.4s is this
- * build's, and what it buys is stated as the crossover: `REVEAL_VH / REVEAL_SECONDS` is
- * **64vh/s**, so a reader moving slower than that gets the whole gesture on the clock and a
- * faster one gets it bounded by the floor. An ordinary reading scroll is around 85vh/s, which
- * puts most readers just above the crossover — i.e. behaving like the reference's scrub, with
- * the clock catching only the careful reader and the floor catching the flick.
- *
- * Scaled by the track's length in ./sequence, so the *pace* is one screen-width of rail per
- * REVEAL_SECONDS however many cells there are.
+ * The algebra: the whole run is `REVEAL_VH x trackW / visible` (./measure's `totalVh`), the
+ * cells are an even `1 / CELL_COUNT` of the stage so `trackW / visible` is `n / CELL_COUNT`,
+ * and ./measure's `stopsFor` returns exactly one stop per point — so the span divides by `n`
+ * and it cancels, leaving `REVEAL_VH / CELL_COUNT`.
  */
-export const REVEAL_SECONDS = 1.4;
+export const SEGMENT_VH = REVEAL_VH / CELL_COUNT;
 
-/** Slower coming back, so undoing the reveal reads as a rewind rather than a snap. */
+/**
+ * How long one step takes on its own clock: the line running from the dot it is resting on to
+ * the next one.
+ *
+ * **The unit is the step, not the line**, and that is the client's own brief — "on scroll the
+ * line goes to the next section completely, and another scroll animates to the next element."
+ * So this section keeps the repo-wide rule that a gesture is never left parked half-done, and
+ * changes what the gesture *is*. There is no whole-line duration here any more; ./sequence
+ * builds the cue's own `seconds` as `STEP_SECONDS x the number of stops`, so each step takes
+ * this long however long the rail is.
+ *
+ * 0.4s draws one cell — 561px at the reference width, so ~1400px/s, close to the 1200px/s the
+ * earlier continuous build ran at and comfortably legible.
+ *
+ * What it has to be checked against is SEGMENT_VH, and there is an assertion below: a step has
+ * exactly one segment of scroll to land in before the reader's own position takes over (see
+ * ./sequence's staircase floor), so the crossover is `SEGMENT_VH / STEP_SECONDS` = **75vh/s**,
+ * just above an ordinary reading scroll of ~85. Lengthen this and an average reader starts
+ * seeing the last of each step snapped rather than drawn; shorten it much and the step stops
+ * reading as a draw at all.
+ */
+export const STEP_SECONDS = 0.4;
+
+/**
+ * Each step decelerates into its dot.
+ *
+ * **On the cue's clock, not applied on read** — the one caller of `hero/flooredCue` that passes
+ * an `ease`, and its docblock there sets out why the default is the other way round. It has to
+ * be here: an ease on read shapes the whole line's progress, and what wants shaping is each
+ * step's own arrival. Linear was right while the line was one continuous draw — the reference's
+ * own fit is a straight line to within 2.5% rms — and is wrong now that it stops, because a
+ * step that reaches its dot at full speed reads as the line being cut off there rather than
+ * arriving at it.
+ *
+ * `power2.out` and not something with an overshoot: the dot's own bounce is the overshoot, and
+ * two of them on one landing is a wobble.
+ */
+export const STEP_EASE = "power2.out";
+
+/** Slower coming back, so undoing a step reads as a rewind rather than a snap. */
 export const REVEAL_REVERSE_SPEED = 0.85;
 
 /**
@@ -69,15 +109,6 @@ export const REVEAL_REVERSE_SPEED = 0.85;
  * Same Schmitt-trigger figure, and for the same reason, as `cases/timeline`'s.
  */
 export const DIR_FLIP_VH = 3;
-
-/**
- * **Linear.** The fill is a position along a line, and the line is the same line at every
- * point — there is nothing about reaching 40% of it that wants to be slower or faster than
- * reaching 80%. The reference's own fit is a straight line to within 2.5% rms, which is the
- * measurement rather than a preference, and the residual that is there is the reader's scroll
- * lagging on flicks, not a curve.
- */
-export const REVEAL_EASE = gsap.parseEase("none");
 
 /* ── the traverse, when there are more cells than fit ──────────────────────────── */
 
@@ -128,6 +159,13 @@ export const travelPerScroll = (viewportW: number, viewportH: number) =>
  * is the same arrangement as `growth/sequence`'s bars, which `play()`/`reverse()` off a
  * trigger, and unlike the hero's wash or the wordmark slide, where two clocks had to agree
  * about a position for the whole of a move.
+ *
+ * **It fires in both directions** — once as the line arrives at the dot and again as the line
+ * lets go of it on the way back up, at the client's request. The stepped reveal is what makes
+ * that read as an answer rather than as noise: the line comes to rest on the dot either way, so
+ * the pop has something to punctuate. It replays forwards on the uncover rather than running
+ * the tween backwards, because a reversed `elastic.out` starts at the full 1.28 (a jump, not a
+ * hit) and unwinds its ring, which reads as a wobble.
  */
 export const BOUNCE_AMP = 0.28;
 export const BOUNCE_SECONDS = 0.62;
@@ -146,8 +184,14 @@ export const BOUNCE_EASE = "elastic.out(1, 0.45)";
  * At the centre the dot is half accent and half field, and scaling that composite shows the
  * unfilled half growing too — a white crescent blooming out of the side of the line. One
  * radius later the disc is solid and the pop is a single accent shape.
+ *
+ * Just under 1 rather than 1, and that is not a fudge. A step's resting place **is** a dot's
+ * coverage point (./measure's `stopsFor`), and the paint reconstructs it by dividing by the
+ * rail's length and multiplying back — so the comparison lands within ~1e-15 of 1 and on the
+ * wrong side of it about half the time, which would drop the bounce on exactly the frame it
+ * exists for.
  */
-export const BOUNCE_AT_COVERAGE = 1;
+export const BOUNCE_AT_COVERAGE = 0.999;
 
 /* ── breakpoints ──────────────────────────────────────────────────────────────── */
 
@@ -168,25 +212,26 @@ export const MQ = {
 } as const;
 
 if (process.env.NODE_ENV !== "production") {
-  // The floor has to be able to finish the move inside its own span, or the guarantee the cue
-  // exists for is void: past the crossover the scroll leads, and if the span runs out first
-  // the fill is simply cut off wherever the reader got to.
-  const crossover = REVEAL_VH / REVEAL_SECONDS;
-  if (crossover < 30) {
+  // A step has exactly one segment of scroll to land in. Past this reader speed ./sequence's
+  // staircase floor overtakes the clock and the last of each step is snapped rather than
+  // drawn — the correct fallback for a flick, but it must not be what an ordinary reader gets,
+  // or the stepping the brief asked for is invisible.
+  const crossover = SEGMENT_VH / STEP_SECONDS;
+  if (crossover < 60) {
     console.error(
-      `[Approach] the reveal hands over from clock to scroll at ${crossover.toFixed(0)}vh/s, ` +
-      "which is below an ordinary reading scroll — the floor will be in charge for almost " +
-      "every reader and the designed gesture will never play. Shorten REVEAL_SECONDS.",
+      `[Approach] a step hands over from clock to scroll at ${crossover.toFixed(0)}vh/s, ` +
+      "which is at or below an ordinary reading scroll — most readers will see the line " +
+      "jump the last of every step instead of drawing it. Shorten STEP_SECONDS.",
     );
   }
-  // The bounce has to be over before the fill can plausibly reach the next dot, or dots ring
+  // The bounce has to be over before the line can plausibly reach the next dot, or dots ring
   // into one another and the row reads as wobbling rather than as one dot answering the line.
-  const cellSeconds = REVEAL_SECONDS / CELL_COUNT;
-  if (BOUNCE_SECONDS > cellSeconds * 1.6) {
+  // A step is the shortest interval there can be between two of them.
+  if (BOUNCE_SECONDS > STEP_SECONDS * 1.6) {
     console.error(
-      `[Approach] a ${BOUNCE_SECONDS}s bounce against ${cellSeconds.toFixed(2)}s between ` +
-      "dots at the clock's own pace — each dot will still be ringing when the next one " +
-      "fires. Shorten BOUNCE_SECONDS or widen the cells.",
+      `[Approach] a ${BOUNCE_SECONDS}s bounce against a ${STEP_SECONDS}s step — each dot ` +
+      "will still be ringing when the next one fires. Shorten BOUNCE_SECONDS, or lengthen " +
+      "STEP_SECONDS (and re-check the crossover above).",
     );
   }
 }

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   APPROACH_GUTTER,
+  APPROACH_STAGE_CLIP,
   ApproachStack,
   ApproachTrack,
 } from "./approach/ApproachLayers";
@@ -101,8 +102,15 @@ export default function ApproachSection({
             padding here instead, the stage measures the full viewport against a narrower
             track, and the fill runs 13% slow. It also puts the clip on the content edge, so a
             cell traversing left disappears at the gutter rather than at the window.
+
+            The clip itself is a `clip-path` and not `overflow-hidden`, which is not
+            interchangeable here — see APPROACH_STAGE_CLIP, where the dots' pop is the reason.
           */}
-          <div ref={stageRef} className="hidden overflow-hidden lg:block">
+          <div
+            ref={stageRef}
+            className="hidden lg:block"
+            style={{ clipPath: APPROACH_STAGE_CLIP }}
+          >
             <ApproachTrack
               points={points}
               trackRef={trackRef}

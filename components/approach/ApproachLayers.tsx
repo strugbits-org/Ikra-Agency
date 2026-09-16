@@ -18,6 +18,7 @@ import {
   STACK_COPY_INDENT,
   STACK_RAIL_X,
 } from "./metrics";
+import { BOUNCE_AMP } from "./timeline";
 
 /**
  * The approach section's layers: the rail, the dots, and the cells of copy, in the two
@@ -267,3 +268,33 @@ export const APPROACH_GUTTER: CSSProperties = {
   paddingLeft: GUTTER,
   paddingRight: GUTTER,
 };
+
+/**
+ * How far a dot's pop reaches outside its own box: half the amplitude, since it scales about
+ * its centre, plus a little air. Derived from BOUNCE_AMP rather than restated, so retuning the
+ * pop cannot leave the clip below behind.
+ */
+const POP_OVERHANG = `calc(${DOT_D} * ${-(BOUNCE_AMP / 2 + 0.05).toFixed(3)})`;
+
+/**
+ * The stage's clip, and it is a `clip-path` rather than `overflow-hidden` for a reason the
+ * bounce made visible: **the stage must clip horizontally and must not clip vertically.**
+ *
+ * Horizontally is the whole of the traverse — a cell leaving at the window's edge. Vertically
+ * there is nothing to hide and one thing that must not be hidden: the rail is the stage's first
+ * child at `top: 0`, so a dot scaling to 1 + BOUNCE_AMP reaches ~9px above the stage's own top
+ * edge. Under `overflow-hidden` every pop had its top sliced flat, which is what the client saw
+ * as the circle looking cut.
+ *
+ * `overflow-x: hidden` alone is not the answer: one axis hidden with the other visible computes
+ * the visible one to `auto`, which makes the stage a scroll container, and a scroll container
+ * inside ScrollSmoother's transformed subtree is its own bug. Negative insets say exactly the
+ * intended thing instead — same answer, and the same reasoning, as DefinitionSection's
+ * OPEN_TOP_CLIP.
+ *
+ * The one cost is that `clip-path` hides the pixels without stopping the oversized track from
+ * contributing to scrollable overflow, so with more points than fit, the page's horizontal
+ * extent widens invisibly. `SmoothScrollProvider`'s page-level `overflow-x-hidden` is the
+ * backstop for exactly this, and its docblock names the same trade.
+ */
+export const APPROACH_STAGE_CLIP = `inset(${POP_OVERHANG} 0px ${POP_OVERHANG} 0px)`;
