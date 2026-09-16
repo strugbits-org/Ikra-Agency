@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { CSSProperties, RefObject } from "react";
 import Logo from "../Logo";
 import {
@@ -119,9 +120,19 @@ export function PlaygroundHeader({
       className="absolute top-0 left-0 z-30"
       style={{ paddingLeft: HEADER_GUTTER, paddingTop: HEADER_TOP }}
     >
-      <span className="block" style={{ width: MARK_WIDTH }}>
+      {/* The wordmark goes home, which is where a reader looks for that — the same link and
+          the same hover the case studies' masthead carries. `next/link` rather than a bare
+          anchor so the route swaps without tearing the page down, and `flex` so the mark
+          inside is blockified and adds no baseline descender under itself, which would push
+          the descriptor below it down. */}
+      <Link
+        href="/"
+        aria-label="ikra, rebranding agency — back to home"
+        className="flex transition-opacity duration-300 hover:opacity-80"
+        style={{ width: MARK_WIDTH }}
+      >
         <Logo className="w-full" color="var(--color-accent)" />
-      </span>
+      </Link>
       <p
         className="font-normal text-white"
         style={{ fontSize: MARK_META, lineHeight: 1 }}

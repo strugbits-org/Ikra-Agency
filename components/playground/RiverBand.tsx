@@ -116,7 +116,9 @@ export default function RiverBand({
         <text
           fill="var(--color-ink)"
           fontSize={river.fontSize}
-          fontWeight={500}
+          // Regular, not medium: against the accent the copy is already at full contrast, and
+          // the extra weight thickened the strokes past the reference's own.
+          fontWeight={400}
           // Puts the copy's visual mass on the centre of the ribbon rather than its
           // baseline. `middle` centres on the x-height, which is the same placement
           // `hero/band.ts` gets by baking a 0.3em shift into its text path — and this is the

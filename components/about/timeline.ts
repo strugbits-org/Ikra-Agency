@@ -27,8 +27,9 @@
  * photograph's top edge crosses the middle of the viewport, measured 9px of radius at 456 and
  * 0 at 450 against a viewport middle of 456. The start is not similarly pinned — the
  * recording's two blocks disagree about it once the lag is taken out, Tamir's transition
- * being nearly over a viewport earlier than Olya's — so half a viewport is this build's, and
- * it is the one knob here worth turning if the arrival wants to feel longer or shorter.
+ * being nearly over a viewport earlier than Olya's — so the start is this build's, and it is
+ * the one knob here worth turning if the arrival wants to feel longer or shorter. It is held
+ * below the fold rather than at it, for the reason RADIUS_START gives.
  */
 
 import { gsap } from "@/lib/gsap";
@@ -36,12 +37,18 @@ import { gsap } from "@/lib/gsap";
 /**
  * The window, as ScrollTrigger start/end strings against the photograph itself.
  *
- * `top bottom` is the photograph's top edge at the fold and `top center` is that edge at the
- * middle of the viewport, so the whole transition happens while the photograph climbs the
- * lower half of the screen and is finished well before the block comes to rest — which is why
- * every resting frame shows a settled shape rather than a paused one.
+ * `top center` is the photograph's top edge at the middle of the viewport, so the transition is
+ * finished well before the block comes to rest — which is why every resting frame shows a
+ * settled shape rather than a paused one.
+ *
+ * **The start is `top 80%` and deliberately not `top bottom`**: at the fold the photograph's
+ * first pixel and its first frame of transition arrive together, so its *starting* shape is
+ * never on screen — the first block came into view already part way to square, and a shape beat
+ * nobody sees the start of reads as no beat at all. A fifth of a viewport of climb before the
+ * radius moves is what makes the round end legible. It costs nothing at the other end: the
+ * transition still lands on the measured mark, it simply runs over 30vh rather than 50.
  */
-export const RADIUS_START = "top bottom";
+export const RADIUS_START = "top 80%";
 export const RADIUS_END = "top center";
 
 /**
