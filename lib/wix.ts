@@ -39,11 +39,28 @@ export const FOUNDERS_COLLECTION = "Founders";
 export const APPROACH_COLLECTION = "Approach";
 
 /**
- * How long a page holds its copy of the CMS before asking again. An hour: this is a founders'
- * section, not a feed, and the cost of it being an hour stale is nil against a Wix round trip
- * on a cold render.
+ * How long a page holds its copy of the CMS before asking again.
+ *
+ * **A minute, and the argument for it is that both alternatives were worse.** This started at
+ * an hour, on the reasoning that a founders' section is not a feed — true about how often the
+ * copy changes, and wrong about the only moment anyone looks at it, which is the client
+ * reloading straight after an edit to check their own wording.
+ *
+ * The textbook answer to that is on-demand revalidation — tag the fetch, and have Wix call a
+ * route handler that drops the tag. It was built and then removed, because driving it from Wix
+ * costs **three automations per collection** (created, updated, deleted, each naming exactly one
+ * collection): six to set up and keep in step today, three more for every collection added
+ * later, and a shared secret to carry through every environment. That is a standing maintenance
+ * cost, paid by whoever inherits this, to save fifty-nine seconds.
+ *
+ * So the poll is the update path and there is nothing to wire up. The cost is one Wix round trip
+ * per minute **per page somebody actually asks for** — Next only refetches on a request that
+ * finds the cache stale, so a quiet site makes none at all, and a busy one makes sixty an hour
+ * against a rate limit measured in hundreds per minute. If this ever needs to be instant, the
+ * shape of the answer is `next: { tags }` here plus a route handler calling `revalidateTag(tag,
+ * { expire: 0 })` — the arithmetic above is what to re-check first, not the code.
  */
-export const WIX_REVALIDATE_SECONDS = 3600;
+export const WIX_REVALIDATE_SECONDS = 60;
 
 /**
  * The token is cached in module scope, not fetched per request, and the margin is what makes

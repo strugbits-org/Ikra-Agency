@@ -12,19 +12,20 @@ export const metadata: Metadata = {
 };
 
 /**
- * The founders' copy is fetched on the server and the page is cached for an hour rather than
- * rendered per request — stating it here is what keeps the *page* from going dynamic just
- * because something inside it talked to a third party.
+ * The CMS copy is fetched on the server and the page is cached rather than rendered per
+ * request — stating it here is what keeps the *page* from going dynamic just because something
+ * inside it talked to a third party.
  *
  * A literal, and it has to be: Next reads route segment config statically, so
- * `WIX_REVALIDATE_SECONDS` — which is the same 3600 and is what `wixQuery` tags its own fetch
- * with — cannot be imported into this position. Change both or neither.
+ * `WIX_REVALIDATE_SECONDS` — which is the same minute, and is what `wixQuery` asks for on its
+ * own fetch — cannot be imported into this position. Change both or neither, and `lib/wix` is
+ * where the minute's reasoning lives.
  *
- * The figure the build reports for this route is 30m rather than 1h, and that is right: the
- * shortest revalidate among a segment's fetches governs, and the token exchange's is half an
- * hour for a reason `lib/wix` sets out. This is the ceiling, not the period.
+ * **This is the ceiling, not the period**: the shortest revalidate among a segment's fetches
+ * governs, so the figure the build reports is whichever of this, the query's and the token
+ * exchange's is lowest.
  */
-export const revalidate = 3600;
+export const revalidate = 60;
 
 export default async function PlaygroundPage() {
   // In parallel: two independent collections behind one token, so serialising them would
