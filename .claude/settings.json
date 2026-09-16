@@ -297,7 +297,18 @@
       "Bash(node resp3.mjs)",
       "Bash(sed -i 's/return {x:Math.round\\(r.left-40\\),y:Math.round\\(r.top-40\\),w:260,h:Math.round\\(r.height\\)+80};/return {x:Math.round\\(r.left-40\\),y:Math.round\\(r.top-40\\),width:260,height:Math.round\\(r.height\\)+80};/' pop.mjs)",
       "Bash(node pop.mjs)",
-      "Bash(sed -i 's/while\\(s.railY>360\\)/while\\(s.railY>620\\)/' pop.mjs)"
+      "Bash(sed -i 's/while\\(s.railY>360\\)/while\\(s.railY>620\\)/' pop.mjs)",
+      "Bash(npx next *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/playground)",
+      "Bash(node walk.mjs)",
+      "Bash(node rates3.mjs)",
+      "Bash(node first.mjs)",
+      "Bash(node six.mjs)",
+      "Bash(sed -i 's|const stage = tr.parentElement;|const stage = tr.parentElement;\\\\n  const clipL = [...tr.querySelectorAll\\(\"[data-approach-clip]\"\\)].map\\(\\(e\\) => \\(getComputedStyle\\(e\\).clipPath.match\\(/-?[\\\\\\\\d.]+px/g\\) ?? []\\).slice\\(-1\\)[0]\\).join\\(\",\"\\);|' six.mjs)",
+      "Bash(sed -i 's|clipLeft: \\(getComputedStyle\\(stage\\).clipPath.match\\(/-?\\\\[\\\\\\\\d.\\\\]+px/g\\) ?? \\\\[\\\\]\\).slice\\(-1\\)\\\\[0\\\\],|clipLeft: clipL,|' six.mjs)",
+      "Bash(node gutter.mjs)",
+      "Bash(node pop2.mjs)",
+      "Bash(sed -i 's/waitUntil: \"networkidle\"/waitUntil: \"domcontentloaded\"/' resp2.mjs)"
     ],
     "additionalDirectories": [
       "d:\\tanzeel\\ikra-backups\\case-studies-v1-stack",

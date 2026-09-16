@@ -22,12 +22,12 @@ import { CELL_COUNT } from "./metrics";
  * So the bounce here is **an addition, not a transcription** — see BOUNCE_AMP.
  *
  * The other departure is the clock, and it is now a larger one than the reference's scrub.
- * The brief is that the gesture plays whole at any scroll rate, which is `hero/flooredCue`'s
- * shape and is imported rather than reimplemented — but **the gesture is one step of the rail,
- * not the whole of it**: one scroll runs the line to the next dot and stops there, and the next
- * scroll takes it to the one after. See STEP_SECONDS for the client's own wording and
- * ./measure's `stopsFor` for where the line is allowed to rest. That is not something the
- * recording could have suggested; its fill is continuous.
+ * The brief is that the gesture plays whole at any scroll rate — but **the gesture is one step
+ * of the rail, not the whole of it**: one scroll runs the line to the next dot and stops there,
+ * and the next scroll takes it to the one after. See STEP_SECONDS for the client's own wording,
+ * ./measure's `stopsFor` for where the line is allowed to rest, and ./stepper for why that is a
+ * clock of this section's own rather than `hero/flooredCue`, which it was built on first. That
+ * is not something the recording could have suggested; its fill is continuous.
  *
  * One consequence is load-bearing and survives the change: the fill and the horizontal traverse
  * are **the same number** (`reach` in ./sequence, which ./measure's `trackXFor` is a pure
@@ -51,16 +51,23 @@ export const REVEAL_END_PCT = 10;
 export const REVEAL_VH = 100 - REVEAL_END_PCT;
 
 /**
- * The scroll one step gets, in vh — **30, whatever the point count is**, which is what lets
- * the crossover below be a single stable number rather than something to re-derive every time
- * the client adds a CMS row.
+ * The scroll one step costs, in vh, at `points` points — the distance between two of
+ * ./sequence's boundaries.
  *
- * The algebra: the whole run is `REVEAL_VH x trackW / visible` (./measure's `totalVh`), the
- * cells are an even `1 / CELL_COUNT` of the stage so `trackW / visible` is `n / CELL_COUNT`,
- * and ./measure's `stopsFor` returns exactly one stop per point — so the span divides by `n`
- * and it cancels, leaving `REVEAL_VH / CELL_COUNT`.
+ * The algebra: the run is `REVEAL_VH x trackW / visible` (./measure's `totalVh`), the cells are
+ * an even `1 / CELL_COUNT` of the stage so `trackW / visible` is `points / CELL_COUNT`, and
+ * ./measure's `stopsFor` returns `points + 1` stops. It is 22.5vh at three points and settles
+ * towards 30 as the client adds rows, which is the right direction — a longer rail earns more
+ * scroll but the extra stop is paid for out of what is already there.
+ *
+ * **The boundaries are evenly spaced and the steps are not**, which is deliberate and is the
+ * one place this departs from "the line is where your scroll says". The first step is 146px of
+ * rail and the second is a whole 561px cell; charging for them in proportion would make the
+ * opening gesture a flick of the wheel and reintroduce exactly the "it jumped" the stepping
+ * exists to fix. One gesture, one step, whatever the step is made of.
  */
-export const SEGMENT_VH = REVEAL_VH / CELL_COUNT;
+export const segmentVh = (points: number) =>
+  (REVEAL_VH * points) / (CELL_COUNT * (points + 1));
 
 /**
  * How long one step takes on its own clock: the line running from the dot it is resting on to
@@ -69,32 +76,46 @@ export const SEGMENT_VH = REVEAL_VH / CELL_COUNT;
  * **The unit is the step, not the line**, and that is the client's own brief — "on scroll the
  * line goes to the next section completely, and another scroll animates to the next element."
  * So this section keeps the repo-wide rule that a gesture is never left parked half-done, and
- * changes what the gesture *is*. There is no whole-line duration here any more; ./sequence
- * builds the cue's own `seconds` as `STEP_SECONDS x the number of stops`, so each step takes
- * this long however long the rail is.
+ * changes what the gesture *is*. There is no whole-line duration here at all; ./stepper tweens
+ * one stop at a time and this is each one's duration, so a step takes the same time at three
+ * points and at thirty.
  *
  * 0.4s draws one cell — 561px at the reference width, so ~1400px/s, close to the 1200px/s the
- * earlier continuous build ran at and comfortably legible.
- *
- * What it has to be checked against is SEGMENT_VH, and there is an assertion below: a step has
- * exactly one segment of scroll to land in before the reader's own position takes over (see
- * ./sequence's staircase floor), so the crossover is `SEGMENT_VH / STEP_SECONDS` = **75vh/s**,
- * just above an ordinary reading scroll of ~85. Lengthen this and an average reader starts
- * seeing the last of each step snapped rather than drawn; shorten it much and the step stops
- * reading as a draw at all.
+ * earlier continuous build ran at and comfortably legible. The short first step draws its 146px
+ * over the same 0.4s and so runs slower; that is the arrival worth having, since it is the one
+ * gesture whose whole job is to prove the section answers the wheel.
  */
 export const STEP_SECONDS = 0.4;
 
 /**
+ * The most a step may be sped up when the reader is ahead of the walk, as a multiple of its own
+ * rate — and the section's **lag bound**, which is what replaced the scroll floor the first
+ * build had. ./stepper's docblock has the argument for the swap.
+ *
+ * `n` steps behind are each run at `n` times the rate, so covering them takes STEP_SECONDS flat
+ * however far behind the line is, up to this many. Four covers a three-point section entirely:
+ * the deepest the queue can ever get is its four stops, so the line here is **never more than
+ * 0.4s behind the reader**, at any scroll rate, with every step of the catch-up drawn.
+ *
+ * Past four it is a floor on how short a step may get rather than a cap on the lag — 0.1s is
+ * six frames, which is the least that still reads as a line moving rather than a cut. A very
+ * long CMS list trades lag for that: ten stops behind take 1s to unwind, on a section whose pin
+ * is proportionally longer anyway.
+ */
+export const MAX_CATCH_UP = 4;
+
+/**
  * Each step decelerates into its dot.
  *
- * **On the cue's clock, not applied on read** — the one caller of `hero/flooredCue` that passes
- * an `ease`, and its docblock there sets out why the default is the other way round. It has to
- * be here: an ease on read shapes the whole line's progress, and what wants shaping is each
- * step's own arrival. Linear was right while the line was one continuous draw — the reference's
- * own fit is a straight line to within 2.5% rms — and is wrong now that it stops, because a
- * step that reaches its dot at full speed reads as the line being cut off there rather than
- * arriving at it.
+ * **On the tween, not applied on read**, which is the opposite of what `hero/flooredCue`'s
+ * callers do and is why this section does not use it: there a retarget mid-move must not
+ * re-ease, because the move has one destination and re-easing is a stutter in the middle of it.
+ * Here a retarget *is* a new gesture — each step is its own arrival at its own dot — so the
+ * ease belongs to the step and re-easing from the new start is the correct behaviour.
+ *
+ * Linear was right while the line was one continuous draw — the reference's own fit is a
+ * straight line to within 2.5% rms — and is wrong now that it stops, because a step that reaches
+ * its dot at full speed reads as the line being cut off there rather than arriving at it.
  *
  * `power2.out` and not something with an overshoot: the dot's own bounce is the overshoot, and
  * two of them on one landing is a wobble.
@@ -105,10 +126,15 @@ export const STEP_EASE = "power2.out";
 export const REVEAL_REVERSE_SPEED = 0.85;
 
 /**
- * Travel since the last direction flip before the cue is told the reader has turned round.
- * Same Schmitt-trigger figure, and for the same reason, as `cases/timeline`'s.
+ * Deadband on a step boundary, in vh, so a reader resting a hair above one — or ScrollSmoother
+ * settling across it — does not walk the line back and forth over the same dot. Same
+ * Schmitt-trigger figure, and for the same reason, as `cases/timeline`'s.
+ *
+ * It only guards the *retreat*: a boundary is earned the moment it is crossed going down and
+ * given up only once the reader is this far back below it, so the response to a scroll is never
+ * delayed and only the flicker is.
  */
-export const DIR_FLIP_VH = 3;
+export const BOUNDARY_HYST_VH = 3;
 
 /* ── the traverse, when there are more cells than fit ──────────────────────────── */
 
@@ -212,16 +238,26 @@ export const MQ = {
 } as const;
 
 if (process.env.NODE_ENV !== "production") {
-  // A step has exactly one segment of scroll to land in. Past this reader speed ./sequence's
-  // staircase floor overtakes the clock and the last of each step is snapped rather than
-  // drawn — the correct fallback for a flick, but it must not be what an ordinary reader gets,
-  // or the stepping the brief asked for is invisible.
-  const crossover = SEGMENT_VH / STEP_SECONDS;
-  if (crossover < 60) {
+  // A catch-up step must still be a step. Below about six frames the line stops reading as
+  // moving between two dots and reads as having been cut to the second one, which is the whole
+  // complaint the walk exists to answer — reintroducing it at speed would be a quiet
+  // regression, since it only shows on a gesture big enough to queue several steps up.
+  const shortest = STEP_SECONDS / MAX_CATCH_UP;
+  if (shortest < 0.08) {
     console.error(
-      `[Approach] a step hands over from clock to scroll at ${crossover.toFixed(0)}vh/s, ` +
-      "which is at or below an ordinary reading scroll — most readers will see the line " +
-      "jump the last of every step instead of drawing it. Shorten STEP_SECONDS.",
+      `[Approach] the fastest step runs in ${(shortest * 1000).toFixed(0)}ms, which is too ` +
+      "few frames to read as a draw — a reader who scrolls hard will see the line cut from " +
+      "dot to dot. Lower MAX_CATCH_UP, or lengthen STEP_SECONDS.",
+    );
+  }
+  // One gesture, one step — which is only true if a step costs more scroll than one wheel
+  // notch. A notch is ~100px, so ~10.5vh of a 953px window; below about 12 the reader gets two
+  // dots for one flick of the finger and the section is back to feeling like it skips.
+  const perStep = segmentVh(CELL_COUNT);
+  if (perStep < 12) {
+    console.error(
+      `[Approach] a step costs ${perStep.toFixed(1)}vh, which is about one wheel notch — a ` +
+      "single gesture will cross two of them. Raise REVEAL_VH, or carry fewer stops.",
     );
   }
   // The bounce has to be over before the line can plausibly reach the next dot, or dots ring

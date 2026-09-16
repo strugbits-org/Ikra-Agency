@@ -1,5 +1,6 @@
 import { gsap, ScrollTrigger } from "@/lib/gsap";
-import { createFlooredCue } from "@/components/hero/flooredCue";
+import { approachContentClip, POP_OVERHANG_RATIO } from "./ApproachLayers";
+import { createStepper } from "./stepper";
 import {
   assertApproachGeometry,
   measureApproach,
@@ -15,7 +16,8 @@ import {
   BOUNCE_AMP,
   BOUNCE_EASE,
   BOUNCE_SECONDS,
-  DIR_FLIP_VH,
+  BOUNDARY_HYST_VH,
+  MAX_CATCH_UP,
   MQ,
   REVEAL_END_PCT,
   REVEAL_REVERSE_SPEED,
@@ -35,28 +37,24 @@ import {
  * DefinitionSection's wordmark slide); the one exception here is the dots' bounce, and
  * ./timeline's BOUNCE_AMP sets out why it is safe.
  *
- * `reach` comes from a floored cue rather than a plain scrub — see hero/flooredCue, imported
- * rather than reimplemented because its rebase-on-reversal is subtle enough that a second copy
- * would be a second set of bugs — and it is **stepped**: one scroll gesture runs the line to
- * the next dot and stops there, the next takes it to the one after. ./timeline's STEP_SECONDS
- * has the brief; ./measure's `stopsFor` has the resting places.
+ * `reach` comes from ./stepper rather than a scrub, and it is **stepped**: one scroll gesture
+ * runs the line to the next dot and stops there, the next takes it to the one after.
+ * ./timeline's STEP_SECONDS has the brief; ./measure's `stopsFor` has the resting places;
+ * ./stepper has the argument for why this section owns its clock instead of borrowing
+ * `hero/flooredCue`, which it did first and which could not draw a reverse at all.
  *
- * Two things make that work, and they are the only real machinery in this file:
+ * What is left here is the small part: **turning one scroll position into one index.**
  *
- *   - **The aim is a stop, not an end.** Crossing a stop's scroll boundary points the clock one
- *     dot further on, and the clock then has that dot's whole segment of scroll to arrive in.
- *   - **The floor is a staircase, not a ramp.** `flooredCue` derives its bound from the vh it
- *     is handed, so it is handed the *last boundary passed* rather than the live position. A
- *     continuous ramp would creep the line forward between boundaries — which is exactly the
- *     hold the stepping is made of — and at an ordinary reading scroll it would bind, so the
- *     stepping would simply not be visible. The staircase is a looser floor mid-span (the line
- *     may lag by up to one step) and an identical one at the ends, which is where the guarantee
- *     is actually needed: at the far boundary it is 1, so the traverse is always complete
- *     before the pin releases.
+ *   - The stops' boundaries are spread **evenly** across the span, so every gesture is worth
+ *     the same amount however long the step it buys. ./timeline's `segmentVh` has why.
+ *   - `goalIdx` is the last boundary the reader has crossed, with a deadband on the way back
+ *     (BOUNDARY_HYST_VH). It is handed to the stepper, which walks there one dot at a time —
+ *     so a gesture big enough to cross two boundaries draws two steps rather than jumping the
+ *     pair, which is the whole of the defect this replaced.
  *
  * Two triggers, and they are two **positions feeding one number** rather than two clocks: the
  * approach spans the reveal (it runs before any pin could), the pin spans the traverse, and
- * the cue reads their sum. The pin only exists when there is something to traverse.
+ * the index is read off their sum. The pin only exists when there is something to traverse.
  */
 export function createApproachSequence(refs: ApproachRefs) {
   const mm = gsap.matchMedia();
@@ -85,9 +83,16 @@ export function createApproachSequence(refs: ApproachRefs) {
      */
     const spanVh = Math.max(REVEAL_VH, totalVh(m));
 
-    /** Where the line may rest, and the scroll position that earns each one. */
+    /** Where the line may rest. */
     let stops = stopsFor(m);
-    let bounds = stops.map((s) => s * spanVh);
+
+    /**
+     * The scroll that earns each stop: an even share of the span apiece, so one gesture is
+     * worth one step whether that step is the 146px lead-in or a whole cell. `bounds[i]` is
+     * where stop `i` is paid for, and the last of them is the span's own end — which is what
+     * makes the line complete exactly as the pin releases.
+     */
+    let bounds = stops.map((_, i) => ((i + 1) / stops.length) * spanVh);
 
     /**
      * A refresh re-reads the boxes. `spanVh` is deliberately *not* re-read with them: the
@@ -97,68 +102,28 @@ export function createApproachSequence(refs: ApproachRefs) {
     const remeasure = () => {
       m = measureApproach(refs);
       stops = stopsFor(m);
-      bounds = stops.map((s) => s * spanVh);
+      bounds = stops.map((_, i) => ((i + 1) / stops.length) * spanVh);
+      stepper.retable(stops);
     };
 
-    const cue = createFlooredCue({
-      span: [0, spanVh] as const,
-      /**
-       * The cue's `seconds` is the time for a full 0→1, and it charges a partial move
-       * pro rata — so stating the whole run as `STEP_SECONDS x the stop count` is what makes
-       * **each step** take STEP_SECONDS, at three points and at thirty. Nothing here scales
-       * with the viewport or the rail's length; a step is one cell of rail either way.
-       */
-      seconds: STEP_SECONDS * stops.length,
+    const stepper = createStepper({
+      stops,
+      seconds: STEP_SECONDS,
       ease: STEP_EASE,
       reverseSpeed: REVEAL_REVERSE_SPEED,
+      maxCatchUp: MAX_CATCH_UP,
       onUpdate: () => paint(),
     });
 
     /** The reader's vh through the run. The two triggers are consecutive, so this is a sum. */
     const cueVh = () => revealVh + traverseVh;
 
-    /**
-     * The staircase floor, in vh: the boundary of the last stop the reader's own scroll has
-     * paid for. This and not the live position is what the cue's bound is derived from — see
-     * the file's docblock.
-     */
-    let floorVh = 0;
+    /** The last stop the reader's own scroll has paid for. −1 is the rail's start. */
+    let goalIdx = -1;
 
     /**
-     * Which way the reader is going: 1 down, −1 up. A Schmitt trigger on travel rather than
-     * one frame's delta — see DIR_FLIP_VH.
-     *
-     * Reports the flip rather than rebasing on it, because the cue has to be re-anchored on the
-     * *staircase* and this runs before this frame's step has been worked out. Rebasing on the
-     * raw position instead would hand `flooredCue` a different ramp across the flip from the
-     * one it was clamping against the frame before, which is the whole thing its offset exists
-     * to prevent.
-     */
-    let scrollDir = 1;
-    let dirPeak = 0;
-
-    const trackDirection = (vh: number) => {
-      if (scrollDir > 0) {
-        if (vh > dirPeak) dirPeak = vh;
-        else if (vh < dirPeak - DIR_FLIP_VH) {
-          scrollDir = -1;
-          dirPeak = vh;
-          return true;
-        }
-      } else {
-        if (vh < dirPeak) dirPeak = vh;
-        else if (vh > dirPeak + DIR_FLIP_VH) {
-          scrollDir = 1;
-          dirPeak = vh;
-          return true;
-        }
-      }
-      return false;
-    };
-
-    /**
-     * One bounce per dot: a paused timeline played when the fill covers that dot and reversed
-     * when it uncovers it. The same `play()`/`reverse()`-off-a-position arrangement as
+     * One bounce per dot: a paused timeline restarted whenever the fill crosses that dot's
+     * coverage point, in either direction. The same played-off-a-position arrangement as
      * `growth/sequence`'s bars.
      *
      * Built here rather than in the paint so each dot's tween exists once; `gsap.context`
@@ -192,17 +157,37 @@ export function createApproachSequence(refs: ApproachRefs) {
       (el) => el?.querySelector<HTMLElement>("[data-dot-fill]") ?? null,
     );
 
+    // The dots and the copy, which are clipped at the stage's left edge on their own so that
+    // the bar can reach past it into the gutter. See `approachContentClip`, which is also where
+    // the reason the two are clipped at *different* marks is.
+    const clipDots = track.querySelector<HTMLElement>('[data-approach-clip="dots"]');
+    const clipCopy = track.querySelector<HTMLElement>('[data-approach-clip="copy"]');
+    /** Last value written, so the clip costs nothing on the frames it does not move. */
+    let clipLeft = Number.NaN;
+
     /** One frame, from `reach` alone. */
     const paint = () => {
       const total = reachTotal(m);
-      const reach = cue.read(floorVh, scrollDir) * total;
+      const reach = stepper.read() * total;
 
       // The bar: one clip, from the left. A clip rather than a width so the reveal costs a
       // paint on a 16px strip rather than a layout on the whole row every frame.
       const barPct = total > 0 ? 100 * (1 - reach / total) : 100;
       gsap.set(fillBar, { clipPath: `inset(0% ${barPct.toFixed(3)}% 0% 0%)` });
 
-      gsap.set(track, { x: trackXFor(m, reach), force3D: true });
+      const x = trackXFor(m, reach);
+      gsap.set(track, { x, force3D: true });
+
+      // The stage's left is permanently open for the lead-in, so the row has to clip itself
+      // where the stage would have: at the stage's edge, in track coordinates.
+      const left = Math.max(0, -x);
+      if (left !== clipLeft) {
+        clipLeft = left;
+        gsap.set(clipCopy, { clipPath: approachContentClip(left) });
+        gsap.set(clipDots, {
+          clipPath: approachContentClip(left - POP_OVERHANG_RATIO * 2 * m.dotR),
+        });
+      }
 
       const r = m.dotR;
       for (let i = 0; i < m.dotX.length; i++) {
@@ -292,33 +277,18 @@ export function createApproachSequence(refs: ApproachRefs) {
       });
     }
 
-    /** One scroll position, turned into everything the cue needs. */
+    /** One scroll position, turned into the one index the stepper needs. */
     function advance() {
       const vh = cueVh();
-      const flipped = trackDirection(vh);
 
-      // How many stops the reader's scroll has paid for. The floor is the last of them; the
-      // aim is the next one along, in whichever direction they are going. That pair is the
-      // whole of the stepping — cross a boundary and the clock is pointed one dot further on,
-      // with that dot's entire segment of scroll to arrive in.
-      let passed = 0;
-      while (passed < bounds.length && vh >= bounds[passed]) passed++;
-      floorVh = passed > 0 ? bounds[passed - 1] : 0;
+      // Crossing a boundary earns the stop beyond it at once; giving one up takes a deadband,
+      // so a reader parked on a boundary does not walk the same dot back and forth. Written as
+      // two walks from the *current* index rather than a count, which is what makes the
+      // hysteresis expressible at all — a count has no memory of which side it came from.
+      while (goalIdx + 1 < bounds.length && vh >= bounds[goalIdx + 1]) goalIdx++;
+      while (goalIdx >= 0 && vh < bounds[goalIdx] - BOUNDARY_HYST_VH) goalIdx--;
 
-      if (flipped) cue.rebase(floorVh);
-
-      // Before the near end, empty — entering the section is itself the first gesture, so any
-      // vh above 0 already aims at the first stop. Otherwise direction decides, which is what
-      // makes the rewind its own stepped gesture rather than a bound the clock may never lead.
-      cue.aim(
-        vh <= 0
-          ? 0
-          : scrollDir < 0
-            ? passed > 0
-              ? stops[passed - 1]
-              : 0
-            : stops[Math.min(passed, stops.length - 1)],
-      );
+      stepper.aim(goalIdx);
       paint();
     }
 
@@ -344,7 +314,7 @@ export function createApproachSequence(refs: ApproachRefs) {
     return () => {
       cancelled = true;
       ScrollTrigger.removeEventListener("refresh", onRefresh);
-      cue.kill();
+      stepper.kill();
       for (const b of bounces) b?.kill();
     };
   });

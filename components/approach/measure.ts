@@ -37,11 +37,21 @@ export type ApproachRefs = {
 export type ApproachMeasure = {
   /** The visible width one screen of cells takes — the stage's own width. */
   visible: number;
-  /** The whole rail, which is `cellCount x cellW` and may be wider than the stage. */
+  /** The whole track, which is `cellCount x cellW` and may be wider than the stage. */
   trackW: number;
+  /**
+   * How far the rail reaches left of the track's origin — RAIL_LEAD_IN, resolved. Read off the
+   * bar rather than recomputed from the token, so a change to the figure cannot leave the
+   * geometry behind.
+   *
+   * **It is what rail coordinates are offset by**: everything below is measured from the rail's
+   * left end, not the track's, because the fill starts where the *line* starts. The track's own
+   * origin is at `leadIn`.
+   */
+  leadIn: number;
   /** How far the track has to slide. Zero when everything already fits. */
   overflow: number;
-  /** Each dot's centre, in track coordinates. */
+  /** Each dot's centre, in rail coordinates. */
   dotX: number[];
   /**
    * One dot's radius. Read here rather than in the paint, which used to take an `offsetWidth`
@@ -65,8 +75,13 @@ export function measureApproach(refs: ApproachRefs): ApproachMeasure {
   const trackW = track?.offsetWidth ?? visible;
   const viewportH = window.innerHeight;
 
+  // The bar is positioned against the rail, as the dots are, so its own `offsetLeft` is the
+  // lead-in in the same coordinates everything else here is read in.
+  const bar = refs.rail.current?.querySelector<HTMLElement>("[data-rail-bar]");
+  const leadIn = Math.max(0, -(bar?.offsetLeft ?? 0));
+
   const dotX = dots.map((el) =>
-    el ? el.offsetLeft + el.offsetWidth / 2 : 0,
+    el ? leadIn + el.offsetLeft + el.offsetWidth / 2 : 0,
   );
   // Every dot is the same size, so the first one that exists speaks for all of them.
   const dotR = (dots.find((el) => el)?.offsetWidth ?? 0) / 2;
@@ -80,11 +95,12 @@ export function measureApproach(refs: ApproachRefs): ApproachMeasure {
   const lead =
     dotX.length > LEAD_CELLS
       ? dotX[LEAD_CELLS]
-      : (visible / CELL_COUNT) * LEAD_CELLS;
+      : leadIn + (visible / CELL_COUNT) * LEAD_CELLS;
 
   return {
     visible,
     trackW,
+    leadIn,
     overflow: Math.max(0, trackW - visible),
     dotX,
     dotR,
@@ -95,10 +111,17 @@ export function measureApproach(refs: ApproachRefs): ApproachMeasure {
 }
 
 /**
- * How far the fill has to travel in total, in px of rail — which is the whole track, not the
- * visible width, so a fourth cell lengthens the run rather than speeding it up.
+ * How far the fill has to travel in total, in px of rail — the whole track, not the visible
+ * width, so a fourth cell lengthens the run rather than speeding it up, **plus the lead-in**,
+ * because the line starts where the line starts.
+ *
+ * This is the rail's length and `totalVh` below is the scroll, and since the lead-in they are
+ * no longer the same shape: the lead-in adds rail without adding anywhere for the track to
+ * slide to, so it makes the fill draw ~5% faster rather than making the section longer. That is
+ * the right trade — the alternative is charging the reader scroll for a stretch of line that is
+ * already on screen before the section begins.
  */
-export const reachTotal = (m: ApproachMeasure) => m.trackW;
+export const reachTotal = (m: ApproachMeasure) => m.leadIn + m.trackW;
 
 /**
  * The scroll the whole run takes, in vh, at the reveal's own pace.
@@ -111,10 +134,16 @@ export const reachTotal = (m: ApproachMeasure) => m.trackW;
  * `trackW ÷ (visible ÷ (REVEAL_VH/100 · H)) ÷ H · 100`, and both `H`s divide out, leaving
  * `REVEAL_VH · trackW / visible` — 90vh per screen-width of rail, and nothing else. So the
  * span only moves if the *cell count* does, never on a resize or a collapsing mobile URL bar,
- * and a cue constructed against it cannot go stale.
+ * and a clock constructed against it cannot go stale.
+ *
+ * **`trackW` and not `reachTotal`**, which is the one place the two have to be told apart: this
+ * is the scroll the two triggers between them actually provide, and it is the reveal's 90vh
+ * plus the track's own overflow. The lead-in lengthens the rail without lengthening either, so
+ * folding it in here would promise a stretch of scroll that does not exist and leave the last
+ * few percent of the line permanently undrawn.
  */
 export const totalVh = (m: ApproachMeasure) =>
-  m.visible > 0 ? (REVEAL_VH * reachTotal(m)) / m.visible : REVEAL_VH;
+  m.visible > 0 ? (REVEAL_VH * m.trackW) / m.visible : REVEAL_VH;
 
 /**
  * Where the fill is allowed to come to rest, as fractions of the rail — **one stop per point,
@@ -125,23 +154,26 @@ export const totalVh = (m: ApproachMeasure) =>
  * BOUNCE_AT_COVERAGE, which is also why it compares against just under 1 — the number below is
  * what the paint divides and multiplies back).
  *
- * Two of the stops anyone would expect are deliberately not here:
+ * Every dot gets one, **including the first**, and that is the whole of what RAIL_LEAD_IN buys.
+ * Without the lead-in the first dot is covered 64px into a 1685px line, so the opening gesture
+ * drew 0.4% of the rail; the first build therefore gave it no stop, and the visible consequence
+ * was that the first scroll appeared to run straight to the second dot. With the lead-in in
+ * front of it the same gesture draws 146px and pops a dot, which is a station like any other.
  *
- *   - **The first dot has none.** Its centre sits one radius into the rail, so it is covered
- *     64px into a 1685px line — a gesture ending there moves almost nothing and reads as the
- *     section failing to respond to the scroll at all. The opening gesture runs to the *second*
- *     dot and lights both on the way.
+ * One stop anyone would expect is still not here, and one nobody would:
+ *
  *   - **The last stop is the rail's end, not the last dot.** The rail runs on past it — 416px
  *     in the reference, which is the reference's own composition — so a line that stopped on
- *     the final dot would leave that tail permanently unlit.
- *
- * The two cancel, which is what keeps it exactly one stop per point and therefore keeps
- * ./timeline's SEGMENT_VH at a flat 30vh however many rows the client adds.
+ *     the final dot would leave that tail permanently unlit. It is the one step with no bounce
+ *     at the end of it, by construction.
+ *   - So there are `n + 1` stops for `n` points, and the steps are **uneven in length**: 146px,
+ *     then a cell each, then the tail. ./sequence spaces their scroll boundaries evenly anyway,
+ *     because the brief is one gesture per step and a gesture is not measured in pixels.
  */
 export function stopsFor(m: ApproachMeasure): number[] {
   const total = reachTotal(m);
   if (total <= 0) return [1];
-  const atDots = m.dotX.slice(1).map((x) => (x + m.dotR) / total);
+  const atDots = m.dotX.map((x) => (x + m.dotR) / total);
   return [...atDots.filter((s) => s < 1), 1];
 }
 
@@ -153,6 +185,10 @@ export function stopsFor(m: ApproachMeasure): number[] {
  * statement: the track never leads the fill, never outruns the overflow, and holds still
  * whenever either bound binds — which is what makes the last cells fill on screen with the
  * row already parked instead of at the right edge.
+ *
+ * `reachPx` and `lead` are both in rail coordinates and the lead-in cancels out of their
+ * difference, so this is the same arithmetic it was before the rail grew a left end — which is
+ * the reason for measuring in rail coordinates throughout rather than converting at each use.
  */
 export const trackXFor = (m: ApproachMeasure, reachPx: number) =>
   -Math.min(Math.max(reachPx - m.lead, 0), m.overflow);

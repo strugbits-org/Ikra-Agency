@@ -53,6 +53,28 @@ export const CELL_COUNT = 3;
  */
 export const DOT_INSET_REF = DOT_D_REF / 2;
 
+/**
+ * How far the rail runs to the **left of the first dot**, measured 82px: the reference's line
+ * starts at x=28 against a first dot whose left edge is at 111.5, and ends at 1745 against a
+ * content box that runs to 1795. So its rail is not the content box at all — it is the same
+ * length, shifted ~82px left, and the visible consequence is a short run of line before the
+ * first station.
+ *
+ * It is load-bearing rather than decorative, which is why it is measured rather than eyeballed.
+ * ./measure's `stopsFor` gives every dot a stop, and the first dot's only earns its gesture
+ * because of this: without the lead-in its coverage point is 64px into a 1685px line, so the
+ * opening scroll draws a third of a percent of the rail and reads as the section ignoring the
+ * reader, which is why the first build had no stop there and why the first scroll appeared to
+ * jump to the second dot. With it, the opening gesture draws 146px and pops a dot.
+ *
+ * **It comes out of the gutter, not out of the first cell.** GUTTER is 110 at the reference and
+ * this is 82, and the relation holds at every width the row exists at — 44 against 59 at 1024,
+ * 100 against 132 at 2560 — so the rail always reaches into the page's left margin and never to
+ * the edge of the window, and no dot or column moves to make room for it. ./ApproachLayers'
+ * `approachStageClip` is what lets it draw out there.
+ */
+export const RAIL_LEAD_IN = fluid(24, 82, 100);
+
 /* ── type ─────────────────────────────────────────────────────────────────────── */
 
 /**

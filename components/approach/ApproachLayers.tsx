@@ -14,6 +14,7 @@ import {
   HEADING_MEASURE,
   HEADING_TRACKING,
   RAIL_GAP,
+  RAIL_LEAD_IN,
   STACK_CELL_GAP,
   STACK_COPY_INDENT,
   STACK_RAIL_X,
@@ -103,10 +104,16 @@ export function ApproachTrack({
           height so the bar can sit on its centre line without a transform GSAP would wipe.
           Both ScrollTriggers key off this element rather than the track — see ApproachRefs. */}
       <div ref={railRef} className="relative" style={{ height: DOT_D }}>
+        {/* The bar starts RAIL_LEAD_IN *left of the track's origin* — i.e. left of the first
+            dot and outside the section's content box, which is the reference's own composition
+            and is what gives the opening scroll something to draw. It is the track's child, so
+            it travels with the traverse rather than sitting in the gutter after the row has
+            left; `approachStageClip` closes the window behind it as it goes. */}
         <div
+          data-rail-bar
           aria-hidden
-          className="absolute top-1/2 right-0 left-0 -translate-y-1/2"
-          style={{ height: BAR_H }}
+          className="absolute top-1/2 right-0 -translate-y-1/2"
+          style={{ height: BAR_H, left: `calc(-1 * ${RAIL_LEAD_IN})` }}
         >
           {/* Square ends, not rounded — measured. The reference's accent is at its full 16px
               height on the very last column of the rail (16, 16, 18, 18 … reading inward),
@@ -119,23 +126,29 @@ export function ApproachTrack({
           />
         </div>
 
-        {points.map((point, i) => (
-          <Dot
-            key={point.id}
-            dotRef={(el) => {
-              if (dotsRef.current) dotsRef.current[i] = el;
-            }}
-            style={{
-              // The dot's left edge sits on its cell's left edge — measured, see
-              // DOT_INSET_REF — so the copy below needs no offset of its own.
-              left: `${(i / points.length) * 100}%`,
-              top: 0,
-            }}
-          />
-        ))}
+        {/* Everything except the bar is clipped at the stage's own left edge rather than by
+            the stage — see `approachContentClip`. `inset-0` keeps this exactly the rail's box,
+            so it is the dots' offsetParent at the same origin the rail was and ./measure reads
+            the same numbers it did before it existed. */}
+        <div data-approach-clip="dots" className="absolute inset-0">
+          {points.map((point, i) => (
+            <Dot
+              key={point.id}
+              dotRef={(el) => {
+                if (dotsRef.current) dotsRef.current[i] = el;
+              }}
+              style={{
+                // The dot's left edge sits on its cell's left edge — measured, see
+                // DOT_INSET_REF — so the copy below needs no offset of its own.
+                left: `${(i / points.length) * 100}%`,
+                top: 0,
+              }}
+            />
+          ))}
+        </div>
       </div>
 
-      <div className="flex" style={{ marginTop: RAIL_GAP }}>
+      <div data-approach-clip="copy" className="flex" style={{ marginTop: RAIL_GAP }}>
         {points.map((point) => (
           <div
             key={point.id}
@@ -270,11 +283,13 @@ export const APPROACH_GUTTER: CSSProperties = {
 };
 
 /**
- * How far a dot's pop reaches outside its own box: half the amplitude, since it scales about
- * its centre, plus a little air. Derived from BOUNCE_AMP rather than restated, so retuning the
- * pop cannot leave the clip below behind.
+ * How far a dot's pop reaches outside its own box, as a share of the dot: half the amplitude,
+ * since it scales about its centre, plus a little air. Derived from BOUNCE_AMP rather than
+ * restated, so retuning the pop cannot leave either clip below behind.
  */
-const POP_OVERHANG = `calc(${DOT_D} * ${-(BOUNCE_AMP / 2 + 0.05).toFixed(3)})`;
+export const POP_OVERHANG_RATIO = BOUNCE_AMP / 2 + 0.05;
+
+const POP_OVERHANG = `calc(${DOT_D} * ${-POP_OVERHANG_RATIO.toFixed(3)})`;
 
 /**
  * The stage's clip, and it is a `clip-path` rather than `overflow-hidden` for a reason the
@@ -292,9 +307,39 @@ const POP_OVERHANG = `calc(${DOT_D} * ${-(BOUNCE_AMP / 2 + 0.05).toFixed(3)})`;
  * intended thing instead — same answer, and the same reasoning, as DefinitionSection's
  * OPEN_TOP_CLIP.
  *
+ * **The left edge is open too, by RAIL_LEAD_IN**, so the rail can draw out into the section's
+ * gutter. That is what makes the clip below necessary, and it is worth setting out why the
+ * obvious alternative does not work: a stage window that opens for the lead-in and shuts again
+ * as the track traverses. It cannot, because the lead-in occupies `[trackX - leadIn, trackX]`
+ * and the first cell's copy starts at `trackX` — one inset can only show a strip that reaches
+ * the stage's edge, so any window wide enough to show a pixel of the lead-in shows the whole of
+ * the copy that has slid out past it. Measured at six points, that is up to 41px of a heading
+ * being read in the margin. The clip has to be on the content, not on the container.
+ *
  * The one cost is that `clip-path` hides the pixels without stopping the oversized track from
  * contributing to scrollable overflow, so with more points than fit, the page's horizontal
  * extent widens invisibly. `SmoothScrollProvider`'s page-level `overflow-x-hidden` is the
- * backstop for exactly this, and its docblock names the same trade.
+ * backstop for exactly this, and its docblock names the same trade. The lead-in itself cannot
+ * add to it — it reaches *left*, and a left overhang creates no scroll in a left-to-right page.
  */
-export const APPROACH_STAGE_CLIP = `inset(${POP_OVERHANG} 0px ${POP_OVERHANG} 0px)`;
+export const APPROACH_STAGE_CLIP =
+  `inset(${POP_OVERHANG} 0px ${POP_OVERHANG} calc(-1 * ${RAIL_LEAD_IN}))`;
+
+/**
+ * The clip on everything the stage no longer clips on the left: the dots and the copy. The bar
+ * is the one thing left out of it, because the bar is the only thing that is *supposed* to be
+ * out there in the gutter.
+ *
+ * `left` is where the stage's own left edge falls in the track's coordinates — `-trackX`, so
+ * zero until the traverse starts. Only the left edge clips; the other three are open, and the
+ * stage's own clip is what closes them.
+ *
+ * **The dots get POP_OVERHANG_RATIO of slack on it and the copy does not**, which is the one
+ * asymmetry here and is not a rounding allowance. The first dot's centre sits one radius into
+ * the track, so at rest it pops *across* the stage's left edge — clip it there and the circle
+ * is cut down its left-hand side, which is the same complaint the vertical insets above exist
+ * to answer, reintroduced on the other axis. Copy never crosses that edge under its own power,
+ * so giving it the same slack only buys 12px of heading read in the margin during a traverse.
+ */
+export const approachContentClip = (left: number) =>
+  `inset(-100vh -100vh -100vh ${left.toFixed(1)}px)`;
