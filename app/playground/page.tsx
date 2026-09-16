@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import PlaygroundNarrative from "@/components/PlaygroundNarrative";
 import AboutSection from "@/components/AboutSection";
 import { foundersFromWix } from "@/components/about/content";
+import ApproachSection from "@/components/ApproachSection";
+import { approachFromWix } from "@/components/approach/content";
 import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
@@ -25,14 +27,19 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 export default async function PlaygroundPage() {
-  const founders = await foundersFromWix();
+  // In parallel: two independent collections behind one token, so serialising them would
+  // spend a second Wix round trip for nothing on a cold render.
+  const [founders, approach] = await Promise.all([
+    foundersFromWix(),
+    approachFromWix(),
+  ]);
 
   return (
     <main>
       <PlaygroundNarrative />
       <AboutSection founders={founders} />
+      <ApproachSection points={approach} />
       <Footer />
-
     </main>
   );
 }
