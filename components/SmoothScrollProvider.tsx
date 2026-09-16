@@ -52,30 +52,46 @@ export default function SmoothScrollProvider({
       if (!cancelled) ScrollTrigger.refresh();
     });
 
-    // Below the same breakpoint CaseStudies already treats as "no GSAP-driven scroll
-    // tricks" (see its own docblock), skip ScrollSmoother entirely and let the page
+    // Skip ScrollSmoother entirely on anything that scrolls by finger, and let the page
     // scroll natively. `normalizeScroll` works by intercepting touch and replacing
-    // native scrolling with a transform it drives itself — and on a real phone that
-    // hand-off can lose: touch events keep arriving and the browser's own `scrollY`
-    // keeps moving, but the smoother's transform doesn't track it, so every
-    // ScrollTrigger (all keyed off the transform, never off `scrollY`) freezes
-    // mid-page while the reader can still visibly drag the screen. That reads as the
-    // page getting stuck at one point scrolling down and a *different* point
-    // scrolling up, because the two positions have desynced independently in each
-    // direction — confirmed by dispatching real touch events at the OS level against
-    // the deployed site: `scrollY` advanced normally while the smoother's own
-    // transform never moved off 0. Neither a devtools mobile emulator nor
-    // Playwright's default input simulation reproduces this — only genuine touch
-    // input does — which is why it wasn't caught until it was tested on an actual
-    // phone.
+    // native scrolling with a transform it drives itself — and that hand-off can lose:
+    // touch events keep arriving and the browser's own `scrollY` keeps moving, but the
+    // smoother's transform doesn't track it, so every ScrollTrigger (all keyed off the
+    // transform, never off `scrollY`) freezes mid-page while the reader can still
+    // visibly drag the screen. That reads as the page getting stuck at one point
+    // scrolling down and a *different* point scrolling up, because the two positions
+    // have desynced independently in each direction.
+    //
+    // **The test is the input device, not the width, and getting that wrong is what
+    // shipped this bug to tablets.** It was first found on a phone, so the guard was
+    // written as `max-width: 767.98px` — the breakpoint CaseStudies already treats as
+    // "no GSAP-driven scroll tricks" — which reads as "small screens are the touch
+    // ones". An iPad is 1024 wide and touch-only, so it sailed past the guard and got
+    // the smoother, and the desync was worse there than on a phone because the pins are
+    // what the wide layout is made of: measured at 1024 x 1366, `scrollY` climbed
+    // 642 → 1327 → 2012 across three swipes with the smoother's transform still at 0,
+    // so the playground's stage never pinned and up to **1328px of its bare black
+    // section background** stood between the stage and the next section. The horizontal
+    // rail below it never released either, which is the same freeze seen from the other
+    // end. `(hover: none) and (pointer: coarse)` is the device test; a laptop with a
+    // touchscreen answers `hover: hover` / `pointer: fine` for its *primary* input and
+    // rightly keeps the smoother, because its wheel works.
+    //
+    // It needs genuine touch input to see: a wheel event scrolls normally even under
+    // emulation, so devtools' device toolbar and Playwright's `mouse.wheel` both look
+    // clean. Dispatching real touch events (CDP `Input.dispatchTouchEvent`, or a finger)
+    // is what reproduces it.
     //
     // Every pin in this codebase is a plain `ScrollTrigger` (see hero/sequence,
-    // definition/sequence, cases/sequence) — none of them call into the smoother
-    // directly — so they work identically against native scroll. `ScrollBar` already
-    // falls back to `window.scrollY`/`window.scrollTo` wherever `ScrollSmoother.get()`
-    // returns null, which is the same fallback reduced motion already exercises.
-    const isMobile = window.matchMedia("(max-width: 767.98px)").matches;
-    if (isMobile) {
+    // definition/sequence, cases/sequence, approach/sequence) — none of them call into
+    // the smoother directly — so they work identically against native scroll.
+    // `ScrollBar` already falls back to `window.scrollY`/`window.scrollTo` wherever
+    // `ScrollSmoother.get()` returns null, which is the same fallback reduced motion
+    // already exercises.
+    const touchScrolled = window.matchMedia(
+      "(max-width: 767.98px), (hover: none) and (pointer: coarse)",
+    ).matches;
+    if (touchScrolled) {
       smootherRef.current = null;
       return () => {
         cancelled = true;
