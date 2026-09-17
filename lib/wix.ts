@@ -75,7 +75,7 @@ export const WIX_REVALIDATE_SECONDS = 60;
 /**
  * The token is cached in module scope, not fetched per request, and the margin is what makes
  * that safe: a token handed out with one second left on it would be spent by the time the
- * query using it lands. Wix returns `expires_in` in seconds.
+ * query using it lands.
  *
  * This is deliberately not a `Promise` cache — two concurrent cold renders each doing a token
  * exchange is a wasted request, not a bug, and the alternative keeps a rejected promise alive
@@ -90,22 +90,99 @@ let cached: { token: string; expiresAt: number } | null = null;
  * prerendered at all.
  *
  * It cannot be `cache: "no-store"`, which is the obvious thing to write for a credential and
- * is wrong here: a single uncached fetch opts the whole route segment out of static
- * rendering, and `/playground` went dynamic for exactly this reason before this constant
- * existed. Half an hour against a token Wix issues with four hours on it leaves three and a
- * half hours of life on the stalest one this can serve, and the margin above covers the rest.
- * TOKEN_LIFE_FLOOR asserts that relation rather than trusting it.
+ * is wrong here: a single uncached fetch opts the whole route segment out of static rendering,
+ * and `/playground` went dynamic for exactly this reason before this constant existed.
+ *
+ * **What this number does not bound is how old a served response can be, and assuming it did
+ * was a real bug** — see `tokenExpiry` below.
  */
 const TOKEN_CACHE_SECONDS = 1800;
-const TOKEN_LIFE_FLOOR = TOKEN_CACHE_SECONDS * 4;
 
-export async function wixVisitorToken(): Promise<string> {
-  const clientId = process.env.WIX_OAUTH_CLIENT_ID;
-  if (!clientId) throw new Error("[wix] WIX_OAUTH_CLIENT_ID is not set");
+/**
+ * When the token itself says it expires, in ms, or `null` if it doesn't say.
+ *
+ * **Read this rather than `Date.now() + expires_in`, which is the same mistake this repo keeps
+ * making in animation code: two clocks over one moment.** `expires_in` is a *duration* and only
+ * becomes a deadline against the instant the token was minted — so using our own clock silently
+ * assumes the response just arrived off the wire. It doesn't have to have: the fetch above is
+ * cached by Next, and a cached entry past its revalidate window is served **as-is, at whatever
+ * age it has**, while the refetch happens in the background. So after a quiet night a dev server
+ * (or a low-traffic deployment) hands the first render of the day a body hours old, and the old
+ * arithmetic stamped that dead token "good for another four hours".
+ *
+ * The symptom is not an auth error, which is what makes it hard to place: Wix answers a query
+ * carrying an unresolvable visitor session with `400 WDE0117: MetaSite not found`, whose own
+ * docs describe it as a system error to retry. Retrying does not help — the module cache hands
+ * the same dead token back. Measured: a cached body 17.1h old against a token issued with
+ * `expires_in: 14400` reproduced it exactly, on every collection in that render.
+ *
+ * The token is a Wix JWS — `OauthNG.JWS.<header>.<payload>.<signature>` — and its payload
+ * carries `iat` and `exp` in seconds. This only *reads* those; nothing here verifies the
+ * signature, and nothing needs to, because the token is not a credential we are trusting, it
+ * is one we are about to spend. The worst a misread can do is send us to fetch another.
+ */
+function tokenExpiry(token: string): number | null {
+  // `OauthNG` . `JWS` . header . payload . signature — so the claims are at index 3, and
+  // anything shorter is a shape we don't know rather than a token to guess at.
+  const parts = token.split(".");
+  if (parts.length < 4) return null;
+  try {
+    const claims = JSON.parse(
+      Buffer.from(parts[3], "base64url").toString("utf8"),
+    ) as { exp?: number };
+    return typeof claims.exp === "number" ? claims.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
 
-  if (cached && Date.now() < cached.expiresAt) return cached.token;
+/**
+ * The token's own deadline, less the margin.
+ *
+ * Falls back to our clock only when the token doesn't carry one, which is the old behaviour and
+ * is unsafe in exactly the way `tokenExpiry` describes — a stale body would again be stamped
+ * good for four more hours, and nothing downstream could tell. That is what the dev warning is
+ * for: this fallback is not a safety net, it is the bug held open, and the only thing that
+ * should ever reach it is a token shape Wix has changed under us.
+ */
+function expiryOf(body: { access_token: string; expires_in?: number }): number {
+  const own = tokenExpiry(body.access_token);
 
-  const res = await fetch(TOKEN_URL, {
+  if (process.env.NODE_ENV !== "production") {
+    if (own === null) {
+      console.error(
+        "[wix] could not read `exp` out of the visitor token, so its expiry is being measured " +
+        "from this clock instead — which is the assumption that shipped WDE0117 (see " +
+        "tokenExpiry in lib/wix). The token's shape has probably changed.",
+      );
+    } else if (body.expires_in && body.expires_in < TOKEN_CACHE_SECONDS) {
+      console.warn(
+        `[wix] the visitor token now lives ${body.expires_in}s, which is shorter than the ` +
+        `${TOKEN_CACHE_SECONDS}s its response is cached for — every cached serve past that ` +
+        "window will now need the extra round trip. Lower TOKEN_CACHE_SECONDS.",
+      );
+    }
+  }
+
+  const base = own ?? Date.now() + (body.expires_in ?? 14400) * 1000;
+  return base - EXPIRY_MARGIN_MS;
+}
+
+/**
+ * A token exchange Next's data cache cannot answer from an old entry.
+ *
+ * `cache: "no-store"` is the obvious way to force that and is the one thing this module may not
+ * do (see TOKEN_CACHE_SECONDS). A URL it has never seen has the same effect and stays a
+ * *cacheable* fetch, so the route is still prerenderable — Wix ignores the extra parameter and
+ * returns an ordinary four-hour token (verified against both forms of the URL).
+ *
+ * Only reached when a served token is already spent, i.e. once per quiet period, so the
+ * cache-key churn is a handful of entries that expire on their own.
+ */
+const freshTokenUrl = () => `${TOKEN_URL}?fresh=${Date.now()}`;
+
+async function exchange(clientId: string, url: string) {
+  const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ clientId, grantType: "anonymous" }),
@@ -114,25 +191,36 @@ export async function wixVisitorToken(): Promise<string> {
   if (!res.ok) {
     throw new Error(`[wix] token exchange failed: ${res.status} ${await res.text()}`);
   }
+  return (await res.json()) as { access_token: string; expires_in?: number };
+}
 
-  const body = (await res.json()) as { access_token: string; expires_in?: number };
+export async function wixVisitorToken(): Promise<string> {
+  const clientId = process.env.WIX_OAUTH_CLIENT_ID;
+  if (!clientId) throw new Error("[wix] WIX_OAUTH_CLIENT_ID is not set");
 
-  if (process.env.NODE_ENV !== "production" && body.expires_in) {
-    if (body.expires_in < TOKEN_LIFE_FLOOR) {
-      console.error(
-        `[wix] the visitor token now lives ${body.expires_in}s, but its response is cached ` +
-        `for ${TOKEN_CACHE_SECONDS}s — the stalest one this can serve would have ` +
-        `${body.expires_in - TOKEN_CACHE_SECONDS}s left. Lower TOKEN_CACHE_SECONDS.`,
+  if (cached && Date.now() < cached.expiresAt) return cached.token;
+
+  let body = await exchange(clientId, TOKEN_URL);
+  let expiresAt = expiryOf(body);
+
+  // The token we were handed is already spent, so the response came out of the cache rather
+  // than off the wire. Ask again at a URL the cache has no entry for.
+  if (expiresAt <= Date.now()) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(
+        "[wix] the cached token exchange returned a token that expired " +
+        `${Math.round((Date.now() - expiresAt) / 60_000)} minutes ago — Next served a stale ` +
+        "response. Fetching a fresh one; see tokenExpiry in lib/wix.",
       );
     }
+    body = await exchange(clientId, freshTokenUrl());
+    expiresAt = expiryOf(body);
   }
 
-  cached = {
-    token: body.access_token,
-    expiresAt: Date.now() + (body.expires_in ?? 14400) * 1000 - EXPIRY_MARGIN_MS,
-  };
+  cached = { token: body.access_token, expiresAt };
   return cached.token;
 }
+
 
 export type WixDataItem = Record<string, unknown>;
 

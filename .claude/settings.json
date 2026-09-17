@@ -319,7 +319,14 @@
       "Bash(node img-dims.js)",
       "mcp__claude_ai_Wix__SearchWixAPISpec",
       "Bash(node --env-file=.env --experimental-strip-types \"C:/Users/AGA Computer/AppData/Local/Temp/pw/cases-probe.mts\")",
-      "Bash(node cases-render.js)"
+      "Bash(node cases-render.js)",
+      "Bash(node --env-file=.env \"C:/Users/AGA Computer/AppData/Local/Temp/pw/wde0117.mjs\")",
+      "Read(//c/Users/AGA Computer/.claude/projects/d--tanzeel-Ikra-Agency/b8f7ef4e-5778-4531-9a2e-b197b1bbe5f7/tool-results/**)",
+      "Bash(node -e *)",
+      "Bash(node --env-file=.env -e ' *)",
+      "Bash(node --env-file=.env --experimental-strip-types \"C:/Users/AGA Computer/AppData/Local/Temp/pw/token-stale.mts\")",
+      "Bash(sed 's|if \\(!url.includes\\(\"?fresh=\"\\)\\) {|if \\(false\\) {|' token-stale.mts)",
+      "Bash(node --env-file=.env --experimental-strip-types \"C:/Users/AGA Computer/AppData/Local/Temp/pw/token-happy.mts\")"
     ],
     "additionalDirectories": [
       "d:\\tanzeel\\ikra-backups\\case-studies-v1-stack",
