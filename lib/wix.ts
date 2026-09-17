@@ -39,6 +39,16 @@ export const FOUNDERS_COLLECTION = "Founders";
 export const APPROACH_COLLECTION = "Approach";
 
 /**
+ * The collection behind the home page's case-study cards. Same again — `read: ANYONE`,
+ * everything else `ADMIN` — and the first one that feeds `app/page.tsx` rather than
+ * `/playground`, which is why that route now carries a `revalidate` of its own.
+ *
+ * Its rows are the cards' *content*; the row of cells, the pin and the traverse are all
+ * derived from how many there are (see `components/cases/content.ts`).
+ */
+export const CASE_STUDIES_COLLECTION = "CaseStudies";
+
+/**
  * How long a page holds its copy of the CMS before asking again.
  *
  * **A minute, and the argument for it is that both alternatives were worse.** This started at
@@ -222,6 +232,24 @@ export function parseWixImage(value: unknown): WixImage | null {
     height: Number(params.get("originHeight")) || 0,
   };
 }
+
+/**
+ * The file itself, unresized — the same URL the Media Manager returns for it.
+ *
+ * The counterpart to `wixImageUrl` below, and the choice between them is *who resizes*. The
+ * founders' photographs are sized at the CDN, because the layout already knows the box it
+ * draws them in and nothing there wants the optimiser in the path. The case-study cards are
+ * the other case: they were `next/image` against files in `/public` before their content
+ * moved to the CMS, their box is viewport-relative rather than fixed, and `next/image` is
+ * what already picks a width out of `sizes` for them. So this hands it the original, exactly
+ * as a file in `/public` did, and nothing about the delivered image changes.
+ *
+ * It also sidesteps the one way a CDN box can alter a picture: `fill` *crops* to the box it
+ * is given, so any box whose ratio is not the file's own would quietly re-frame an image
+ * that `object-position` is already framing in CSS.
+ */
+export const wixOriginalUrl = (img: WixImage) =>
+  `https://static.wixstatic.com/media/${img.fileId}`;
 
 /** One CDN URL, filled to a box. `fill` crops to the box rather than letterboxing it. */
 export function wixImageUrl(img: WixImage, w: number, h: number, quality = 85) {

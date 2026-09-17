@@ -8,6 +8,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { CaseTrack } from "./cases/CaseLayers";
+import type { CaseProject } from "./cases/projects";
 import RevealPanel from "./cases/RevealPanel";
 import { createCaseSequence } from "./cases/sequence";
 import { MQ } from "./cases/timeline";
@@ -18,9 +19,10 @@ import { MQ } from "./cases/timeline";
  * call-to-action — all the same width, all sliding together. When it runs out, the whole
  * layer slides off to the left and uncovers the panel that has been standing behind it.
  *
- * Assembled from six parts, so only one of them knows about position:
+ * Assembled from seven parts, so only one of them knows about position:
  *
- *   ./cases/projects    the typed content, and the only file to edit for it
+ *   ./cases/content     the cards, out of the client's Wix CMS, and every defence of a row
+ *   ./cases/projects    their type, the standing copy, and the cards to fall back to
  *   ./cases/timeline    every number, each one measured off a reference recording
  *   ./cases/measure     the layout figures every frame is computed against
  *   ./cases/sequence    the matchMedia, the pin, the approach, the door and the one paint
@@ -102,7 +104,16 @@ const subscribeViewport = (onChange: () => void) => {
 const readIsMobile = () => window.matchMedia(MQ.isMobile).matches;
 const readIsMobileOnServer = () => false;
 
-export default function CaseStudies() {
+/**
+ * The cards arrive as a prop rather than being imported here, and that is the whole of what
+ * moving them to the CMS cost this file: the fetch is `await`ed on the server in
+ * `app/page.tsx` and handed down, because everything below this line is a client component
+ * and a client component cannot hold the site's Wix credential or block on a request.
+ *
+ * Nothing here reads the array except to pass it on — the count reaches the sequence through
+ * the DOM, as the measured cells it already walks.
+ */
+export default function CaseStudies({ projects }: { projects: CaseProject[] }) {
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -156,6 +167,7 @@ export default function CaseStudies() {
 
   const track = (
     <CaseTrack
+      projects={projects}
       trackRef={trackRef}
       registerCell={registerCell}
       registerContent={registerContent}

@@ -1,0 +1,105 @@
+import {
+  CASE_STUDIES_COLLECTION,
+  parseWixImage,
+  wixOriginalUrl,
+  wixQuery,
+  wixText,
+} from "@/lib/wix";
+import { CASE_PROJECTS, type CaseProject } from "./projects";
+
+/**
+ * The case-study cards, as the client's Wix CMS holds them — the same arrangement as the
+ * founders and the approach points, and the first one on `app/page.tsx` rather than
+ * `/playground`.
+ *
+ * **This module is the boundary.** A CMS row is not typed, not validated and not guaranteed
+ * to be there, so every field is defended here and nowhere else; `./projects` keeps the type
+ * and `./CaseLayers` renders whatever comes out of this, knowing nothing about Wix.
+ *
+ * ## What a row may leave out, and what happens when it does
+ *
+ * Only four fields are load-bearing — a title, a description, an image and an id — and a row
+ * missing any of them is dropped rather than rendered as a half-built card. The rest carry
+ * the defaults the three current cards already use, so **a row the client fills in with
+ * nothing but those four renders exactly like Café Technica's**: cropped to the row's shared
+ * frame, centred, rounded, and with no link.
+ *
+ *   - `link` absent → the card's "Explore project" is a `<span>`, not a dead `<a>`. This is
+ *     the case that matters for a client adding work: a new row is a card on the home page
+ *     immediately, and it stays unclickable until somebody builds `app/work/<slug>` for it.
+ *   - `focus` absent → `50% 50%`, i.e. the middle of the picture is what survives the crop.
+ *   - `rounded` absent → **rounded**, which inverts the field's default in `./projects`. Every
+ *     card on the page opts in there, so "unset" meaning square would make a new row the odd
+ *     one out; a client who wants square corners unticks a box.
+ *   - `aspect` absent → the card takes the row's shared frame and `object-cover` crops to it.
+ *     That is the right default and the reason it is worth understanding before adding an
+ *     image: see the note on the field in `./projects`. A photograph loses its top and bottom
+ *     and is still the same photograph; a *screenshot* loses the edge of the interface, which
+ *     is why the two capture cards state a ratio and the photograph does not.
+ *
+ * ## The fallback is the in-repo array, and it is not belt-and-braces
+ *
+ * The founders and approach bands render nothing when the CMS is unreachable, because they
+ * are bands of a page whose other sections are in the repo. This section cannot take that
+ * deal: the *contact panel* is inside it (see `./RevealPanel`), so an empty case-studies
+ * section would take the site's one point of contact off the home page because a third party
+ * was down. `CASE_PROJECTS` therefore stands behind it — the same three cards, from `/public`
+ * — and is used whenever the CMS yields nothing usable.
+ */
+
+/**
+ * `object-position` when a row doesn't say. The middle of the image, which is what
+ * `object-cover` does anyway; stated rather than left undefined so `CaseProject.focus` can
+ * stay required.
+ */
+const DEFAULT_FOCUS = "50% 50%";
+
+function normalise(row: Record<string, unknown>): CaseProject | null {
+  const id = wixText(row._id);
+  const title = wixText(row.title);
+  const description = wixText(row.description);
+  const img = parseWixImage(row.image);
+  // A card is a title, a line of description and a picture. Missing any of them there is no
+  // cell to build, and an empty one still costs the track a whole pitch of travel.
+  if (!id || !title || !description || !img) return null;
+
+  const link = wixText(row.link);
+  const focus = wixText(row.focus) || DEFAULT_FOCUS;
+  // Positive and finite or it doesn't count: this number becomes an `aspectRatio`, and it is
+  // the *row's* frame that `Math.max`es over it, so one bad value in one row would reshape
+  // every card beside it.
+  const aspect =
+    typeof row.aspect === "number" && Number.isFinite(row.aspect) && row.aspect > 0
+      ? row.aspect
+      : undefined;
+
+  return {
+    id,
+    title,
+    description,
+    imageSrc: wixOriginalUrl(img),
+    link: link || null,
+    focus,
+    ...(aspect === undefined ? {} : { aspect }),
+    // Only an explicit `false` turns it off — see the docblock above on why absent is `true`.
+    rounded: row.rounded !== false,
+  };
+}
+
+/**
+ * Every case-study card, in the order the CMS's own `order` field gives, falling back to the
+ * three in `./projects` when the CMS gives nothing usable.
+ *
+ * "Nothing usable" covers both an unreachable CMS (`wixQuery` returns `null`) and a response
+ * whose every row was dropped by `normalise`. They are treated the same deliberately: from
+ * the page's side there is no difference between the two, and neither is a reason to serve a
+ * home page with no work on it and no way to make contact.
+ */
+export async function caseStudiesFromWix(): Promise<CaseProject[]> {
+  const rows = await wixQuery(CASE_STUDIES_COLLECTION, { sortField: "order" });
+  const projects = (rows ?? [])
+    .map(normalise)
+    .filter((p): p is CaseProject => p !== null);
+
+  return projects.length > 0 ? projects : CASE_PROJECTS;
+}

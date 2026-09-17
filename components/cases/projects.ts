@@ -1,10 +1,18 @@
 /**
- * The case studies, as typed data — the one file to edit for content.
+ * The case studies' type, and the three cards the page falls back to.
  *
- * Deliberately the whole of the section's copy and imagery: the track is one cell per
- * project plus the heading and the closing panel, and the pin's length is that track's
- * measured overflow (see ./sequence), so adding or removing an entry retimes the section and
- * needs no other change. Nothing else in ./cases knows how many there are.
+ * **The cards' content lives in the client's Wix CMS now** (`CaseStudies`, read through
+ * ./content) — this is where their *shape* is defined and where the standing copy below it
+ * still lives. The track is one cell per project plus the heading and the closing panel, and
+ * the pin's length is that track's measured overflow (see ./sequence), so a card added in the
+ * CMS retimes the section and needs no change here at all. Nothing else in ./cases knows how
+ * many there are, or where they came from.
+ *
+ * **`CASE_PROJECTS` is the fallback, not the source.** It is the three cards as they stood
+ * when the content moved, pointing at the copies in `/public`, and it renders only when the
+ * CMS yields nothing usable — see ./content for why this section in particular cannot simply
+ * render nothing in that case. Editing it changes what a reader sees when Wix is down, which
+ * is worth keeping truthful, and nothing else.
  *
  * ## The schema is the reference's caption, and nothing more
  *
@@ -21,9 +29,9 @@
  * clickable ones reads as a broken link, and naming clients this studio may not have is a
  * claim rather than a layout.
  *
- * **Two cells is now the count, and the section retimes itself for it.** The track's length,
- * the pin's length and every cell's entrance are all derived from this array — see
- * `./sequence` — so adding a third study is one more entry here and nothing else. The
+ * **Three cells is now the count, and the section retimes itself for it.** The track's length,
+ * the pin's length and every cell's entrance are all derived from the array the page is
+ * handed — see `./sequence` — so a fourth study is one more CMS row and nothing else. The
  * reference recording happens to show three, which is why `TRACK_TAIL_VW` and the pace knob
  * were tuned against that count; at two the traverse is simply shorter, and the dev
  * assertions in `./timeline` are written in vw rather than in cells so they still hold.
@@ -58,6 +66,10 @@ export type CaseProject = {
    * image *is* the frame. The cost is that a wider card is shorter, so its caption sits a
    * little higher than its neighbour's; the width cap in ./CaseLayers is unaffected, being
    * derived from the tallest ratio.
+   *
+   * From the CMS this is the `aspect` column, and **leaving it empty is the photograph case**,
+   * which is the right default and the one thing worth knowing before adding a card whose
+   * image is a screenshot rather than a picture.
    */
   aspect?: number;
   /**
@@ -79,6 +91,10 @@ export type CaseProject = {
   rounded?: boolean;
 };
 
+/**
+ * The three cards as they stood when the content moved to the CMS, and what ./content serves
+ * if the CMS gives it nothing. Not the page's source of truth — see the file's docblock.
+ */
 export const CASE_PROJECTS: CaseProject[] = [
   {
     id: "cafe-technica",
@@ -140,8 +156,9 @@ export const CASE_PROJECTS: CaseProject[] = [
     focus: "50% 50%",
     rounded: true,
   },
-  // A fourth study goes here. Not a limit — the track grows by one cell and the pin by 50vw,
-  // which is half a screen more scrolling at a 2:1 viewport, and nothing else has to change.
+  // A fourth study is a row in the CMS, not an entry here. Not a limit either way — the track
+  // grows by one cell and the pin by 50vw, which is half a screen more scrolling at a 2:1
+  // viewport, and nothing else has to change.
 ];
 
 /** The heading cell — the track's first cell, not a banner above it. */

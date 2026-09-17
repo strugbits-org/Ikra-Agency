@@ -8,8 +8,8 @@ import {
   CASE_CLOSING,
   CASE_EXPLORE,
   CASE_HEADING,
-  CASE_PROJECTS,
   CASE_VIEW_ALL,
+  type CaseProject,
 } from "./projects";
 import { IMAGE_ASPECT } from "./timeline";
 
@@ -157,11 +157,14 @@ function Cell({
 }
 
 export function CaseTrack({
+  projects,
   trackRef,
   registerCell,
   registerContent,
   reducedMotion,
 }: {
+  /** The cards, from the CMS by way of ./content — see `CaseStudies` for the thread. */
+  projects: CaseProject[];
   trackRef: RefObject<HTMLDivElement | null>;
   registerCell: CellRegistrar;
   registerContent: CellRegistrar;
@@ -172,8 +175,14 @@ export function CaseTrack({
   // The row's widest artwork, which is what sets everyone's height — see the note on the
   // project cells below. Derived rather than stated, so a new card cannot silently overflow
   // its cell by being wider than anything here anticipated.
+  //
+  // `IMAGE_ASPECT` is also the answer for an empty row: `Math.max()` of nothing is -Infinity,
+  // which would be an `aspectRatio` of -Infinity on every frame in the row. The CMS cannot
+  // actually deliver that (./content falls back to the in-repo cards before it gets here),
+  // but the reference's own measured ratio is the honest floor either way.
   const widestAspect = Math.max(
-    ...CASE_PROJECTS.map((p) => p.aspect ?? IMAGE_ASPECT),
+    IMAGE_ASPECT,
+    ...projects.map((p) => p.aspect ?? IMAGE_ASPECT),
   );
 
   return (
@@ -206,7 +215,7 @@ export function CaseTrack({
       </Cell>
 
       {/* One cell per project. */}
-      {CASE_PROJECTS.map((project, i) => (
+      {projects.map((project, i) => (
         <Cell key={project.id} index={i + 1} {...cellProps}>
           <article>
             {/*
@@ -275,7 +284,7 @@ export function CaseTrack({
       ))}
 
       {/* The last cell — the closing call-to-action. */}
-      <Cell index={CASE_PROJECTS.length + 1} {...cellProps}>
+      <Cell index={projects.length + 1} {...cellProps}>
         <div className="flex flex-col items-center text-center">
           <p className="text-[clamp(19px,1.8vw,38px)] leading-[1.25] font-light text-ink">
             {CASE_CLOSING.map((line) => (
