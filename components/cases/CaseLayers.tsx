@@ -241,13 +241,18 @@ export function CaseTrack({
               }
               style={{ aspectRatio: widestAspect }}
             >
+            {/* No `object-position` anywhere: every card centres its crop, which is what
+                `object-cover` does unasked. A per-card focal point used to be a CMS column
+                and is gone — one card ever used it, for 5% of its own height, against a
+                client having to work out what "50% 45%" meant in a field beside their copy.
+                If a card genuinely needs re-framing later it is a prop here and a column
+                there again; it is not something the page should ask anyone to fill in. */}
               <Image
                 src={project.imageSrc}
                 alt={project.title}
                 fill
                 sizes="(min-width: 768px) 42vw, 88vw"
                 className="object-cover"
-                style={{ objectPosition: project.focus }}
                 /* Only the first card is on screen when the pin engages, so it is the
                    only one worth fetching eagerly. */
                 priority={i === 0}

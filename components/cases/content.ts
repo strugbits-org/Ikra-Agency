@@ -27,7 +27,6 @@ import { CASE_PROJECTS, type CaseProject } from "./projects";
  *   - `link` absent → the card's "Explore project" is a `<span>`, not a dead `<a>`. This is
  *     the case that matters for a client adding work: a new row is a card on the home page
  *     immediately, and it stays unclickable until somebody builds `app/work/<slug>` for it.
- *   - `focus` absent → `50% 50%`, i.e. the middle of the picture is what survives the crop.
  *   - `rounded` absent → **rounded**, which inverts the field's default in `./projects`. Every
  *     card on the page opts in there, so "unset" meaning square would make a new row the odd
  *     one out; a client who wants square corners unticks a box.
@@ -47,13 +46,6 @@ import { CASE_PROJECTS, type CaseProject } from "./projects";
  * — and is used whenever the CMS yields nothing usable.
  */
 
-/**
- * `object-position` when a row doesn't say. The middle of the image, which is what
- * `object-cover` does anyway; stated rather than left undefined so `CaseProject.focus` can
- * stay required.
- */
-const DEFAULT_FOCUS = "50% 50%";
-
 function normalise(row: Record<string, unknown>): CaseProject | null {
   const id = wixText(row._id);
   const title = wixText(row.title);
@@ -64,7 +56,6 @@ function normalise(row: Record<string, unknown>): CaseProject | null {
   if (!id || !title || !description || !img) return null;
 
   const link = wixText(row.link);
-  const focus = wixText(row.focus) || DEFAULT_FOCUS;
   // Positive and finite or it doesn't count: this number becomes an `aspectRatio`, and it is
   // the *row's* frame that `Math.max`es over it, so one bad value in one row would reshape
   // every card beside it.
@@ -79,7 +70,6 @@ function normalise(row: Record<string, unknown>): CaseProject | null {
     description,
     imageSrc: wixOriginalUrl(img),
     link: link || null,
-    focus,
     ...(aspect === undefined ? {} : { aspect }),
     // Only an explicit `false` turns it off — see the docblock above on why absent is `true`.
     rounded: row.rounded !== false,

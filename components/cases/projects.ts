@@ -49,8 +49,6 @@ export type CaseProject = {
    * reader than no link at all, and a link to a route that 404s is worse still.
    */
   link: string | null;
-  /** `object-position` — these are crops of frames that were not shot for this. */
-  focus: string;
   /**
    * The frame's own ratio, when the artwork must not be cropped. Defaults to the reference's
    * measured `IMAGE_ASPECT` of 1.45, which is what a photograph takes: a crop of a street is
@@ -59,7 +57,7 @@ export type CaseProject = {
    * A screen capture is the exception, twice over. Both site captures are wider than 1.45
    * (1.653 and 1.687), so covering scales them to the frame's height and takes ~12% off their
    * sides — on an interface that is the CRM's right-hand panel and the edge of the QCIF page
-   * simply missing, and `focus` cannot re-frame it because the subject is the whole screen.
+   * simply missing, and no amount of re-framing helps, because the subject is the whole screen.
    * And `object-contain` inside a 1.45 box is no answer either: it shows the capture whole but
    * stands it on a slab of `bg-ink/5` that reads as a grey mat around the picture. Giving the
    * frame the asset's own ratio is the one arrangement with neither a crop nor a mat — the
@@ -103,7 +101,6 @@ export const CASE_PROJECTS: CaseProject[] = [
       "Naming, brand and a new website for the coffee-machine service Tasmania calls first.",
     imageSrc: "/img/Coffee-Shop-Vibes.avif",
     link: "/work/cafe-technica",
-    focus: "50% 45%",
     rounded: true,
   },
   {
@@ -126,7 +123,6 @@ export const CASE_PROJECTS: CaseProject[] = [
     // A capture: the frame takes its ratio so nothing is cropped and no mat shows.
     aspect: 1293 / 770,
     link: "/work/qcif",
-    focus: "50% 50%",
     rounded: true,
   },
   {
@@ -153,7 +149,6 @@ export const CASE_PROJECTS: CaseProject[] = [
     // trade-off a non-widest card always makes here (see the doc on `aspect` above).
     aspect: 1293 / 770,
     link: "/work/auto-maxx",
-    focus: "50% 50%",
     rounded: true,
   },
   // A fourth study is a row in the CMS, not an entry here. Not a limit either way — the track
