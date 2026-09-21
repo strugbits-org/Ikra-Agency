@@ -170,7 +170,7 @@ export type CaseStudy = {
   outcome?: {
     heading: string;
     paragraphs: readonly string[];
-    media?: { src: string; alt: string; aspect: number; focus?: string };
+    media?: StudyMedia;
     /** A line under the media. Only read when there is media to put it under. */
     caption?: readonly string[];
   };

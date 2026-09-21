@@ -366,6 +366,28 @@ export const IDENTITY_FRAME: MediaFrame = {
  * pictures, 1.163/1.851 for the applications, and 1.271/1.498 for the testimonial cards —
  * the last two against a measured `CARD_ASPECT` of 1.268 and QCIF's stated 1.498.
  */
+/**
+ * The corner radius every media frame is clipped to — **except the testimonial's**, which is a
+ * panel rather than a picture and keeps the reference's square corners.
+ *
+ * **It is a fix, not a flourish, and the figure is a floor rather than a taste.** Several of
+ * the supplied screenshots have their own rounded corners *baked in*, flattened onto a flat
+ * colour rather than left transparent, because that is what the exports arrived as. Whether
+ * that shows depends entirely on the band they land on: `cafe.png`'s corners are `#f7f7f7`,
+ * which is `paper` exactly, so its outcome band hides them — while `wow-image-2.png` and
+ * `qcif-hero-2.png` are `#d7d4d4`, which on `dark` is four grey nicks in a black field. That
+ * was the reported symptom, and the assets cannot be the answer now that the client owns them:
+ * the next upload has whatever corners it has.
+ *
+ * So the frame clips its own, and the radius has to **exceed the largest baked one** or a
+ * sliver of the flattened colour survives outside the arc. Measured on the assets by walking
+ * the corner diagonal, then scaled to the box each is drawn in: ~12px for the Auto Maxx
+ * capture, ~17px for QCIF's, ~28px for `cafe.png` (invisible, per above). 20px at the
+ * reference width clears the two that show, with margin, and reads as the same treatment as
+ * the home page's cards (`rounded-xl`, on a card of much the same width).
+ */
+export const MEDIA_RADIUS = fluid(10, 20, 24);
+
 export type MediaFrame = { fallback: number; min: number; max: number };
 
 /**

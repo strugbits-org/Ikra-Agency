@@ -1,6 +1,7 @@
 import Image from "next/image";
 import type { CSSProperties } from "react";
 import type { StudyMedia } from "./content";
+import { MEDIA_RADIUS } from "./metrics";
 
 /**
  * One supplied asset in a ratio box — the only place on a case study that draws a picture or
@@ -25,6 +26,14 @@ import type { StudyMedia } from "./content";
  * it until one loads. Now that the client can swap the clip, nothing here may assume anything
  * about which sizes it has.
  *
+ * ## The corners are clipped here, and that is a fix rather than a style
+ *
+ * Several of the supplied screenshots carry their own rounded corners *baked in*, flattened
+ * onto a flat colour, so whether they show depends on the band underneath — grey nicks in a
+ * black field on one study, invisible on another. The frame clips its own corners instead, at
+ * a radius chosen to exceed the largest baked one; `MEDIA_RADIUS` carries the measurements.
+ * The testimonial's card does not go through here and keeps its square corners.
+ *
  * Autoplaying, looped and `muted` — muted is what makes autoplay permitted at all — matching
  * the background footage on the home page (`hero/footage.ts`). `poster` is the clip's own
  * first frame where the CMS gives one, so the box is never a black rectangle while the video
@@ -48,8 +57,16 @@ export default function Media({
 
   return (
     <div
+      // `overflow-hidden` plus a radius is what actually clips the corners — see MEDIA_RADIUS
+      // for why the frame rounds itself rather than the assets being fixed.
       className={`relative w-full overflow-hidden [aspect-ratio:var(--media-aspect)] ${className}`}
-      style={{ "--media-aspect": aspect, ...style } as CSSProperties}
+      style={
+        {
+          "--media-aspect": aspect,
+          borderRadius: MEDIA_RADIUS,
+          ...style,
+        } as CSSProperties
+      }
     >
       {sources && sources.length > 0 ? (
         <video

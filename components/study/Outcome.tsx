@@ -1,5 +1,4 @@
-import Image from "next/image";
-import type { CSSProperties } from "react";
+import Media from "./Media";
 import { Band, Display, Measure, Prose } from "./primitives";
 import type { CaseStudy } from "./content";
 import { OUTCOME_BODY_GAP } from "./metrics";
@@ -51,23 +50,11 @@ export default function Outcome({ study }: { study: CaseStudy }) {
           <div className="w-full">
             {media ? (
               <>
-                {/* The asset's own aspect on the box, bounded by `OUTCOME_FRAME`, so
-                    `object-cover` has nothing to crop for any ordinary upload. Not ./Media:
-                    this slot is pictures only — the CMS offers no video here — and the caption
-                    below has to sit inside the same column. */}
-                <div
-                  className="relative w-full overflow-hidden [aspect-ratio:var(--shot-aspect)]"
-                  style={{ "--shot-aspect": media.aspect } as CSSProperties}
-                >
-                  <Image
-                    src={media.src}
-                    alt={media.alt}
-                    fill
-                    sizes="(min-width: 1024px) 50vw, 100vw"
-                    className="object-cover"
-                    style={{ objectPosition: media.focus }}
-                  />
-                </div>
+                {/* The same frame the other bands draw — the asset's own aspect bounded by
+                    `OUTCOME_FRAME`, and the rounded clip that covers the screenshots' baked-in
+                    corners. The CMS offers no video in this slot, but ./Media handles either
+                    and the frame is the thing worth having in one place. */}
+                <Media media={media} sizes="(min-width: 1024px) 50vw, 100vw" />
                 {caption ? (
                   <Prose paragraphs={caption} style={{ marginTop: OUTCOME_BODY_GAP }} />
                 ) : null}
