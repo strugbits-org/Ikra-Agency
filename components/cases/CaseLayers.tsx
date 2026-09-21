@@ -4,26 +4,21 @@ import Image from "next/image";
 import Link from "next/link";
 import { showRouteCover } from "@/components/routeTransition";
 import type { MouseEvent, ReactNode, RefObject } from "react";
-import {
-  CASE_CLOSING,
-  CASE_EXPLORE,
-  CASE_HEADING,
-  CASE_VIEW_ALL,
-  type CaseProject,
-} from "./projects";
+import { CASE_EXPLORE, CASE_HEADING, type CaseProject } from "./projects";
 import { IMAGE_ASPECT } from "./timeline";
 
 /**
  * The track: one flex row of equal cells, translated by the paint in ./sequence.
  *
- * ## The heading and the closing call-to-action are cells, not chrome
+ * ## The heading is a cell, not chrome
  *
  * This is the structural finding from the reference, and it is what the earlier build got
  * most wrong: the section's title is not a banner pinned above the cards, it is the *first
- * cell of the track* and it slides away to the left with everything else. The closing
- * paragraph is the last cell in the same way. Measured, all three kinds of cell are one
- * pitch wide — 952.4px against a 1905px viewport, i.e. exactly half of it — so the track is a
- * plain row and needs no per-kind arithmetic.
+ * cell of the track* and it slides away to the left with everything else. Measured, both
+ * kinds of cell are one pitch wide — 952.4px against a 1905px viewport, i.e. exactly half of
+ * it — so the track is a plain row and needs no per-kind arithmetic. A closing
+ * call-to-action cell used to end the row on the same plan and has been removed by request;
+ * see the note where it stood, above the tail run.
  *
  * ## The widths live here, the behaviour does not depend on them
  *
@@ -241,7 +236,7 @@ export function CaseTrack({
               }
               style={{ aspectRatio: widestAspect }}
             >
-            {/* No `object-position` anywhere: every card centres its crop, which is what
+              {/* No `object-position` anywhere: every card centres its crop, which is what
                 `object-cover` does unasked. A per-card focal point used to be a CMS column
                 and is gone — one card ever used it, for 5% of its own height, against a
                 client having to work out what "50% 45%" meant in a field beside their copy.
@@ -288,21 +283,19 @@ export function CaseTrack({
         </Cell>
       ))}
 
-      {/* The last cell — the closing call-to-action. */}
-      <Cell index={projects.length + 1} {...cellProps}>
-        <div className="flex flex-col items-center text-center">
-          <p className="text-[clamp(19px,1.8vw,38px)] leading-[1.25] font-light text-ink">
-            {CASE_CLOSING.map((line) => (
-              <span key={line} className="block">
-                {line}
-              </span>
-            ))}
-          </p>
-          {/* <CaseLink label={CASE_VIEW_ALL} href={null} className="mt-10 lg:mt-12" /> */}
-        </div>
-      </Cell>
+      {/* No closing cell. The track used to end on a call-to-action panel — three lines of
+          copy and a "View all projects" link — and it is gone by request: the last project
+          card is now the last thing the traverse passes, and the door opens on the contact
+          panel straight after it. That reads better for the reason the panel exists at all,
+          which is that it *is* the call to action; the cell in front of it was asking twice.
 
-      {/* The tail run, so the closing cell finishes its own travel and lands centred rather
+          Nothing about the section's timing had to change for it. Every length here is
+          derived from the array the page is handed (see ./sequence), so the track is simply
+          one pitch shorter, and `TRACK_TAIL_VW` is `(100 − CELL_VW) / 2` — it centres
+          whichever cell happens to be last, so its assertion still holds with no closing
+          panel to centre. */}
+
+      {/* The tail run, so the last cell finishes its own travel and lands centred rather
           than parked at the right with its rise still short — see TRACK_TAIL_VW. Zero below
           `md`, where a cell is already a whole viewport and centred by definition. */}
       {reducedMotion ? null : (

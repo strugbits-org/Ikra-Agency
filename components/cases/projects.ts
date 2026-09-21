@@ -164,13 +164,15 @@ export const CASE_PROJECTS: CaseProject[] = [
 /** The heading cell — the track's first cell, not a banner above it. */
 export const CASE_HEADING = ["Selected work", "& explorations"] as const;
 
-/** The closing cell — the track's last. Three lines in the reference; the breaks are its. */
-export const CASE_CLOSING = [
-  "Discover our complete collection",
-  "of digital experiences, brands,",
-  "and platforms.",
-] as const;
+/*
+ * `CASE_CLOSING` was here — three lines of closing copy ("Discover our complete collection /
+ * of digital experiences, brands, / and platforms.") in a final cell of the track, with a
+ * "View all projects" link under them. Removed by request: the door at the end of the
+ * section opens onto `CASE_REVEAL`, which *is* the call to action, so a panel asking for the
+ * same thing one pitch earlier was asking twice. The last project card is now the last cell.
+ */
 
+/** Still exported for the disabled "view all" link in the heading cell — see ./CaseLayers. */
 export const CASE_VIEW_ALL = "View all projects";
 export const CASE_EXPLORE = "Explore project";
 

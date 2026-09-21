@@ -145,7 +145,7 @@ export const MARQUEE_SPEED = 20;
  * closer or further apart.
  */
 export const RIVER_TEXT = "Work Upstream";
-export const RIVER_MARKER = "◀";
+export const RIVER_MARKER = "▶"; // ◀ 
 /**
  * The gap either side of the marker. A non-breaking space rather than an ordinary one,
  * because SVG collapses runs of ordinary whitespace — and built from its code point rather

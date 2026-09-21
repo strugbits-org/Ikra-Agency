@@ -173,27 +173,39 @@ export const FLANK_TOP_NUDGE = fluid(30, 68, 76);
  * 13px between. They paint *under* the type — the accent letterforms cross them — which is
  * why they are the first thing in the block rather than a decoration on top of it.
  *
- * **They are drawn, not set.** The shape is a teardrop bowl with a thin tail and it is not
- * the opening double quote of any face on the page — Playfair's is narrower (0.54 wide for
- * its height against the reference's 0.72) — so the outline is traced off the recording
- * instead: a left and a right edge profile read row by row off the alpha at the frame's own
- * resolution, median filtered for the notch where the tail meets the bowl, simplified, and
- * closed as one path. It rasterises back at **IoU 0.977** against the frame it came from.
- * See MARK_PATH in ./marks.
+ * **They are drawn, not set.** The shape is a ball with a tail and it is not the opening
+ * double quote of any face on the page — Playfair's is narrower (0.54 wide for its height
+ * against the reference's 0.72) — so the box is the recording's and the outline is
+ * constructed: see ./marks, which also records what the traced outline that shipped here
+ * first got wrong and why a trace could not be corrected into this.
  *
  * **Where they sit is the Olya block's, not the Tamir block's, and the two disagree.** In the
  * recording the pair is at x 852-985 in *both* blocks while the columns under them start at
  * 836 and 890 — i.e. the marks are placed absolutely on that page and took no notice of the
- * 54px the Tamir block is shifted by (see COLUMN above). Against the centred block they land
- * 18px inside the column's left edge and 28px above the quote's line box, which puts their
- * feet 3px off its first baseline; against the shifted one they would hang 38px out into the
- * gutter. The centred block is the one the rest of this file follows.
+ * 54px the Tamir block is shifted by (see COLUMN above). Against the centred block that is 18px
+ * *inside* the column's left edge and 28px above the quote's line box, which puts their feet
+ * 3px off its first baseline; against the shifted one they would hang 38px out into the gutter.
+ *
+ * **Both figures are corrections now, and the horizontal one is the reported bug.** 18px inside
+ * the column means the pair opens the quote *after* the quote has started — it lands on
+ * "Brin", so the first thing a reader meets is a letterform with a mark behind it and the
+ * marks read as something spilt on the line rather than as the quote's opening. They hang 20px
+ * out into the gutter instead, which is the one placement that reads as opening anything: the
+ * pair starts before the first glyph does, measured 17px before its ink at the reference and 6
+ * to 13px before it at every width down to 390 — never after it.
+ *
+ * And the top follows it up, because the pair is 135px wide against a 839px line and cannot
+ * help crossing the first word — at the reference's own -25 it came 36px down into the cap
+ * height, so the bowls sat *on* the words. At -51 the pair's feet come 13px into the caps
+ * (7 to 10 at the narrower widths, i.e. the same share of a smaller mark): enough to read as
+ * attached to the line it opens, little enough that the letterforms cross the horns rather
+ * than the bowls.
  */
 export const MARK_W = 61;
 export const MARK_H = 85;
 export const MARK_GAP = 13;
-export const MARK_LEFT = fluid(8, 18, 20);
-export const MARK_TOP = fluid(-29, -25, -12);
+export const MARK_LEFT = fluid(-24, -20, -8);
+export const MARK_TOP = fluid(-46, -42, -20);
 export const MARK_W_PCT = share(MARK_W);
 
 /**

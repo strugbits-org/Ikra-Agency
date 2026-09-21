@@ -44,6 +44,7 @@ import {
   TAIL_AT,
   TAIL_BACK_SECONDS,
   TAIL_SECONDS,
+  TELEPORT_VH,
   VEIL_VH,
 } from "./timeline";
 
@@ -274,7 +275,15 @@ export function createDefinitionSequence(
       // of its own height), not a vh mark — that share isn't constant across viewports.
       // TAIL_AT is a constant backstop, since PIN_VH can't depend on anything measured.
       const dictAbove = m.dictHeight > 0 ? -dictY / m.dictHeight : 0;
-      runTail(dictAbove >= LOGO_FADE_ABOVE_FRAC || vh >= phases.TAIL_AT);
+      // A move no scroll could have made in one frame is a *jump* — a back or forward into
+      // the middle of the page, or a reload deep in it — and the tail is then placed at its
+      // end state rather than played from the start. See TELEPORT_VH, and runTail.
+      const jumped = Math.abs(vh - lastVh) > TELEPORT_VH;
+      lastVh = vh;
+      runTail(
+        dictAbove >= LOGO_FADE_ABOVE_FRAC || vh >= phases.TAIL_AT,
+        jumped,
+      );
 
       // A reader who outscrolls TAIL_VH before the tail's clock reaches TAIL_SECONDS would
       // otherwise get the pin released mid-gesture. `progress` is ScrollTrigger's own
@@ -425,11 +434,36 @@ export function createDefinitionSequence(
     const tail = { t: 0 };
     let tailOn = false;
     let tailTween: gsap.core.Tween | null = null;
-    function runTail(go: boolean) {
+    /**
+     * The pin's position on the previous frame, in vh, so `render` can tell a scroll from a
+     * jump. Starts at 0 deliberately: a sequence built while the reader is already deep in
+     * the page — a reload, or a back into the middle of it — then reads its own first frame
+     * as the jump it is, and places the tail rather than playing it.
+     */
+    let lastVh = 0;
+    function runTail(go: boolean, place = false) {
+      const to = go ? TAIL_SECONDS : 0;
+      /**
+       * `place` is the jump case (see TELEPORT_VH): the reader was *put* here rather than
+       * having travelled here, so there is no gesture to watch and nothing to wait for —
+       * the clock is written straight to its end state. Playing it instead is what froze
+       * the scroll for 2.5s after pressing Back: the pin's allowance is already spent on
+       * the frame we arrive, so the lock in `render` fires immediately and holds until a
+       * fall that is already off the top of the screen finishes.
+       */
+      if (place) {
+        if (go === tailOn && tail.t === to) return;
+        tailOn = go;
+        tailTween?.kill();
+        tailTween = null;
+        tail.t = to;
+        renderTail(to);
+        unlockTailScroll();
+        return;
+      }
       if (go === tailOn) return;
       tailOn = go;
       tailTween?.kill();
-      const to = go ? TAIL_SECONDS : 0;
       const left = Math.abs(to - tail.t) / TAIL_SECONDS;
       tailTween = gsap.to(tail, {
         t: to,

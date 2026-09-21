@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { Founder } from "./content";
+import { MARK_PAIR_W, MARK_PATH, MARK_STEP_X, MARK_VIEW_BOX } from "./marks";
 import {
   BLOCK_W,
   BLOCK_W_PCT,
@@ -12,11 +13,8 @@ import {
   FLANK_TOP_NUDGE,
   FLANK_W,
   FLANK_W_PCT,
-  MARK_GAP,
-  MARK_H,
   MARK_LEFT,
   MARK_TOP,
-  MARK_W,
   MEDIA,
   MEDIA_GAP,
   MEDIA_TOP_NUDGE,
@@ -51,24 +49,12 @@ import {
  */
 
 /**
- * One traced quotation mark, 61 x 85. Path and provenance in ./metrics' MARK block; the
- * viewBox is the frame's own pixels, so the numbers in the path are the numbers that were
- * measured.
- */
-const MARK_PATH =
-  "M23.0 0.0C20.9 1.8 16.3 7.2 13.6 11.0C10.9 14.8 8.2 19.5 6.2 24.0C4.2 28.5 2.4 34.0 " +
-  "1.4 39.0C0.4 44.0 -0.0 51.2 0.0 55.0C0.0 58.8 0.9 60.8 1.6 63.0C2.3 65.2 2.5 66.6 4.2 " +
-  "69.0C5.9 71.4 9.3 75.6 12.2 78.0C15.1 80.4 18.0 83.0 22.3 84.0C26.7 85.0 35.6 84.8 " +
-  "39.3 84.0C43.1 83.2 44.5 80.4 45.8 79.0C47.1 77.6 46.2 79.2 47.4 75.0L53.0 53.0L50.0 " +
-  "52.0L50.0 51.0L61.0 50.0L61.0 49.0C60.1 46.8 57.6 39.2 55.6 36.0C53.6 32.8 50.8 30.8 " +
-  "48.8 29.0C46.8 27.2 46.5 26.1 43.0 25.0C39.5 23.9 30.1 23.1 27.0 22.0C23.9 20.9 24.2 " +
-  "19.3 23.4 18.0C22.6 16.7 21.5 16.9 22.0 14.0L26.7 0.0L23.0 0.0Z";
-
-const MARK_PAIR_W = MARK_W * 2 + MARK_GAP;
-
-/**
  * The pair, as one SVG so the 13px between them is part of the drawing rather than a gap two
  * elements have to agree on at every width.
+ *
+ * The outline and the viewBox both come from ./marks: the path is the reference site's own, in
+ * its own coordinates, and the viewBox is what converts them — so the CSS box here stays in
+ * the units ./metrics places it in without the drawing being re-typed into them.
  *
  * Hidden from assistive technology: the quote it decorates is already a `<blockquote>`, and a
  * screen reader announcing a pair of quotation marks before it would be saying the same thing
@@ -78,7 +64,7 @@ function QuoteMarks() {
   return (
     <svg
       aria-hidden
-      viewBox={`0 0 ${MARK_PAIR_W} ${MARK_H}`}
+      viewBox={MARK_VIEW_BOX}
       className="pointer-events-none absolute"
       style={{
         left: MARK_LEFT,
@@ -92,7 +78,7 @@ function QuoteMarks() {
       fill="#fff"
     >
       <path d={MARK_PATH} />
-      <path d={MARK_PATH} transform={`translate(${MARK_W + MARK_GAP} 0)`} />
+      <path d={MARK_PATH} transform={`translate(${MARK_STEP_X} 0)`} />
     </svg>
   );
 }

@@ -269,6 +269,30 @@ export const TAIL_SECONDS =
 export const TAIL_BACK_SECONDS = 1.4;
 
 /**
+ * How far the pin's own position may move in a single frame before ./sequence reads it as a
+ * **jump** rather than a scroll. In vh, so it means the same thing at every viewport.
+ *
+ * Only the tail reads it, and only to decide whether to *place* its gesture or play it — and
+ * the case it exists for is a back or forward into the middle of the page (see
+ * SmoothScrollProvider's `scrollMemory`), which puts the reader below this section with
+ * `scrollTo(…, false)`: one frame, no easing. On that frame the pin is already exhausted, so
+ * the tail was starting its whole ~3.6s gesture from zero with no scroll left to cover it,
+ * and `lockTailScroll` then held the reader for the remainder of a fall that had already
+ * scrolled off the top of the screen — measured at **2.5s of a completely dead wheel** after
+ * pressing Back from a case study, which is the bug this removes. A reload deep in the page
+ * and a drag of ScrollBar are the same shape and get the same answer.
+ *
+ * 100 is half this pin, against a real scroll's own per-frame travel — which the smoother
+ * bounds for us, since ScrollTrigger reads the *drawn* position and that is eased over
+ * `smooth: 1.2` however hard the wheel is turned. Measured: ~13px a frame at a reading pace,
+ * and ~14vh a frame at the fastest flick the smoother will pass through. So the margin is
+ * roughly 7× and no wheel gesture reaches it, which is what keeps the outrun-reader case
+ * below (`lockTailScroll`) intact — that reader crosses TAIL_AT and the pin's end on
+ * separate frames, and still gets the hold they were given before.
+ */
+export const TELEPORT_VH = 100;
+
+/**
  * The three photographs above the footer's columns, and their merge into one.
  *
  * On the tail's clock, not the scrub — mixing clocks over a shared moment (this merge and
