@@ -1,9 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import Logo from "@/components/Logo";
-import BrowserMock from "./BrowserMock";
-import SitePreview from "./SitePreview";
+import Media from "./Media";
 import { Band, Display, Measure, Prose } from "./primitives";
 import type { CaseStudy } from "./content";
 import {
@@ -40,15 +38,14 @@ import {
  * lockup is tight to the top edge and the row below it cannot grow without pushing the
  * intro under the fold.
  *
- * ## The thing beside the headline is either a drawn mockup or a supplied capture
+ * ## The thing beside the headline is whatever the client put there
  *
- * Cafe Technica has no capture of its own homepage, so `SitePreview` draws one inside
- * `BrowserMock` — copy rather than a screenshot, which stays sharp at both the sizes the
- * frame appears at. QCIF supplied a real capture that already carries its own chrome — a
- * screenshot at first, now a video walkthrough — so it is placed as-is: wrapping it would put
- * a second frame around one it already has, and drawing type over it would invent copy the
- * client did not write. Which one a study gets is decided by whether its record has a
- * `media`, and `media.video` decides `<video>` over `<Image>` inside it.
+ * A drawn browser mockup used to stand here for a study with no capture of its own homepage —
+ * `BrowserMock` wrapping a `SitePreview` of hand-written copy. All three studies now supply
+ * their own asset, two of them a video walkthrough, so both of those components are gone
+ * rather than left unreachable: with the media coming out of the CMS, "the client has no
+ * screenshot" stopped being a state this page can be in, and a mockup drawn over a client who
+ * did supply one invents an interface. `./Media` draws whichever they gave.
  *
  * ## Why the row's tracks are a CSS variable rather than a Tailwind class
  *
@@ -105,51 +102,20 @@ export default function Masthead({ study }: { study: CaseStudy }) {
           </Display>
 
           {/* Column 3 above `lg`; the source order is what a stacked phone reads, and the
-              empty second and fourth tracks take care of themselves. */}
+              empty second and fourth tracks take care of themselves.
+
+              The box is sized by `HERO_FRAME` — the clip's or capture's own shape where the
+              row can hold it, and the drawn mockup's measured `MOCK_ASPECT` when the CMS row
+              names no media at all. That range is the hard one on this page: the masthead has
+              to land its intro columns above the fold, so a hero much squarer than 1.35 is
+              what `MASTHEAD_PAD_TOP` exists to prevent. */}
           <div className="lg:col-start-3">
             {media ? (
-              /* The asset's own aspect on the box, so the row's height is a function of the
-                 column rather than of the viewport — the same arrangement MediaSplit uses.
-                 QCIF's video carries its own vertical letterboxing (see QCIF_HERO_ASPECT for
-                 the measured crop), so this box is already sized to the mockup and not the
-                 clip's full padded frame. */
-              <div
-                className="relative w-full overflow-hidden [aspect-ratio:var(--hero-media-aspect)]"
-                style={{ "--hero-media-aspect": media.aspect } as CSSProperties}
-              >
-                {media.video ? (
-                  // `object-cover` does the cropping QCIF_HERO_ASPECT sets up: it scales to the
-                  // clip's full width and crops only the height it overflows by, which is
-                  // exactly the padding above and below the mockup — see the constant's own
-                  // docblock for why the default centering needs no object-position override.
-                  // Autoplaying and looped like the other footage in this codebase (see
-                  // hero/footage.ts), muted so autoplay is allowed at all.
-                  <video
-                    className="absolute inset-0 h-full w-full object-cover"
-                    src={media.src}
-                    aria-label={media.alt}
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    preload="auto"
-                  />
-                ) : (
-                  <Image
-                    src={media.src}
-                    alt={media.alt}
-                    fill
-                    sizes={`(min-width: 1024px) ${Math.round(HERO_ROW.mock)}vw, 100vw`}
-                    className="object-cover"
-                    style={{ objectPosition: media.focus }}
-                    priority
-                  />
-                )}
-              </div>
-            ) : study.preview ? (
-              <BrowserMock label={`The ${study.title} website`}>
-                <SitePreview preview={study.preview} />
-              </BrowserMock>
+              <Media
+                media={media}
+                sizes={`(min-width: 1024px) ${Math.round(HERO_ROW.mock)}vw, 100vw`}
+                priority
+              />
             ) : null}
           </div>
         </div>

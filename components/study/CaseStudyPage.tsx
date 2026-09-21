@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import Credits from "./Credits";
 import Deliverables from "./Deliverables";
 import GrowthBars from "@/components/growth/GrowthBars";
@@ -9,39 +8,35 @@ import PullQuote from "./PullQuote";
 import Testimonial from "./Testimonial";
 import Footer from "@/components/Footer";
 import { Band, Display, Measure } from "./primitives";
-import type { BandKey, CaseStudy } from "./content";
-import {
-  APPLY_COLS,
-  APPLY_PHOTO_ASPECT,
-  BRAND_COLS,
-  BRAND_MARK_ASPECT,
-  BRAND_MARK_MAX,
-  IDENTITY_COLS,
-  IDENTITY_MEDIA_ASPECT,
-} from "./metrics";
+import type { CaseStudy } from "./content";
+import { APPLY_COLS, IDENTITY_COLS } from "./metrics";
 
 /**
- * A case-study page, whole: the bands its record asks for, over the site's footer.
+ * A case-study page, whole: one fixed sequence of bands, over the site's footer.
  *
- * The route does nothing but pick the record — `app/work/<slug>/page.tsx` is a handful of
- * lines — so a second study is a second entry in ./content, and every measured figure, every
+ * The route does nothing but fetch the record — `app/work/[slug]/page.tsx` is a handful of
+ * lines — so a new study is a row in the client's CMS, and every measured figure, every
  * breakpoint and every piece of markup is shared between them.
  *
- * ## The band list is data, because the two studies genuinely differ
+ * ## The band list is a fixed sequence again, and that is the point of the rewrite
  *
- * The first pass here was a fixed sequence, on the assumption that a second study would be
- * the same page with different words. It is not. Cafe Technica runs nine bands and QCIF six;
- * QCIF has no outcome, no applications and no credits, and it puts the deliverables chart
- * third where the other puts it fifth. Encoding that as conditionals would have meant nine
- * `study.x && ...` guards and no way to express the reordering at all.
+ * It was data for a while, and the reasoning was sound at the time: the studies genuinely
+ * were different pages. Cafe Technica ran nine bands and QCIF six, in a different order, with
+ * a brand band the others didn't have — so `study.bands` was an ordered list of keys per
+ * record and this file was the table that rendered one. Encoding that as conditionals would
+ * have meant nine `study.x && …` guards and no way to express the reordering at all.
  *
- * So `study.bands` is an ordered list of keys and this file is the table that renders one.
- * The difference between the two pages is then one legible array per record, and a third
- * study needs nothing here unless it brings a genuinely new *kind* of band.
+ * The three have since been brought onto one template deliberately, which removes the
+ * difference the mechanism existed for. QCIF's brand band is gone (its copy is that study's
+ * outcome now), its chart and quote sit where the other two put them, and what is left
+ * varying between the studies is **which parts have anything in them** — QCIF has no
+ * applications band because its row's applications fields are empty. An ordering that never
+ * differs is better as a sequence you can read down than as an array in three records, and a
+ * band that appears when it has content needs no key at all.
  *
- * What stays here rather than in the record is presentation that is the same wherever the
- * band appears: which side a media split's picture takes, which tone it sits on, its measured
- * column shares. Those are the layout's, not the client's.
+ * So: this order, and `./cms` returns `undefined` for a band the CMS row hasn't filled in.
+ * A half-written fourth study renders the bands it has, in this order, and nothing else —
+ * which is also what a client sees while they are writing one.
  *
  * ## Nothing here animates, and that is a finding rather than an omission
  *
@@ -54,7 +49,7 @@ import {
  *
  * The one exception is the deliverables chart, whose bars grow as the band arrives — it
  * brings its own sequence and its own reduced-motion path, and renders no field of its own,
- * which is what lets it be dropped into either study's band list.
+ * which is what lets it be dropped into the sequence below.
  *
  * Because of that there is also no `prefers-reduced-motion` branch here. There is no motion
  * to reduce; the only transitions on the page are hover states on two links, which the global
@@ -63,112 +58,57 @@ import {
 export default function CaseStudyPage({ study }: { study: CaseStudy }) {
   return (
     <main>
-      {study.bands.map((key) => (
-        <BandFor key={key} band={key} study={study} />
-      ))}
+      <Masthead study={study} />
+
+      {study.quote ? <PullQuote study={study} /> : null}
+
+      <Testimonial study={study} />
+
+      {study.outcome ? <Outcome study={study} /> : null}
+
+      {study.glance ? (
+        // The one band on this page that moves, and the band supplies its own field rather
+        // than GrowthBars doing it — that component renders no `Band`, no `Measure` and no
+        // `Display`, which is what keeps it usable on a route that has none of them.
+        <Band tone="dark">
+          <Measure>
+            <GrowthBars
+              items={study.glance.items}
+              heading={<Display>{study.glance.title}</Display>}
+            />
+          </Measure>
+        </Band>
+      ) : null}
+
+      {/* The two copy-beside-media bands: one composition, two measured layouts. Their tones,
+          their sides and their column shares are all that differ, and all of it is measured —
+          which is why those figures are here rather than in a record. They are the client's
+          words, not the client's layout. */}
+      {study.applications ? (
+        <MediaSplit
+          content={study.applications}
+          tone="paper"
+          side="right"
+          cols={APPLY_COLS}
+          fullHeight
+        />
+      ) : null}
+
+      {study.identity ? (
+        <MediaSplit
+          content={study.identity}
+          tone="dark"
+          side="left"
+          cols={IDENTITY_COLS}
+          headingClassName="text-accent"
+        />
+      ) : null}
+
+      {study.deliverables ? <Deliverables study={study} /> : null}
+
+      {study.credits ? <Credits study={study} /> : null}
+
       <Footer />
     </main>
   );
-}
-
-/**
- * One band, by key.
- *
- * A key whose data is missing renders nothing rather than throwing — a half-written record
- * should show the bands it does have — but it says so in development, because a silently
- * absent band is otherwise indistinguishable from one that never got written.
- */
-function BandFor({ band, study }: { band: BandKey; study: CaseStudy }): ReactNode {
-  switch (band) {
-    case "masthead":
-      return <Masthead study={study} />;
-
-    case "quote":
-      return warnIfMissing(band, study.quote) && <PullQuote study={study} />;
-
-    case "testimonial":
-      return <Testimonial study={study} />;
-
-    case "outcome":
-      return warnIfMissing(band, study.outcome) && <Outcome study={study} />;
-
-    case "deliverables":
-      return warnIfMissing(band, study.deliverables) && <Deliverables study={study} />;
-
-    case "credits":
-      return warnIfMissing(band, study.credits) && <Credits study={study} />;
-
-    case "glance":
-      // The one band on this page that moves, and the band supplies its own field rather
-      // than GrowthBars doing it — that component renders no `Band`, no `Measure` and no
-      // `Display`, which is what keeps it usable on a route that has none of them.
-      return (
-        warnIfMissing(band, study.glance) && (
-          <Band tone="dark">
-            <Measure>
-              <GrowthBars
-                items={study.glance!.items}
-                heading={<Display>{study.glance!.title}</Display>}
-              />
-            </Measure>
-          </Band>
-        )
-      );
-
-    // The three media splits: one composition, three measured layouts. Their tones, their
-    // sides and their column shares are all that differ, and all of it is measured.
-    case "brand":
-      return (
-        warnIfMissing(band, study.brand) && (
-          <MediaSplit
-            content={study.brand!}
-            tone={study.masthead.tone ?? "dark"}
-            side="right"
-            cols={BRAND_COLS}
-            aspect={BRAND_MARK_ASPECT}
-            mediaMax={BRAND_MARK_MAX}
-          />
-        )
-      );
-
-    case "applications":
-      return (
-        warnIfMissing(band, study.applications) && (
-          <MediaSplit
-            content={study.applications!}
-            tone="paper"
-            side="right"
-            cols={APPLY_COLS}
-            aspect={APPLY_PHOTO_ASPECT}
-            fullHeight
-          />
-        )
-      );
-
-    case "identity":
-      return (
-        warnIfMissing(band, study.identity) && (
-          <MediaSplit
-            content={study.identity!}
-            tone="dark"
-            side="left"
-            cols={IDENTITY_COLS}
-            aspect={IDENTITY_MEDIA_ASPECT}
-            headingClassName="text-accent"
-          />
-        )
-      );
-  }
-}
-
-/** True when the band has data. Complains in development when it does not. */
-function warnIfMissing(band: BandKey, data: unknown): boolean {
-  if (data) return true;
-  if (process.env.NODE_ENV !== "production") {
-    console.error(
-      `[CaseStudyPage] the band list asks for "${band}" but the record has no data for it, ` +
-      "so the band is skipped. Remove the key or write the record.",
-    );
-  }
-  return false;
 }

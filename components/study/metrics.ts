@@ -270,12 +270,14 @@ export const CARD_SIGN_GAP = fluid(32, 60, 72);
 /** Display block to the paragraphs below it: measured 39px. */
 export const OUTCOME_BODY_GAP = fluid(24, 39, 46);
 
-/**
- * The mockup's width as a share of the content box. Sits in the right half, centred
- * vertically — measured top 237px against a predicted 241.5px for a centred panel,
- * within the measurement's own error.
+/*
+ * `OUTCOME_MOCK_WIDTH` was here — 39.9% of the content box, the width of the drawn browser
+ * mockup this band used to centre in its right half. It went with `BrowserMock` when the
+ * studies' pictures moved to the CMS: every study supplies a real capture now, and a capture
+ * takes the half-column whole. Recorded rather than silently dropped because the measurement
+ * (top 237px against 241.5 predicted for a centred 425px panel in a 656px row) is what says
+ * the band is `items-center` rather than top-offset, and that is still true.
  */
-export const OUTCOME_MOCK_WIDTH = 39.9;
 
 /* ── sections 5 and 6, the two copy-beside-media bands ───────────────────── */
 
@@ -315,54 +317,108 @@ export const IDENTITY_COLS = { copy: 48.3, gap: 6.4, media: 45 } as const;
  */
 export const IDENTITY_MEDIA_ASPECT = 661 / 541;
 
-/* ── the QCIF study's own figures ────────────────────────────────────────── */
-
 /**
- * The three shares of the QCIF brand band — copy left, mark right. Restated rather than
- * reused from IDENTITY_COLS: the two bands look alike but aren't the same measurement,
- * so aliasing them would let a retune of one silently move the other.
- */
-export const BRAND_COLS = { copy: 48.3, gap: 6.4, media: 45 } as const;
-
-/**
- * The mark's own aspect, and a ceiling on how wide it's drawn. 305×81 is `qcif-logo.png`
- * after cropping to its alpha (the supplied canvas was 406×722 with ink at 11.2% of the
- * height — undrawn, a contained box would show mostly transparent padding). The cap is
- * measured off the comp (~17% of the content box), well under the 45% column it sits in —
- * without it a logo stretched to fill its column stops reading as a mark.
- */
-export const BRAND_MARK_ASPECT = 305 / 81;
-export const BRAND_MARK_MAX = fluid(180, 300, 360);
-
-/**
- * The hero video's frame is 1080×1350, but the browser mockup inside it isn't full-bleed
- * — the clip pads it top and bottom with flat colour. Decoded and walked pixel by pixel
- * (stable across thirteen timestamps), the mockup sits at y:[416, 933], i.e. 517px tall,
- * centred.
+ * The identity band's frame, and **the one slot that holds its own shape rather than the
+ * asset's** — which is why its three figures are the same number.
  *
- * `QCIF_HERO_ASPECT` is `1080 / 517`, not `1080 / 1350`: with the box wider than the
- * frame's own 4:5, `object-cover` scales to the full 1080 width and crops only the
- * height it overflows by, so setting the crop window's height to the mockup's own
- * removes the padding and none of the mockup. Side margins are left alone (`cover` can't
- * crop the axis it isn't scaling by), and are invisible now that `--color-navy` matches
- * the clip's own padding colour.
+ * Everywhere else the supplied asset brings its ratio and the range only guards the layout
+ * (see `MediaFrame` below). Here the crop *is* the composition: the clip is a 540×720
+ * portrait slice of a repeating grid of panels, so drawing it at its own 0.75 would stand a
+ * column of squares next to three paragraphs, where cropping it to the gallery photograph it
+ * replaced reproduces the band as measured. Auto Maxx's capture is 836×679, i.e. 1.231
+ * against this 1.222, so it loses nothing to the same frame.
  */
-export const QCIF_HERO_ASPECT = 1080 / 517;
+export const IDENTITY_FRAME: MediaFrame = {
+  fallback: IDENTITY_MEDIA_ASPECT,
+  min: IDENTITY_MEDIA_ASPECT,
+  max: IDENTITY_MEDIA_ASPECT,
+};
+
+/* ── the media frames ────────────────────────────────────────────────────── */
 
 /**
- * Cafe Technica's hero video, same story as QCIF's above, from the same 1080×1350 frame.
- * The padding here is flat black — already this band's own `dark` tone, so unlike QCIF's
- * this asset needed no matching colour of its own. The mockup sits at y:[397, 952] —
- * 555px tall, centred — hence `1080 / 555`.
+ * What shape a slot draws a supplied asset in, now that the assets are the client's.
+ *
+ * **Three per-study aspect constants used to live here and they could not survive the
+ * move to the CMS.** `CAFE_HERO_ASPECT`, `QCIF_HERO_ASPECT` and `CRM_HERO_ASPECT` were each
+ * one asset's own measured dimensions — two of them crop windows solved pixel by pixel
+ * against a letterboxed clip. A constant per asset is exactly what a CMS field replaces: the
+ * moment somebody can swap the picture, a number in this file that describes the old picture
+ * is wrong rather than precise.
+ *
+ * So a slot states a `fallback` and a range instead, and the asset brings its own ratio:
+ *
+ *   - **`fallback`** is what the slot draws when nothing says otherwise — a CMS row with no
+ *     image at all, or a video whose URI carries no poster. Every one of them is the
+ *     reference's own measured figure, so an empty slot still lays the band out correctly.
+ *   - **`min` / `max`** are the shapes the *layout* can hold, not the shapes a picture may
+ *     be. They exist because the client can now upload a portrait photograph into a slot the
+ *     page expects a landscape screenshot in, and an unclamped ratio there does not crop the
+ *     picture, it reflows the band — a 3:4 upload in the masthead is a 940px-tall hero that
+ *     pushes the intro columns under the fold, which `MASTHEAD_PAD_TOP` records as a hard
+ *     constraint. Inside the range nothing is cropped at all; outside it `object-cover` takes
+ *     over and the band keeps its proportions.
+ *
+ * Measured against the three studies' real assets, every one of them lands *inside* its
+ * range, so this reproduces what the page drew before: 1.584 and 1.650 for the two hero
+ * clips (which is nearer the reference's own 1.607 than the 1.946/2.089 crop windows they
+ * replace), 1.851 for the Auto Maxx capture, 1.601/1.679/1.231 for the three outcome
+ * pictures, 1.163/1.851 for the applications, and 1.271/1.498 for the testimonial cards —
+ * the last two against a measured `CARD_ASPECT` of 1.268 and QCIF's stated 1.498.
  */
-export const CAFE_HERO_ASPECT = 1080 / 555;
+export type MediaFrame = { fallback: number; min: number; max: number };
 
 /**
- * The Auto Maxx hero screenshot's own 835×495. Same story as QCIF's: the capture already
- * carries its own browser chrome, so the masthead places it bare rather than inside
- * `BrowserMock`. Stated as the asset's own dimensions so the frame never crops it.
+ * The asset's own ratio if the layout can hold it, the nearest shape it can hold if not, and
+ * the slot's measured figure when the asset doesn't say what shape it is.
+ *
+ * Both dimensions have to be positive numbers to count: a CMS image URI carries its origin
+ * size in a hash parameter and a video its poster's, and either can be absent, zero or a
+ * string — see `parseWixImage` / `parseWixVideo`.
  */
-export const CRM_HERO_ASPECT = 835 / 495;
+export function frameRatio(
+  width: number,
+  height: number,
+  frame: MediaFrame,
+): number {
+  if (!(width > 0) || !(height > 0)) return frame.fallback;
+  return Math.min(frame.max, Math.max(frame.min, width / height));
+}
+
+/**
+ * The masthead's hero, and the one slot whose range is a real constraint rather than a
+ * guard. The mock column is `HERO_ROW.mock` (41.1%) of the masthead's content box — 703px at
+ * the reference's 1902 — and the band's opening arithmetic leaves it about 522px of height
+ * before "MAY 2026" goes under the fold, so anything squarer than ~1.35 breaks the one thing
+ * `MASTHEAD_PAD_TOP` is holding. The fallback is `MOCK_ASPECT`, which is the drawn mockup's
+ * own shape and therefore what the row was measured around.
+ */
+export const HERO_FRAME: MediaFrame = { fallback: MOCK_ASPECT, min: 1.35, max: 2.4 };
+
+/**
+ * The outcome band's capture. Looser than the hero's: it sits in half the content box with
+ * a whole band to itself, so a tall picture costs height and nothing else. The floor is there
+ * so a portrait upload cannot make the right column twice the copy's height.
+ */
+export const OUTCOME_FRAME: MediaFrame = { fallback: MOCK_ASPECT, min: 0.9, max: 2.4 };
+
+/**
+ * The applications band. `APPLY_PHOTO_ASPECT` (the supplied 831×707 van) is the fallback and
+ * the floor is below it, because this is the one slot the reference itself fills with a
+ * nearly-square photograph.
+ */
+export const APPLY_FRAME: MediaFrame = {
+  fallback: APPLY_PHOTO_ASPECT,
+  min: 0.7,
+  max: 2.4,
+};
+
+/**
+ * The testimonial card. Its ratio decides the card's *width* through the `min()` in
+ * ./Testimonial, so this is the one frame where the range also bounds how wide the panel
+ * gets on a short window.
+ */
+export const CARD_FRAME: MediaFrame = { fallback: CARD_ASPECT, min: 0.8, max: 2.2 };
 
 /* ── section 7, the summary of deliverables ─────────────────────────────── */
 

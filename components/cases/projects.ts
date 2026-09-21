@@ -47,6 +47,11 @@ export type CaseProject = {
    * `null` until there is somewhere to go. The link renders as a `<span>` while it is null
    * and as an `<a>` once it is a path — an `href="#"` is worse for a keyboard or a screen
    * reader than no link at all, and a link to a route that 404s is worse still.
+   *
+   * **Not a CMS field.** ./content derives it as `/work/<the row's id>`, and only for a row
+   * that has a study page at that slug — see the note there on the `link` column that was
+   * deleted. In the fallback entries below it is written out, because they are what renders
+   * when the CMS cannot be reached at all and there is then nothing to derive from.
    */
   link: string | null;
   /**

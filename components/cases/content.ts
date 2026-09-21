@@ -5,6 +5,7 @@ import {
   wixQuery,
   wixText,
 } from "@/lib/wix";
+import { caseStudySlugsFromWix } from "@/components/study/cms";
 import { CASE_PROJECTS, type CaseProject } from "./projects";
 
 /**
@@ -24,9 +25,14 @@ import { CASE_PROJECTS, type CaseProject } from "./projects";
  * nothing but those four renders exactly like Café Technica's**: cropped to the row's shared
  * frame, centred, rounded, and with no link.
  *
- *   - `link` absent → the card's "Explore project" is a `<span>`, not a dead `<a>`. This is
- *     the case that matters for a client adding work: a new row is a card on the home page
- *     immediately, and it stays unclickable until somebody builds `app/work/<slug>` for it.
+ *   - **The link is not a field at all** — it is this row's id under `/work/`, and the card is
+ *     clickable exactly when a study page exists at it. A `link` column used to carry the path
+ *     and was deleted: once the study pages became CMS rows keyed by the same slug, the column
+ *     held nothing but `/work/` plus the id it sat beside, so the only thing it could
+ *     contribute was a typo — and a typo there is a card that looks right in the CMS and 404s
+ *     on the site, with nothing to warn anyone. What it *did* earn was the empty case, which
+ *     is preserved below rather than dropped: a card whose study hasn't been written yet is an
+ *     unclickable caption, not a dead link.
  *   - `rounded` absent → **rounded**, which inverts the field's default in `./projects`. Every
  *     card on the page opts in there, so "unset" meaning square would make a new row the odd
  *     one out; a client who wants square corners unticks a box.
@@ -46,7 +52,11 @@ import { CASE_PROJECTS, type CaseProject } from "./projects";
  * — and is used whenever the CMS yields nothing usable.
  */
 
-function normalise(row: Record<string, unknown>): CaseProject | null {
+function normalise(
+  row: Record<string, unknown>,
+  /** The slugs that have a study page. See `linkFor` below. */
+  pages: ReadonlySet<string>,
+): CaseProject | null {
   const id = wixText(row._id);
   const title = wixText(row.title);
   const description = wixText(row.description);
@@ -55,7 +65,6 @@ function normalise(row: Record<string, unknown>): CaseProject | null {
   // cell to build, and an empty one still costs the track a whole pitch of travel.
   if (!id || !title || !description || !img) return null;
 
-  const link = wixText(row.link);
   // Positive and finite or it doesn't count: this number becomes an `aspectRatio`, and it is
   // the *row's* frame that `Math.max`es over it, so one bad value in one row would reshape
   // every card beside it.
@@ -69,7 +78,7 @@ function normalise(row: Record<string, unknown>): CaseProject | null {
     title,
     description,
     imageSrc: wixOriginalUrl(img),
-    link: link || null,
+    link: pages.has(id) ? `/work/${id}` : null,
     ...(aspect === undefined ? {} : { aspect }),
     // Only an explicit `false` turns it off — see the docblock above on why absent is `true`.
     rounded: row.rounded !== false,
@@ -86,9 +95,18 @@ function normalise(row: Record<string, unknown>): CaseProject | null {
  * home page with no work on it and no way to make contact.
  */
 export async function caseStudiesFromWix(): Promise<CaseProject[]> {
-  const rows = await wixQuery(CASE_STUDIES_COLLECTION, { sortField: "order" });
+  // Two reads, and the second is what decides whether a card is a link: a card points at
+  // `/work/<its id>`, so the only question is whether a study has been written there. Both are
+  // ordinary cached fetches on the same revalidate, so this stays one build step and the page
+  // stays static — see `revalidate` in `app/page.tsx`.
+  const [rows, slugs] = await Promise.all([
+    wixQuery(CASE_STUDIES_COLLECTION, { sortField: "order" }),
+    caseStudySlugsFromWix(),
+  ]);
+  const pages = new Set(slugs);
+
   const projects = (rows ?? [])
-    .map(normalise)
+    .map((row) => normalise(row, pages))
     .filter((p): p is CaseProject => p !== null);
 
   return projects.length > 0 ? projects : CASE_PROJECTS;

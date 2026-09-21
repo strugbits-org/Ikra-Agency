@@ -326,7 +326,20 @@
       "Bash(node --env-file=.env -e ' *)",
       "Bash(node --env-file=.env --experimental-strip-types \"C:/Users/AGA Computer/AppData/Local/Temp/pw/token-stale.mts\")",
       "Bash(sed 's|if \\(!url.includes\\(\"?fresh=\"\\)\\) {|if \\(false\\) {|' token-stale.mts)",
-      "Bash(node --env-file=.env --experimental-strip-types \"C:/Users/AGA Computer/AppData/Local/Temp/pw/token-happy.mts\")"
+      "Bash(node --env-file=.env --experimental-strip-types \"C:/Users/AGA Computer/AppData/Local/Temp/pw/token-happy.mts\")",
+      "mcp__claude_ai_Wix__SearchWixHeadlessDocumentation",
+      "Bash(node --env-file=.env \"C:/Users/AGACOM~1/AppData/Local/Temp/claude/d--tanzeel-Ikra-Agency/b8f7ef4e-5778-4531-9a2e-b197b1bbe5f7/scratchpad/probe-pages.mjs\")",
+      "Bash(node shoot.mjs)",
+      "Bash(node bands.mjs)",
+      "Bash(node overflow.mjs)",
+      "Bash(echo \"=== exit $? ===\")",
+      "PowerShell($p = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue; if \\($p\\) { Stop-Process -Id $p.OwningProcess -Force; \"stopped $\\($p.OwningProcess\\)\" } else { \"nothing on 3000\" })",
+      "Bash(curl -s \"http://localhost:3000/work/not-a-study\")",
+      "Bash(curl -sI \"http://localhost:3000/work/not-a-study\")",
+      "Bash(curl -s \"http://localhost:3000/work/fresh-slug-c\")",
+      "Bash(curl -s \"http://localhost:3000/work/qcif\")",
+      "PowerShell($p = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue; if \\($p\\) { Stop-Process -Id $p.OwningProcess -Force; \"stopped\" } else { \"nothing on 3000\" })",
+      "Bash(node corners.mjs)"
     ],
     "additionalDirectories": [
       "d:\\tanzeel\\ikra-backups\\case-studies-v1-stack",

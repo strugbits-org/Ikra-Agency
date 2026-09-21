@@ -1,10 +1,8 @@
 import Image from "next/image";
 import type { CSSProperties } from "react";
-import BrowserMock from "./BrowserMock";
-import SitePreview from "./SitePreview";
 import { Band, Display, Measure, Prose } from "./primitives";
 import type { CaseStudy } from "./content";
-import { OUTCOME_BODY_GAP, OUTCOME_MOCK_WIDTH } from "./metrics";
+import { OUTCOME_BODY_GAP } from "./metrics";
 
 /**
  * Band 4: what was shipped, beside a mockup of it.
@@ -14,9 +12,10 @@ import { OUTCOME_BODY_GAP, OUTCOME_MOCK_WIDTH } from "./metrics";
  * inside the frame-edge detection's own error. So it is `items-center` rather than a top
  * offset, and it stays right as the copy's length changes.
  *
- * The mockup is 39.9% of the content box, not the full half: like the masthead's it stops
- * short of the right gutter, and that inset is what keeps the page's right edge ragged in
- * the same way the two text bands above leave theirs.
+ * The picture takes the half-column whole. The reference's own drawn mockup sat at 39.9% of
+ * the content box, stopping short of the right gutter to keep that edge ragged — but that was
+ * a mockup this page drew, and every study now supplies a real capture, whose comp runs it to
+ * the gutter. `OUTCOME_MOCK_WIDTH` went with `BrowserMock`.
  */
 export default function Outcome({ study }: { study: CaseStudy }) {
   // Optional since the second study has no such band — see BandKey in ./content.
@@ -45,25 +44,17 @@ export default function Outcome({ study }: { study: CaseStudy }) {
             />
           </div>
 
-          {/* The drawn mockup is centred in the right half at its measured 39.9%;
-              `justify-self-center` rather than a margin, so that width is the only figure the
-              column needs. A supplied capture takes the column whole instead — it is a real
-              screenshot at its own aspect, and its comp runs it to the gutter. */}
-          <div
-            className={
-              media ? "w-full" : "w-full lg:justify-self-center lg:[width:var(--mock-w)]"
-            }
-            style={
-              {
-                // A share of the *content box*, restated against the half-column it sits in.
-                "--mock-w": `${(OUTCOME_MOCK_WIDTH / 50) * 100}%`,
-              } as CSSProperties
-            }
-          >
+          {/* The picture takes the half-column whole, which is what the comp for a supplied
+              capture shows. A drawn browser mockup used to stand here at a measured 39.9%
+              inset for a study that had no screenshot of its own — that is gone with
+              `BrowserMock`, because every study now brings its own picture out of the CMS. */}
+          <div className="w-full">
             {media ? (
               <>
-                {/* The asset's own aspect on the box, so `object-cover` has nothing to crop
-                    — the same arrangement the masthead's capture uses. */}
+                {/* The asset's own aspect on the box, bounded by `OUTCOME_FRAME`, so
+                    `object-cover` has nothing to crop for any ordinary upload. Not ./Media:
+                    this slot is pictures only — the CMS offers no video here — and the caption
+                    below has to sit inside the same column. */}
                 <div
                   className="relative w-full overflow-hidden [aspect-ratio:var(--shot-aspect)]"
                   style={{ "--shot-aspect": media.aspect } as CSSProperties}
@@ -81,10 +72,6 @@ export default function Outcome({ study }: { study: CaseStudy }) {
                   <Prose paragraphs={caption} style={{ marginTop: OUTCOME_BODY_GAP }} />
                 ) : null}
               </>
-            ) : study.preview ? (
-              <BrowserMock label={`The ${study.title} website`}>
-                <SitePreview preview={study.preview} />
-              </BrowserMock>
             ) : null}
           </div>
         </div>

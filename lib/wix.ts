@@ -49,6 +49,28 @@ export const APPROACH_COLLECTION = "Approach";
 export const CASE_STUDIES_COLLECTION = "CaseStudies";
 
 /**
+ * The collection behind the case-study *pages* — one row per study, keyed by the slug its
+ * route is served at (`cafe-technica`, `qcif`, `auto-maxx`). Same permissions as the rest.
+ *
+ * Deliberately **not** the same collection as `CASE_STUDIES_COLLECTION` above, which holds the
+ * home page's cards. The two are the same subject and were nearly merged; they are separate
+ * because the card is a picture and two lines and the page is forty fields, and putting them in
+ * one row makes editing a card mean scrolling past a case study. The slug is the join: a card's
+ * `link` is `/work/<this row's id>`.
+ */
+export const CASE_STUDY_PAGES_COLLECTION = "CaseStudyPages";
+
+/**
+ * The summary-of-deliverables table, as one row per *line* of it rather than one per study.
+ *
+ * It is a second collection and not a field because the table is two levels deep — terms, each
+ * holding either a paragraph or a grid of cards — and nothing flat expresses that. A row is
+ * `study` + `group` + an optional card `title` + `body`; rows sharing a `group` are one term,
+ * and a group whose rows have titles renders as cards. See `components/study/cms.ts`.
+ */
+export const CASE_STUDY_DELIVERABLES_COLLECTION = "CaseStudyDeliverables";
+
+/**
  * How long a page holds its copy of the CMS before asking again.
  *
  * **A minute, and the argument for it is that both alternatives were worse.** This started at
@@ -251,6 +273,24 @@ export const wixParagraphs = (v: unknown) =>
     .filter(Boolean);
 
 /**
+ * A CMS TEXT field split on every newline — one line in the box is one entry out.
+ *
+ * The counterpart to `wixParagraphs`, and the difference is what a line break *means* in the
+ * field. A run of prose wraps, so only a blank line can separate paragraphs; a list does not
+ * wrap, so a single newline is the separator and a blank line is just spacing. Both conventions
+ * are named in the `description` of every field that uses them, which is what the client reads
+ * in the CMS.
+ *
+ * Used for the things on a case study that are genuinely lists: the three lines of the client
+ * block, the hero headline's hand-set line breaks, the chart's bars and the credits' rows.
+ */
+export const wixLines = (v: unknown) =>
+  wixText(v)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+/**
  * One page of a collection, sorted. Returns the `data` objects rather than the envelope,
  * because nothing here wants the envelope.
  *
@@ -260,7 +300,19 @@ export const wixParagraphs = (v: unknown) =>
  */
 export async function wixQuery(
   dataCollectionId: string,
-  { sortField, limit = 50 }: { sortField?: string; limit?: number } = {},
+  {
+    sortField,
+    filter,
+    limit = 50,
+  }: {
+    sortField?: string;
+    /**
+     * A Wix Data filter, e.g. `{ study: "qcif" }`. Passed through as given — this module does
+     * not build filters, it forwards one, and every caller so far wants a single equality.
+     */
+    filter?: Record<string, unknown>;
+    limit?: number;
+  } = {},
 ): Promise<WixDataItem[] | null> {
   try {
     const token = await wixVisitorToken();
@@ -270,6 +322,7 @@ export async function wixQuery(
       body: JSON.stringify({
         dataCollectionId,
         query: {
+          ...(filter ? { filter } : {}),
           ...(sortField ? { sort: [{ fieldName: sortField, order: "ASC" }] } : {}),
           paging: { limit },
         },
@@ -353,3 +406,76 @@ export function wixImageUrl(img: WixImage, w: number, h: number, quality = 85) {
 export function wixSrcSet(img: WixImage, w: number, h: number) {
   return `${wixImageUrl(img, w, h)} 1x, ${wixImageUrl(img, w * 2, h * 2)} 2x`;
 }
+
+/**
+ * A Media Manager video, as a CMS VIDEO field stores it.
+ *
+ * `wix:video://v1/<videoId>/<file name>#posterUri=<image id>&posterWidth=…&posterHeight=…` —
+ * the same shape as the image URI above, with a poster frame in place of the origin size. The
+ * poster is a frame *of the clip*, so its dimensions are the clip's, which is the only place a
+ * video's aspect ratio is available to us without downloading it.
+ *
+ * **Everything after the video id is optional here, deliberately.** This URI is written by the
+ * CMS's own media picker rather than by us, so the one part worth relying on is the id in the
+ * path; a missing or renamed hash parameter costs a poster and a measured ratio, not the video.
+ * A plain `https://video.wixstatic.com/video/<id>/…` URL is accepted too, because that is what
+ * somebody pasting a link out of the Media Manager will produce.
+ */
+export type WixVideo = {
+  videoId: string;
+  name: string;
+  /** The poster frame's own Media Manager id, or `null` when the URI doesn't carry one. */
+  posterId: string | null;
+  /** The clip's pixel size, read off the poster. `0` when the URI doesn't say. */
+  width: number;
+  height: number;
+};
+
+export function parseWixVideo(value: unknown): WixVideo | null {
+  if (typeof value !== "string" || !value) return null;
+
+  if (value.startsWith("wix:video://")) {
+    const [path, hash = ""] = value.slice("wix:video://".length).split("#");
+    const parts = path.split("/");
+    // v1 / <videoId> / <name…> — anything without an id is not a video we can play.
+    if (parts.length < 2 || !parts[1]) return null;
+    const params = new URLSearchParams(hash);
+    return {
+      videoId: parts[1],
+      name: parts.slice(2).join("/"),
+      posterId: params.get("posterUri"),
+      width: Number(params.get("posterWidth")) || 0,
+      height: Number(params.get("posterHeight")) || 0,
+    };
+  }
+
+  const direct = value.match(/^https:\/\/video\.wixstatic\.com\/video\/([^/?#]+)/);
+  if (!direct) return null;
+  return { videoId: direct[1], name: "", posterId: null, width: 0, height: 0 };
+}
+
+/**
+ * The clip's playable URLs, best first — fed to a `<video>` as several `<source>`s.
+ *
+ * **A single hardcoded resolution is what this replaces, and it was a latent 403.** Wix
+ * transcodes an upload only as far as its source resolution goes, so `720p` exists for some
+ * clips and not others: measured on this site's own assets, the re-cropped hero clips (922×582
+ * and 904×548) serve `480p` and the original, and answer `720p` with a flat `403`. The old code
+ * asked for `720p` by name because the clips it was written against happened to have one.
+ *
+ * `480p` is Wix's baseline transcode and is what every clip has; `/file` is the upload itself
+ * and therefore cannot be missing. A browser walking a `<source>` list moves to the next entry
+ * when one fails to load, so the pair is "the small one if it exists, the original if not" with
+ * no knowledge of the asset needed — which is the point, since the asset is now the client's to
+ * change. The original is two to three times the size, so it is the fallback and not the lead.
+ */
+export const wixVideoSources = (video: WixVideo) => [
+  `https://video.wixstatic.com/video/${video.videoId}/480p/mp4/file.mp4`,
+  `https://video.wixstatic.com/video/${video.videoId}/file`,
+];
+
+/** The clip's poster frame, for the `poster` attribute. `undefined` when the URI has none. */
+export const wixPosterUrl = (video: WixVideo) =>
+  video.posterId
+    ? `https://static.wixstatic.com/media/${video.posterId}`
+    : undefined;

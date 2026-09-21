@@ -1,5 +1,5 @@
-import Image from "next/image";
 import type { CSSProperties } from "react";
+import Media from "./Media";
 import { Band, Display, Measure, Prose } from "./primitives";
 import type { MediaSplit as MediaSplitContent } from "./content";
 import type { Tone } from "./primitives";
@@ -14,20 +14,17 @@ import { SPLIT_BODY_GAP } from "./metrics";
  * component rather than two nearly-identical files; the figures live in ./metrics and the
  * words in ./content, and this holds the composition they have in common.
  *
- * ## The media is a ratio box, not an intrinsic image
+ * ## The media is a ratio box, and ./Media is the box
  *
- * `fill` inside a box whose `aspect-ratio` is the asset's own, so the frame is exact at every
- * width, nothing crops, and the row's height is a function of the column rather than of the
- * viewport. An intrinsic `<Image>` would reflow the row as the page scales and pull the copy
- * off the media's centre line. It is also what makes the swap to a video a one-element change
- * — the box already reserves the space.
+ * Every asset on this page is drawn by one component, so the ratio, the `object-cover` and the
+ * video-source fallback are stated once. What this file still owns is the *column* the box
+ * sits in — see `cols` below.
  *
- * ## `fit` and `mediaMax` exist for artwork rather than photographs
- *
- * A photograph wants to fill its frame, so `cover` is the default and the frame carries the
- * asset's own ratio. A logo does not: it has its own edges, cropping it cuts them off, and
- * blown up to half a content box it stops reading as a mark and starts reading as a banner.
- * `fit: "contain"` with a `mediaMax` gives it a size of its own inside the column, centred.
+ * A `fit: "contain"` path and a `mediaMax` cap used to live here, for a band that put QCIF's
+ * logo in the media column instead of a photograph. That band is gone: the three studies are
+ * one template now and its copy moved to QCIF's outcome, so nothing sets a contained mark any
+ * more and the two props went with it rather than sitting unused. A future band that needs a
+ * mark rather than a picture wants them back, and wants `BRAND_MARK_MAX`'s reasoning with it.
  *
  * ## `cols` is three shares, and the middle one is the gap
  *
@@ -41,10 +38,8 @@ export default function MediaSplit({
   tone,
   side,
   cols,
-  aspect,
   headingClassName = "",
   fullHeight = false,
-  mediaMax,
 }: {
   content: MediaSplitContent;
   tone: Tone;
@@ -52,28 +47,23 @@ export default function MediaSplit({
   side: "left" | "right";
   /** copy share, gap, media share — as percentages of the content box, in that order. */
   cols: { copy: number; gap: number; media: number };
-  /** The asset's own width ÷ height, so `object-cover` never has anything to crop. */
-  aspect: number;
   /** The identity band sets its display line in the accent; the applications band does not. */
   headingClassName?: string;
-  /** A ceiling on the media's width, for artwork that should not fill its column. */
-  mediaMax?: string;
   /**
    * Hold a viewport from `lg` up. `min-h`, never `h`: a short wide window can leave the copy
    * taller than the screen, and a fixed height would push its last paragraph under the band.
    */
   fullHeight?: boolean;
 }) {
-  // The band's measured frame, unless the record brings a capture with a ratio of
-  // its own — see `aspect` on the content type.
-  const { heading, paragraphs, photo, fit = "cover", aspect: ownAspect } = content;
-  const frame = ownAspect ?? aspect;
-  const lines = typeof heading === "string" ? [heading] : heading;
+  // The frame is resolved before the record gets here — the asset's own ratio bounded by the
+  // band's `MediaFrame`, or the band's measured figure outright on the identity band. See
+  // `frameRatio` in ./metrics.
+  const { heading, paragraphs, media: asset } = content;
 
   const copy = (
     <div key="copy">
       <Display className={headingClassName}>
-        {lines.map((line) => (
+        {heading.map((line) => (
           <span key={line} className="block">
             {line}
           </span>
@@ -90,37 +80,11 @@ export default function MediaSplit({
   );
 
   const media = (
-    <div
+    <Media
       key="media"
-      // `mx-auto` only bites once `maxWidth` is under the column, so it costs nothing on the
-      // photograph bands and centres the mark on the one that sets a cap.
-      className="relative mx-auto w-full overflow-hidden [aspect-ratio:var(--media-aspect)]"
-      style={{ "--media-aspect": frame, maxWidth: mediaMax } as CSSProperties}
-    >
-      {photo.video ? (
-        // The frame above is already the clip's own ratio (see IDENTITY_MEDIA_ASPECT), so
-        // `object-cover` has nothing to crop — same reasoning as the masthead's video.
-        <video
-          className="absolute inset-0 h-full w-full object-cover"
-          src={photo.src}
-          aria-label={photo.alt}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-        />
-      ) : (
-        <Image
-          src={photo.src}
-          alt={photo.alt}
-          fill
-          sizes={`(min-width: 1024px) ${Math.round(cols.media)}vw, 100vw`}
-          className={fit === "contain" ? "object-contain" : "object-cover"}
-          style={{ objectPosition: photo.focus }}
-        />
-      )}
-    </div>
+      media={asset}
+      sizes={`(min-width: 1024px) ${Math.round(cols.media)}vw, 100vw`}
+    />
   );
 
   const mediaFirst = side === "left";
