@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { MARK_PATH, MARK_STEP_X, MARK_VIEW_BOX } from "@/components/about/marks";
 import { Band, Display, Measure, Prose } from "./primitives";
 import type { Tone } from "./primitives";
 import type { CaseStudy } from "./content";
@@ -23,9 +24,13 @@ import {
  * right and leave the following two hanging left of it, which is the giveaway that a layout
  * has been eyeballed from a screenshot.
  *
- * They are also drawn rather than typed. `“` in the sans renders as two thin commas; the
- * reference's are two solid teardrops, which is a shape and not a character, so it is an
- * SVG. That also keeps them off whatever the serif's own quote glyph happens to look like.
+ * They are also drawn rather than typed. `“` in the sans renders as two thin commas; this is
+ * a solid shape and not a character, so it is an SVG — which also keeps it off whatever the
+ * serif's own quote glyph happens to look like. **The drawing itself is the founders section's,
+ * imported rather than copied**: `components/about/marks.ts` carries the reference site's own
+ * outline, lifted out of its DOM, and two copies of a 500-character path is how the two ends of
+ * one site drift apart. Only the shape is shared — the size, the colour and the outdent here
+ * are this band's own measured figures.
  *
  * ## The marks come off when nobody is being quoted
  *
@@ -97,21 +102,19 @@ function QuoteMark({ className = "" }: { className?: string }) {
   return (
     <svg
       aria-hidden
-      /* Two droplets, point at the top and mass at the bottom — not two commas.
-         The reference's mark is a teardrop the *other* way up from a typographic
-         opening quote: a round bulb sitting low with a cusp rising to the right, and
-         no tail below it at all. The spike's right edge is *concave* into the bulb,
-         which is the detail that separates it from a plain teardrop. Drawn twice, 68
-         units apart, in a 118 x 72 box, so the pair reproduces the measured 118 x 75 at
-         the shipped size. Two earlier passes drew the ordinary comma-shaped glyph —
-         what `“` itself gives you, and exactly what this is not. */
-      viewBox="0 0 118 72"
+      /* The outline and the viewBox both come from ../about/marks — the path in its own
+         coordinates and the box that converts them — exactly as the founders section draws
+         it. The pair keeps its measured 118px width; the shape is a little taller in
+         proportion than the one it replaces, so at the reference size the marks reach 2.7px
+         further down into the first line, which is the direction the overlap is deliberate
+         in anyway (see the head of this file). */
+      viewBox={MARK_VIEW_BOX}
       className={`pointer-events-none text-accent ${className}`}
       style={{ width: QUOTE_MARK_SIZE, top: "var(--mark-y)" }}
       fill="currentColor"
     >
-      <path d="M36 0C28 18 0 22 0 47c0 13.8 11.2 25 25 25s25-11.2 25-25c-5-14-11-33-14-47Z" />
-      <path d="M104 0c-8 18-36 22-36 47 0 13.8 11.2 25 25 25s25-11.2 25-25c-5-14-11-33-14-47Z" />
+      <path d={MARK_PATH} />
+      <path d={MARK_PATH} transform={`translate(${MARK_STEP_X} 0)`} />
     </svg>
   );
 }

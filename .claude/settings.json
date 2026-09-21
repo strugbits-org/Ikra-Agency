@@ -391,7 +391,9 @@
       "Bash(FIELD_PROBE='#fa5e3c' npm run dev)",
       "Bash(node field-shot.mjs qcif brand-orange)",
       "Bash(node field-shot.mjs qcif restored)",
-      "Bash(node field-shot.mjs auto-maxx restored)"
+      "Bash(node field-shot.mjs auto-maxx restored)",
+      "Bash(node mark-shot.mjs)",
+      "Bash(sed -i 's/waitUntil: \"networkidle\" }\\);\\\\n/X/' mark-shot.mjs)"
     ],
     "additionalDirectories": [
       "d:\\tanzeel\\ikra-backups\\case-studies-v1-stack",
