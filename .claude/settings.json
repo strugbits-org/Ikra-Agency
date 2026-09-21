@@ -371,7 +371,15 @@
       "Bash(node marks-blocks.mjs)",
       "Bash(node marks-shot.mjs 1902 v4)",
       "Bash(node tip.mjs)",
-      "Bash(node refpath.mjs)"
+      "Bash(node refpath.mjs)",
+      "Bash(node -e \"const{webkit,chromium}=require\\('playwright'\\);console.log\\(webkit.executablePath\\(\\)\\);console.log\\(chromium.executablePath\\(\\)\\)\")",
+      "Bash(node river-baseline.mjs)",
+      "Bash(node dbl.mjs)",
+      "Bash(node looplen.mjs)",
+      "Bash(node river-verify.mjs)",
+      "Bash(node river-shot.mjs)",
+      "Bash(node river-seam.mjs)",
+      "Bash(node river-seam2.mjs)"
     ],
     "additionalDirectories": [
       "d:\\tanzeel\\ikra-backups\\case-studies-v1-stack",
