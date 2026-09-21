@@ -34,7 +34,7 @@
  */
 
 import type { CardTint } from "./metrics";
-import type { Tone } from "./primitives";
+import type { Field, Tone } from "./primitives";
 
 /**
  * The three studies that exist today, and the floor under `generateStaticParams`.
@@ -98,8 +98,11 @@ export type CaseStudy = {
   summary: string;
 
   masthead: {
-    /** The field the band sits on. `dark` unless the client's own brand brings one — QCIF's navy. */
-    tone?: Tone;
+    /**
+     * The field the band sits on: one of the five named tones, or a ground and its derived
+     * ink when the client typed a colour of their own. `dark` unless their brand brings one.
+     */
+    tone?: Tone | Field;
     /** Set as written — the reference shows a month and a year, in caps. */
     date: string;
     /** The client block: name, sector, place. Three lines in the reference. */
@@ -107,11 +110,18 @@ export type CaseStudy = {
     /** The line beside the media, set large in the serif. One entry per line. */
     headline: readonly string[];
     /**
-     * What the headline is set in, and it is derived rather than edited — see `toneOf` in
-     * ./cms. The accent is the Cafe Technica reference's; on QCIF's navy it would be the only
-     * orange within three bands of itself, so that field takes the band's own ink instead.
+     * What the headline is set in, and it is derived rather than edited — see `fieldFor` in
+     * ./field. The accent is the Cafe Technica reference's; on QCIF's navy it would be the
+     * only orange within three bands of itself, so that field takes the band's own ink
+     * instead. Empty means exactly that: inherit the field's ink.
      */
     headlineClassName?: string;
+    /**
+     * What the `ikra.` lockup is drawn in, derived the same way and held to a lower contrast
+     * floor — it is a graphic rather than type. `currentColor` where the accent would be an
+     * orange mark on an orange field.
+     */
+    markColor?: string;
     media?: StudyMedia;
     /** The two narrative columns beside the client block. */
     columns: readonly (readonly string[])[];

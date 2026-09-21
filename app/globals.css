@@ -39,9 +39,12 @@
    * no boundary.
    *
    * A second study on a second field is the reason `Tone` is an enumeration rather than a
-   * className: a case study is presented on its client's ground, so a third one may well add
-   * a fourth entry here. What it must not do is reach for `--color-ink`, which is this
-   * site's own near-black and belongs to the marketing page.
+   * className: a case study is presented on its client's ground, and each entry pairs that
+   * ground with the ink that reads on it. A third client's colour no longer arrives here,
+   * though — the CMS column takes a hex code now and `study/field.ts` derives the rest of
+   * the pairing from it, so what is left in this block is the palette the *layout* owns.
+   * What a new entry must not do is reach for `--color-ink`, which is this site's own
+   * near-black and belongs to the marketing page.
    */
   --color-navy: #0e3159;
 }

@@ -32,7 +32,23 @@ import {
  * the ink that is legible on it, so a band cannot be given a ground without also being given
  * a foreground.
  */
-export type Tone = "dark" | "paper" | "ember" | "white" | "navy";
+export const TONES = ["dark", "paper", "ember", "white", "navy"] as const;
+
+export type Tone = (typeof TONES)[number];
+
+/**
+ * The same pairing, solved rather than named — one ground and the ink that reads on it.
+ *
+ * This is what the masthead becomes when the client types a colour of their own into the CMS
+ * instead of one of the five words: the enumeration's guarantee has to be *derived* there,
+ * and ./field is where that happens. Nothing else on the page takes one, because every other
+ * band's field is the layout's choice rather than the client's.
+ *
+ * It arrives as an inline style for the reason the measured sizes do, plus one of its own:
+ * Tailwind needs class strings whole at build time, so a colour that is only known at
+ * request time cannot be a class at all.
+ */
+export type Field = { background: string; ink: string };
 
 const TONE: Record<Tone, string> = {
   // Measured #000000 / #ffffff and #f7f7f7 / #000000 — the reference sets pure black and
@@ -86,16 +102,21 @@ export function Band({
   padBottom = BAND_PAD,
   className = "",
 }: {
-  tone: Tone;
+  tone: Tone | Field;
   children: ReactNode;
   padTop?: string;
   padBottom?: string;
   className?: string;
 }) {
+  const named = typeof tone === "string";
   return (
     <section
-      className={`w-full ${TONE[tone]} ${className}`}
+      className={`w-full ${named ? TONE[tone] : ""} ${className}`}
       style={{
+        // A solved field paints itself; a named one is two Tailwind classes. `color` as well
+        // as the ground, because the ink is half of what a field is — everything inside
+        // inherits it, which is how a headline that doesn't take the accent gets its colour.
+        ...(named ? {} : { backgroundColor: tone.background, color: tone.ink }),
         paddingTop: padTop,
         paddingBottom: padBottom,
         marginBottom: `-${BAND_BLEED}`,

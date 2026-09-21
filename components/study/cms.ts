@@ -24,7 +24,7 @@ import {
   type MediaFrame,
 } from "./metrics";
 import type { CaseStudy, MediaSplit, StudyMedia } from "./content";
-import type { Tone } from "./primitives";
+import { fieldFor } from "./field";
 
 /**
  * The case studies, as the client's Wix CMS holds them.
@@ -61,26 +61,6 @@ import type { Tone } from "./primitives";
  */
 
 /* ── small readers ───────────────────────────────────────────────────────── */
-
-const TONES: readonly Tone[] = ["dark", "paper", "ember", "white", "navy"];
-
-/** The masthead's field. Anything unrecognised is `dark`, which is the reference's own. */
-function toneOf(row: WixDataItem): Tone {
-  const named = wixText(row.tone).toLowerCase();
-  return (TONES as readonly string[]).includes(named) ? (named as Tone) : "dark";
-}
-
-/**
- * Whether the masthead's headline takes the brand accent.
- *
- * `ember` and `navy` are *coloured* fields — one is this site's own orange and the other is a
- * client's brand blue — and an accent line on either is an orange line with nothing else
- * orange near it, or two oranges. The three neutral fields take the accent, which is the Cafe
- * Technica reference's own setting. Derived rather than a CMS field because it is a
- * consequence of the background the client already chose.
- */
-const accentFor = (tone: Tone) =>
-  tone === "navy" || tone === "ember" ? "" : "text-accent";
 
 /**
  * One media slot: the clip if the row names one, the picture otherwise, nothing if neither.
@@ -228,7 +208,10 @@ function normalise(row: WixDataItem, deliverableRows: WixDataItem[]): CaseStudy 
   // draw, and half of one is worse than the 404 the route falls back to.
   if (!slug || !title || client.length === 0 || headline.length === 0) return null;
 
-  const tone = toneOf(row);
+  // The hero's field, and the two colour decisions that follow from it — see ./field. The
+  // column takes a hex code now as well as one of the five names, so neither of those can be
+  // read off a name any more.
+  const field = fieldFor(wixText(row.tone));
   const testimonialPhoto = parseWixImage(row.testimonialImage);
   const testimonialText = wixParagraphs(row.testimonialText);
   if (!testimonialPhoto || testimonialText.length === 0) return null;
@@ -264,8 +247,9 @@ function normalise(row: WixDataItem, deliverableRows: WixDataItem[]): CaseStudy 
     summary: wixText(row.summary),
 
     masthead: {
-      tone,
-      headlineClassName: accentFor(tone),
+      tone: field.band,
+      headlineClassName: field.headlineClassName,
+      markColor: field.markColor,
       date: wixText(row.heroDate),
       client,
       headline,

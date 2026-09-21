@@ -64,6 +64,7 @@ export default function Masthead({ study }: { study: CaseStudy }) {
     media,
     tone = "dark",
     headlineClassName = "text-accent",
+    markColor = "var(--color-accent)",
   } = study.masthead;
 
   // headline | gap | mockup | the inset it keeps from the right gutter.
@@ -75,7 +76,7 @@ export default function Masthead({ study }: { study: CaseStudy }) {
       {/* The mark has a gutter of its own — see GUTTER_MARK — so it gets its own Measure
           rather than a negative margin inside the one below. */}
       <Measure gutter={GUTTER_MARK}>
-        <StudyMark />
+        <StudyMark color={markColor} />
       </Measure>
 
       {/* The hero row is on the page's own gutter; the intro columns below it are on the
@@ -160,8 +161,14 @@ export default function Masthead({ study }: { study: CaseStudy }) {
  * A link home rather than a static mark. The reference is a screen capture and cannot show
  * whether its own is clickable, but this is the only route out of a case study, and a
  * wordmark in the top-left corner is where a reader looks for one.
+ *
+ * **Neither colour here is stated, and on a light field that is the difference between a
+ * lockup and a blank corner.** The descriptor was `text-white`, which was safe while every
+ * masthead was black or navy and is the first thing to break now that the client can type any
+ * colour into the CMS — so it inherits the band's own ink. The mark takes `color`, which
+ * ./field holds to a contrast floor against the field for the same reason.
  */
-function StudyMark() {
+function StudyMark({ color }: { color: string }) {
   return (
     <Link
       href="/"
@@ -173,9 +180,9 @@ function StudyMark() {
           see MARK_WIDTH. `flex`, so the inline-block mark inside is blockified and adds no
           baseline descender under itself; that gap alone was 3px of the lockup's height. */}
       <span className="flex" style={{ width: MARK_WIDTH }}>
-        <Logo className="w-full" color="var(--color-accent)" />
+        <Logo className="w-full" color={color} />
       </span>
-      <span className="mt-[0.06em] block text-white">
+      <span className="mt-[0.06em] block">
         <span className="block">rebranding</span>
         <span className="block">agency</span>
       </span>

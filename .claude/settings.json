@@ -379,13 +379,26 @@
       "Bash(node river-verify.mjs)",
       "Bash(node river-shot.mjs)",
       "Bash(node river-seam.mjs)",
-      "Bash(node river-seam2.mjs)"
+      "Bash(node river-seam2.mjs)",
+      "Bash(npx --yes tsx field-check.ts)",
+      "Bash(npm run dev > /tmp/devserver.log 2>&1 & *)",
+      "Bash(node field-shot.mjs qcif after)",
+      "Bash(node field-shot.mjs cafe-technica after)",
+      "Bash(taskkill //PID 9052 //F)",
+      "Bash(FIELD_PROBE='#f4e9c9' npm run dev)",
+      "Bash(node field-shot.mjs qcif pale-cream)",
+      "Bash(taskkill //PID 12468 //F)",
+      "Bash(FIELD_PROBE='#fa5e3c' npm run dev)",
+      "Bash(node field-shot.mjs qcif brand-orange)",
+      "Bash(node field-shot.mjs qcif restored)",
+      "Bash(node field-shot.mjs auto-maxx restored)"
     ],
     "additionalDirectories": [
       "d:\\tanzeel\\ikra-backups\\case-studies-v1-stack",
       "C:\\Users\\AGA Computer\\AppData\\Local\\Temp\\pw",
       "\\tmp\\pw",
-      "C:\\tmp\\pw"
+      "C:\\tmp\\pw",
+      "\\tmp"
     ]
   }
 }
