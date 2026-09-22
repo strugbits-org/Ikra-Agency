@@ -1,6 +1,11 @@
 import type { RefObject } from "react";
 import { CELL_COUNT } from "./metrics";
-import { LEAD_CELLS, REVEAL_VH, travelPerScroll } from "./timeline";
+import {
+  LEAD_CELLS,
+  REVEAL_END_PCT,
+  REVEAL_VH,
+  travelPerScroll,
+} from "./timeline";
 
 /**
  * The layout figures the approach section's paint is computed against, read back from the DOM
@@ -63,6 +68,14 @@ export type ApproachMeasure = {
   lead: number;
   /** Px of horizontal travel per px of vertical scroll — see travelPerScroll. */
   pace: number;
+  /**
+   * The stage's own height, and the section's bottom padding under it. Read only so the floor
+   * that keeps the footer out of the hold can be checked against the real boxes rather than
+   * against the constants it is written from — see `assertApproachGeometry` and
+   * ./ApproachLayers' APPROACH_STAGE_FLOOR.
+   */
+  stageH: number;
+  padBottom: number;
   viewportH: number;
 };
 
@@ -97,6 +110,8 @@ export function measureApproach(refs: ApproachRefs): ApproachMeasure {
       ? dotX[LEAD_CELLS]
       : leadIn + (visible / CELL_COUNT) * LEAD_CELLS;
 
+  const section = stage?.closest("section") ?? null;
+
   return {
     visible,
     trackW,
@@ -106,6 +121,10 @@ export function measureApproach(refs: ApproachRefs): ApproachMeasure {
     dotR,
     lead,
     pace: travelPerScroll(visible, viewportH),
+    stageH: stage?.offsetHeight ?? 0,
+    padBottom: section
+      ? parseFloat(getComputedStyle(section).paddingBottom) || 0
+      : 0,
     viewportH,
   };
 }
@@ -202,6 +221,25 @@ export const trackXFor = (m: ApproachMeasure, reachPx: number) =>
  * to reach.
  */
 export function assertApproachGeometry(m: ApproachMeasure) {
+  /**
+   * The footer's runway, and it has to be non-negative or whatever follows this section climbs
+   * into the hold while the line is still drawing. A pin holds the pinned element and nothing
+   * else, and the pin's own length cancels out of this — the spacer grows the section by
+   * exactly the pin — so the only thing that decides it is how much section is left under the
+   * fold when the row comes to rest. ./ApproachLayers' APPROACH_STAGE_FLOOR is what holds it,
+   * and this is the check against the real boxes rather than against the constants it is
+   * written from, so the height of the client's own copy is in it too.
+   */
+  const restY = (REVEAL_END_PCT / 100) * m.viewportH - m.dotR;
+  const runway = restY + m.stageH + m.padBottom - m.viewportH;
+  if (runway < -1) {
+    console.error(
+      `[Approach] the section's bottom edge sits ${(-runway).toFixed(0)}px above the fold when ` +
+      "the row comes to rest, so the footer is already climbing over it before the rail has " +
+      "finished drawing. Raise APPROACH_STAGE_FLOOR, or PAD_BOTTOM.",
+    );
+  }
+
   if (m.overflow <= 0) return;
   const parkedAt = m.lead + m.overflow;
   if (parkedAt >= reachTotal(m)) {

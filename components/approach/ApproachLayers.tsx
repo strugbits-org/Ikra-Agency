@@ -13,13 +13,14 @@ import {
   HEADING_LEADING,
   HEADING_MEASURE,
   HEADING_TRACKING,
+  PAD_BOTTOM,
   RAIL_GAP,
   RAIL_LEAD_IN,
   STACK_CELL_GAP,
   STACK_COPY_INDENT,
   STACK_RAIL_X,
 } from "./metrics";
-import { BOUNCE_AMP } from "./timeline";
+import { BOUNCE_AMP, REVEAL_END_PCT } from "./timeline";
 
 /**
  * The approach section's layers: the rail, the dots, and the cells of copy, in the two
@@ -324,6 +325,33 @@ const POP_OVERHANG = `calc(${DOT_D} * ${-POP_OVERHANG_RATIO.toFixed(3)})`;
  */
 export const APPROACH_STAGE_CLIP =
   `inset(${POP_OVERHANG} 0px ${POP_OVERHANG} calc(-1 * ${RAIL_LEAD_IN}))`;
+
+/**
+ * The stage's height floor, and it is a **constraint rather than a taste**: the section's
+ * bottom edge has to reach the fold when the row comes to rest, or whatever follows the section
+ * climbs into the hold while the line is still drawing.
+ *
+ * **A pin holds the pinned element and nothing else.** Its spacer reserves the distance, and
+ * every section below carries on scrolling through it — so the runway the footer has is only
+ * what is left of this section under the fold at the moment the pin engages,
+ * `restY + stage + PAD_BOTTOM - viewport`, and that is the same number whatever the pin's
+ * length, because the spacer grows the section by exactly the pin. Measured before this
+ * existed it was **-76px at 1920x953, -196 at 1440x900 and -139 at 1024x768** — negative at
+ * every width, so the footer was over the row while dots were still arriving, and at 1440 it
+ * crossed the fold **halfway through the traverse**. That was the report.
+ *
+ * `restY` is REVEAL_END_PCT of the viewport less one dot radius: the rail is the stage's first
+ * child, so the stage's top edge *is* the rail's top edge. Every term is a CSS length, so the
+ * floor is stated once and needs no measurement — ./measure asserts it against the real boxes,
+ * which is what catches a change to PAD_BOTTOM, to the dot, to REVEAL_END_PCT, or to the height
+ * of the client's own copy.
+ *
+ * What it costs is air under the copy — 76 / 196 / 139px at those three widths, and more on a
+ * tall window. That is the trade and it is the right way round: at rest the section fills the
+ * screen exactly, which is precisely what a section that is about to hold the reader should do.
+ */
+export const APPROACH_STAGE_FLOOR =
+  `calc(${100 - REVEAL_END_PCT}vh + ${DOT_D} / 2 - ${PAD_BOTTOM})`;
 
 /**
  * The clip on everything the stage no longer clips on the left: the dots and the copy. The bar

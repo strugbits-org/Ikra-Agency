@@ -3,12 +3,16 @@ import { gsap } from "@/lib/gsap";
 /**
  * The river — the orange ribbon that winds down the playground section.
  *
- * **The wide drawing is the reference's own, to the digit.** WIDE_ANCHORS is the transcription
- * and no anchor in it has been moved. What this build chooses is where that drawing *sits* on
- * the stage and how far its bottom hook reaches — three numbers, applied in `placeWide`,
- * because the reference's tail ran a hundred pixels below the fold and surfaced again in the
- * corner, which on screen is a severed blob and was reported as one. See "Why the drawing is
- * lifted, and what that buys" over those constants.
+ * **No anchor in WIDE_ANCHORS has been moved.** The table is what it always was, and it was
+ * never all transcription — the ridge is measured, the hump at the bottom is recovered off its
+ * own unclipped top edge, and the bend linking the two is authored by an earlier build. The
+ * entries say which is which; read them before treating any of it as evidence.
+ *
+ * What *this* build changes is where that drawing sits on the stage, how far its bottom hook
+ * reaches, and the one corner in it that could not survive being seen — all in `placeWide`.
+ * The tail ran a hundred pixels below the fold and surfaced again in the corner, which on
+ * screen is a severed blob and was reported as one. See "Why the drawing is lifted, and what
+ * that buys" over those constants.
  * The narrow drawing is built out of a measured piece of the same drawing but has to place it,
  * so the handful of figures that are preferences rather than measurements all sit with it: the
  * thickness band, the bleed and NARROW_CENTRE_FRAC. Each says so where it stands.
@@ -194,18 +198,25 @@ export function riverIsWide(w: number, h: number) {
  *
  * **The head** continues the path out of frame, on the row scan's measured dx/dy.
  *
- * ## The tail is transcribed too, and this build only places it
+ * ## The tail was drawn to sit below the fold, and this build brings it up
  *
- * The recording's tail is a hook: the leg drops a full 100px below the fold, troughs, climbs
- * back to a crest just inside the bottom-left corner and dives away again. It is measured
- * like everything else here — but at the reference's own placement two of its three crossings
- * of the bottom edge fall in the middle of it, so **230px of that edge carried no ink at all**
- * (x≈250…480 at 1920×915) and the crest reads as a separate orange blob stranded in the
- * corner. That was reported as "cut off and disconnected", and it is not a transcription
- * error — it is what the reference itself draws.
+ * The paragraph above says what the tail is made of, and the distinction matters here: the
+ * hump is recovered from the recording, and the bend linking it to the leg is authored. That
+ * bend was placed against the one thing the recording fixes about it — no ribbon between
+ * x≈285 and x≈420 on the last visible row — and **that evidence is exactly what put it below
+ * the fold**.
  *
- * So no anchor below is moved. What moves is the drawing: see RIVER_LIFT_V and the constants
- * under it for how the hook is brought wholly onto the stage, and what that costs.
+ * On screen the result reads as two shapes. Two of the ribbon's three crossings of the bottom
+ * edge fall in the middle of the tail, so **230px of that edge carried no ink at all**
+ * (x≈250…480 at 1920×915): the river runs off the bottom, and the hump sits in the corner as a
+ * separate orange blob with nothing joining them. It was reported as exactly that — "cut off
+ * and disconnected".
+ *
+ * So the anchors stay where they are and the *drawing* moves. RIVER_LIFT_V and the constants
+ * under it bring the whole tail onto the stage. That does set the gap-in-the-last-row evidence
+ * aside, since the bend is no longer below the fold at all — knowingly, and at the client's
+ * asking, which is the one thing worth being explicit about before anybody treats the bend's
+ * position as measured again.
  */
 const WIDE_ANCHORS: readonly (readonly [number, number])[] = [
   // — head: off the top edge, on the row scan's measured dx/dy —
@@ -241,10 +252,10 @@ const WIDE_ANCHORS: readonly (readonly [number, number])[] = [
   [0.3072, 0.7689],
   // — TAIL_JOIN: the anchor the hook is scaled about, and the leg's own heading into it —
   [0.2892, 0.8317],
-  // — the hook's bowl: down, round the trough, and back up —
   [0.2951, 0.8967],
   [0.3219, 0.9595],
   [0.3447, 0.9989],
+  // — tail: the linking bend below the fold (authored) …
   [0.3600, 1.0406],
   [0.3534, 1.0731],
   [0.3293, 1.0956],
@@ -252,10 +263,11 @@ const WIDE_ANCHORS: readonly (readonly [number, number])[] = [
   [0.2479, 1.1093],
   [0.1998, 1.0995],
   [0.1529, 1.0778],
+  // … and the hump, off its own unclipped top edge —
   [0.1119, 1.0442],
   [0.0753, 1.0031],
   [0.0388, 0.9673],
-  // — TAIL_CREST: the last turn before the river leaves the frame —
+  // — TAIL_CREST: the hump's apex, and the last turn before the river leaves the frame —
   [0.0023, 0.9562],
   // — the dive, away through the bottom-left corner —
   [-0.0342, 0.9646],
@@ -327,6 +339,41 @@ const TAIL_DIVE_FREE = 3;
 const TAIL_DIVE_SQUEEZE = 0.45;
 
 /**
+ * The crest's turn is **rounded, and that is a departure from the transcription** — the only
+ * one in the drawing's shape rather than its placement.
+ *
+ * **The hump's apex is a corner, not a turn** — and it is one of the measured parts of the
+ * drawing, so this is a change to the recording's own shape rather than to an earlier build's
+ * guess. Anchors 41–46 carry a radius of 0.37–0.68× the ribbon's width where the bend either
+ * side of them runs 1.1–2.2×. Below 0.5 a stroke folds through itself, so the *inner* edge of
+ * that corner had a radius of about 3px on an 81px ribbon — a cusp, which draws as a long thin
+ * slit rather than as the inside of a bend.
+ *
+ * None of that was visible before. The apex was the only part of the hump above the fold; the
+ * notch under it was off screen entirely. Lifting the hook is what put it in view, and it was
+ * reported there — the crest read as a pinched point rather than as a wave. So the corner is
+ * replaced by a true circular arc, tangent at both ends to the spline's own heading, with the
+ * radius stated in *reference px* so that it is a circle at the aspect everything else here
+ * was measured at.
+ *
+ * **What it costs is crest height, and that is unavoidable rather than a tuning choice.** The
+ * limbs meet at 109°, and a round turn of radius R between them puts the apex 0.66·R below
+ * their meeting point — so a rounder crest is always a lower one. At 92 the apex drops 28px at
+ * the reference viewport and the crest still stands 1.06–1.6× the ribbon's width above the
+ * trough, which still reads as a wave. Past about 100 the arc leaves no straight run at all
+ * before the seam, two anchors land on top of each other, and centripetal Catmull-Rom turns
+ * that into the very cusp this is removing — hence the assertion on the fit below.
+ *
+ * TAIL_CREST_STEP is the spacing the replaced stretch is resampled at. It is not cosmetic: the
+ * whole stretch is resampled at *one* spacing precisely so that no sample lands a pixel from a
+ * tangent point, because the spline's weights divide by the chord across each anchor.
+ */
+const TAIL_CREST_R = 92;
+const TAIL_CREST_FROM = 40;
+const TAIL_CREST_TO = 47;
+const TAIL_CREST_STEP = 12;
+
+/**
  * How far past the fold the dive is carried, in fractions of the height. The last transcribed
  * anchor sits *above* the bottom edge once the hook is lifted, so without this the river would
  * stop inside the frame on a round cap; the extension continues it on its own final heading
@@ -343,11 +390,133 @@ const TAIL_EXIT_V = 1.16;
 const TAIL_TROUGH_OVERSHOOT_V = 0.001;
 
 /**
+ * Replace the corner between two anchors with a circular arc of TAIL_CREST_R reference px,
+ * tangent at both ends to the heading the spline already has there. Mutates `P`.
+ *
+ * Returns the tangent length the arc needed and the room there was for it, which is what the
+ * assertion below checks: the two are what decide whether this rounds the corner or replaces
+ * it with a worse one.
+ */
+function roundCrest(P: (readonly [number, number])[]) {
+  const toRef = ([u, v]: readonly [number, number]) =>
+    [(RIVER_X0 + u * RIVER_XW) * REF_W, v * REF_H] as const;
+  const fromRef = ([x, y]: readonly [number, number]) =>
+    [(x / REF_W - RIVER_X0) / RIVER_XW, y / REF_H] as const;
+  const unit = ([x, y]: readonly [number, number]) => {
+    const m = Math.hypot(x, y) || 1;
+    return [x / m, y / m] as const;
+  };
+
+  const pIn = toRef(P[TAIL_CREST_FROM]);
+  const pOut = toRef(P[TAIL_CREST_TO]);
+  // The limbs' directions are the spline's own tangents at the two seams — the chord *across*
+  // each anchor, which is what Catmull-Rom uses. Taking the chord arriving at the anchor
+  // instead leaves the arc 5° off the curve it grafts onto, and the seam then tightens by more
+  // than the corner gains.
+  const before = toRef(P[TAIL_CREST_FROM - 1]);
+  const after = toRef(P[TAIL_CREST_FROM + 1]);
+  const dIn = unit([after[0] - before[0], after[1] - before[1]]);
+  const outBefore = toRef(P[TAIL_CREST_TO - 1]);
+  const outAfter = toRef(P[TAIL_CREST_TO + 1]);
+  const dOut = unit([outAfter[0] - outBefore[0], outAfter[1] - outBefore[1]]);
+
+  // Where the two limbs, extended, would meet.
+  const den = dIn[0] * dOut[1] - dIn[1] * dOut[0];
+  const along =
+    ((pOut[0] - pIn[0]) * dOut[1] - (pOut[1] - pIn[1]) * dOut[0]) / den;
+  const meet = [pIn[0] + along * dIn[0], pIn[1] + along * dIn[1]] as const;
+
+  // The tangent length a radius of TAIL_CREST_R needs either side of that meeting point.
+  const half =
+    Math.acos(
+      Math.max(-1, Math.min(1, -(dIn[0] * dOut[0] + dIn[1] * dOut[1]))),
+    ) / 2;
+  const tangent = TAIL_CREST_R / Math.tan(half);
+  const reach = Math.hypot(meet[0] - pIn[0], meet[1] - pIn[1]);
+  const t1 = [meet[0] - tangent * dIn[0], meet[1] - tangent * dIn[1]] as const;
+  const t2 = [meet[0] + tangent * dOut[0], meet[1] + tangent * dOut[1]] as const;
+
+  // The centre is TAIL_CREST_R off the incoming limb, on whichever side is also that far from
+  // the outgoing one.
+  const centres = (
+    [
+      [dIn[1], -dIn[0]],
+      [-dIn[1], dIn[0]],
+    ] as const
+  ).map(
+    (n) =>
+      [t1[0] + TAIL_CREST_R * n[0], t1[1] + TAIL_CREST_R * n[1]] as const,
+  );
+  const offOut = (c: readonly [number, number]) =>
+    Math.abs(
+      Math.abs((c[0] - pOut[0]) * dOut[1] - (c[1] - pOut[1]) * dOut[0]) -
+        TAIL_CREST_R,
+    );
+  const centre = offOut(centres[0]) < offOut(centres[1]) ? centres[0] : centres[1];
+
+  const from = Math.atan2(t1[1] - centre[1], t1[0] - centre[0]);
+  let sweep = Math.atan2(t2[1] - centre[1], t2[0] - centre[0]) - from;
+  while (sweep > Math.PI) sweep -= 2 * Math.PI;
+  while (sweep < -Math.PI) sweep += 2 * Math.PI;
+
+  // Straight in, arc, straight out — as one dense polyline, resampled at one even spacing.
+  const dense: (readonly [number, number])[] = [];
+  const push = (q: readonly [number, number]) => {
+    const last = dense[dense.length - 1];
+    if (!last || Math.hypot(q[0] - last[0], q[1] - last[1]) > 1e-9) dense.push(q);
+  };
+  const lineIn = Math.hypot(t1[0] - pIn[0], t1[1] - pIn[1]);
+  const lineOut = Math.hypot(pOut[0] - t2[0], pOut[1] - t2[1]);
+  for (let q = 0; q <= lineIn; q += 2)
+    push([pIn[0] + q * dIn[0], pIn[1] + q * dIn[1]]);
+  const arcLen = Math.max(1e-6, Math.abs(sweep) * TAIL_CREST_R);
+  for (let q = 0; q <= arcLen; q += 2) {
+    const ang = from + (sweep * q) / arcLen;
+    push([
+      centre[0] + TAIL_CREST_R * Math.cos(ang),
+      centre[1] + TAIL_CREST_R * Math.sin(ang),
+    ]);
+  }
+  for (let q = 0; q <= lineOut; q += 2)
+    push([t2[0] + q * dOut[0], t2[1] + q * dOut[1]]);
+  push(pOut);
+
+  const cum = [0];
+  for (let q = 1; q < dense.length; q++)
+    cum.push(
+      cum[q - 1] +
+        Math.hypot(dense[q][0] - dense[q - 1][0], dense[q][1] - dense[q - 1][1]),
+    );
+  const total = cum[cum.length - 1];
+  const steps = Math.max(2, Math.round(total / TAIL_CREST_STEP));
+  const replaced: (readonly [number, number])[] = [];
+  for (let q = 1; q < steps; q++) {
+    // Interior points only: the two seam anchors are already in the list.
+    const want = (total * q) / steps;
+    let k = 1;
+    while (k < cum.length - 1 && cum[k] < want) k++;
+    const f = (want - cum[k - 1]) / Math.max(1e-9, cum[k] - cum[k - 1]);
+    replaced.push(
+      fromRef([
+        dense[k - 1][0] + f * (dense[k][0] - dense[k - 1][0]),
+        dense[k - 1][1] + f * (dense[k][1] - dense[k - 1][1]),
+      ]),
+    );
+  }
+  P.splice(
+    TAIL_CREST_FROM + 1,
+    TAIL_CREST_TO - TAIL_CREST_FROM - 1,
+    ...replaced,
+  );
+  return { tangent, reach, apexV: (centre[1] - TAIL_CREST_R) / REF_H };
+}
+
+/**
  * WIDE_ANCHORS as this build places them: the transcription lifted clear of the bottom edge,
  * its hook scaled about the join and its dive steepened past the crest. Still normalised, in
  * the same `[u, v]` the table is written in, so nothing downstream knows this happened.
  */
-function placeWide(): readonly (readonly [number, number])[] {
+function placeWide() {
   const join = WIDE_ANCHORS[TAIL_JOIN];
   const lift = (u: number, v: number) => [u, v - RIVER_LIFT_V] as const;
   const out: (readonly [number, number])[] = [];
@@ -377,6 +546,11 @@ function placeWide(): readonly (readonly [number, number])[] {
     ]);
   }
 
+  // The crest's corner, rounded — the one change to the drawing's own shape. It happens before
+  // the extension below because it must not touch the dive's final heading, which is what that
+  // extension is carried out on.
+  const crest = roundCrest(out);
+
   // And on past the fold on its own final heading, so the ribbon leaves the frame rather than
   // stopping inside it on a round cap.
   const tail = out[out.length - 1];
@@ -388,10 +562,11 @@ function placeWide(): readonly (readonly [number, number])[] {
     const tip = out[out.length - 1];
     out.push([tip[0] + step[0], tip[1] + step[1]]);
   }
-  return out;
+  return { points: out as readonly (readonly [number, number])[], crest };
 }
 
-const WIDE_PLACED = placeWide();
+const PLACED = placeWide();
+const WIDE_PLACED = PLACED.points;
 
 /**
  * One period of the reference's own lower meander, in reference px relative to its start —
@@ -596,9 +771,12 @@ if (process.env.NODE_ENV !== "production") {
   // the ribbon off the width, the trough off the height — so the worst case is a short *wide*
   // window. A negative margin here is the hook being sliced flat along the bottom edge, which
   // is the defect the placement exists to remove.
+  // Sliced to TAIL_CREST_FROM rather than to TAIL_CREST: roundCrest splices a different number
+  // of anchors in than it takes out, so every index past it has moved. The trough sits well
+  // before that seam, so this window still holds it.
   const troughV =
     Math.max(
-      ...WIDE_PLACED.slice(TAIL_JOIN, TAIL_CREST + 1).map(([, v]) => v),
+      ...WIDE_PLACED.slice(TAIL_JOIN, TAIL_CREST_FROM + 1).map(([, v]) => v),
     ) + TAIL_TROUGH_OVERSHOOT_V;
   let worstMargin = Infinity;
   let worstAt = "";
@@ -650,6 +828,21 @@ if (process.env.NODE_ENV !== "production") {
       `${(100 * exitFrac).toFixed(1)}% of the width. It has to cross exactly once, and far ` +
       "enough in that it leaves through the bottom rather than through the left edge — " +
       "TAIL_DIVE_SQUEEZE is the knob for the second (lower it to steepen the dive).",
+    );
+  }
+
+  // The crest's guarantee: the arc has to fit between the two seams. `tangent` is how far
+  // either side of the limbs' meeting point a TAIL_CREST_R arc has to start, and `reach` is how
+  // far that point is from the incoming seam. As the two converge the straight run before the
+  // arc vanishes, two resampled anchors land on top of each other, and centripetal
+  // Catmull-Rom — whose weights divide by the chord across an anchor — answers that with a
+  // cusp, which is a sharper corner than the one being rounded off.
+  if (PLACED.crest.tangent > PLACED.crest.reach * 0.95) {
+    console.error(
+      `[Playground] the river's crest arc needs ${PLACED.crest.tangent.toFixed(0)}px of limb ` +
+      `either side of the corner and has ${PLACED.crest.reach.toFixed(0)}px, so it is about to ` +
+      "double an anchor and cusp where it should be roundest. Lower TAIL_CREST_R, or start the " +
+      "round earlier (lower TAIL_CREST_FROM).",
     );
   }
 

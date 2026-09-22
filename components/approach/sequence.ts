@@ -24,6 +24,7 @@ import {
   REVEAL_VH,
   STEP_EASE,
   STEP_SECONDS,
+  TAIL_VH,
 } from "./timeline";
 
 /**
@@ -53,8 +54,13 @@ import {
  *     pair, which is the whole of the defect this replaced.
  *
  * Two triggers, and they are two **positions feeding one number** rather than two clocks: the
- * approach spans the reveal (it runs before any pin could), the pin spans the traverse, and
- * the index is read off their sum. The pin only exists when there is something to traverse.
+ * approach spans the reveal (it runs before any pin could), the pin spans the traverse **and
+ * the hold after it**, and the index is read off their sum.
+ *
+ * The hold is ./timeline's TAIL_VH and it is the last thing the run does. Every boundary still
+ * falls inside `spanVh`, so the last stop is earned TAIL_VH of pinned scroll before the pin
+ * lets go and the final step is drawn with the row still held — which it was not before, and
+ * which is what made the section read as stopping at 82% and handing the reader to the footer.
  */
 export function createApproachSequence(refs: ApproachRefs) {
   const mm = gsap.matchMedia();
@@ -73,7 +79,7 @@ export function createApproachSequence(refs: ApproachRefs) {
 
     /** Scroll through the reveal, in vh. 0 as the rail's centre crosses the fold. */
     let revealVh = 0;
-    /** Scroll through the traverse, in vh. Zero-length when nothing overflows. */
+    /** Scroll through the pin, in vh — the traverse and then the hold. */
     let traverseVh = 0;
 
     /**
@@ -89,8 +95,12 @@ export function createApproachSequence(refs: ApproachRefs) {
     /**
      * The scroll that earns each stop: an even share of the span apiece, so one gesture is
      * worth one step whether that step is the 146px lead-in or a whole cell. `bounds[i]` is
-     * where stop `i` is paid for, and the last of them is the span's own end — which is what
-     * makes the line complete exactly as the pin releases.
+     * where stop `i` is paid for, and the last of them is the span's own end.
+     *
+     * **The pin runs TAIL_VH past that**, so the last of these is not the last of the scroll —
+     * which is the whole of the hold. Spread over `spanVh` and not over the pin, deliberately:
+     * the hold is added to the run rather than taken out of it, so a step costs what it always
+     * did and the cadence is untouched.
      */
     let bounds = stops.map((_, i) => ((i + 1) / stops.length) * spanVh);
 
@@ -242,19 +252,26 @@ export function createApproachSequence(refs: ApproachRefs) {
     });
 
     /**
-     * The traverse, and only when there is one. `start` is the reveal's own end, so the pin
-     * engages on the frame the third dot fills — which is the brief's "scroll horizontally
-     * after 3 are shown", stated as a position rather than as a second constant.
+     * The traverse, and the hold after it. `start` is the reveal's own end, so the pin engages
+     * on the frame the third dot fills — which is the brief's "scroll horizontally after 3 are
+     * shown", stated as a position rather than as a second constant.
      *
      * `pin: true` with GSAP's own pinSpacing, like `cases/sequence` and unlike the other two
-     * pinned sections: the length here is measured from the track's overflow rather than
+     * pinned sections: the traverse's length is measured from the track's overflow rather than
      * designed, so letting ScrollTrigger reserve it keeps one source of truth in `end`.
+     *
+     * **It is built for the hold alone when nothing overflows.** At three points the track fits
+     * the stage and there is no traverse, and without this the run's last stop would be earned
+     * on the reveal's own final frame with nothing holding the reader at all — the same defect
+     * as the one TAIL_VH answers, one section shorter. The whole span is then the hold.
      */
-    if (m.overflow > 0) {
+    /** The pin's own length in vh — the traverse, and then the hold. */
+    const pinVh = Math.max(0, spanVh - REVEAL_VH) + TAIL_VH;
+    if (m.overflow > 0 || TAIL_VH > 0) {
       ScrollTrigger.create({
         trigger: rail,
         start: `center ${REVEAL_END_PCT}%`,
-        end: () => `+=${m.overflow / m.pace}`,
+        end: () => `+=${m.overflow / m.pace + (TAIL_VH / 100) * m.viewportH}`,
         pin: stage,
         pinSpacing: true,
         anticipatePin: 1,
@@ -263,11 +280,11 @@ export function createApproachSequence(refs: ApproachRefs) {
           remeasure();
         },
         onUpdate(self) {
-          traverseVh = self.progress * Math.max(0, spanVh - REVEAL_VH);
+          traverseVh = self.progress * pinVh;
           advance();
         },
         onLeave() {
-          traverseVh = Math.max(0, spanVh - REVEAL_VH);
+          traverseVh = pinVh;
           advance();
         },
         onLeaveBack() {

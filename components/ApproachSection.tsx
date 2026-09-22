@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   APPROACH_GUTTER,
   APPROACH_STAGE_CLIP,
+  APPROACH_STAGE_FLOOR,
   ApproachStack,
   ApproachTrack,
 } from "./approach/ApproachLayers";
@@ -105,11 +106,17 @@ export default function ApproachSection({
 
             The clip itself is a `clip-path` and not `overflow-hidden`, which is not
             interchangeable here — see APPROACH_STAGE_CLIP, where the dots' pop is the reason.
+
+            The height floor is what keeps the footer out of the hold, and it is a constraint
+            rather than spare air — see APPROACH_STAGE_FLOOR.
           */}
           <div
             ref={stageRef}
             className="hidden lg:block"
-            style={{ clipPath: APPROACH_STAGE_CLIP }}
+            style={{
+              clipPath: APPROACH_STAGE_CLIP,
+              minHeight: APPROACH_STAGE_FLOOR,
+            }}
           >
             <ApproachTrack
               points={points}

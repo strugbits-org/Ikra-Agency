@@ -157,6 +157,39 @@ export const REVEAL_REVERSE_SPEED = 0.85;
  */
 export const BOUNDARY_HYST_VH = 3;
 
+/* ── the landing ──────────────────────────────────────────────────────────────── */
+
+/**
+ * The scroll the section keeps **after the last stop has been earned** — the room the final
+ * step draws in, and the whole of what makes the run finish on screen rather than off it.
+ *
+ * Without it the last boundary *is* the pin's own end. ./sequence spreads the boundaries evenly
+ * across the run, so the last of them lands exactly where the run does — and the step it buys
+ * is the biggest of the lot, the rail's bare tail past the final dot, 17% of the line. It was
+ * therefore aimed on the frame the pin released and drawn entirely afterwards, with the row
+ * already scrolling away under it. Measured off the drawn clip at a wheel pace, the fill stood
+ * at **82% at the release, at every width**; that is the section not finishing, and it was
+ * reported as exactly that.
+ *
+ * **Added to the pin rather than taken out of the run**, so every step keeps the scroll it
+ * costs today and the cadence the client approved is untouched — see `segmentVh`, which is
+ * deliberately not a function of this. It is free to add because the pin's spacer sits *inside*
+ * the section: lengthening the pin lengthens the section by the same amount, so whatever
+ * follows stays exactly one pin-length below the fold. What puts it below the fold in the first
+ * place is ./ApproachLayers' APPROACH_STAGE_FLOOR, and the two are one fix — a hold with the
+ * footer already over it is not a hold.
+ *
+ * `TAIL_VH / STEP_SECONDS` is the crossover: **50vh/s**, the same figure `cases/timeline`'s door
+ * hands over at and within a hair of the hero's opening. Below it the step finishes inside the
+ * hold at any point count; above it the reader outruns the walk, the clock goes on painting
+ * after the pin lets go exactly as `DefinitionSection`'s tail does, and that is the accepted
+ * trade rather than a hole — being outrun was never the complaint.
+ *
+ * It is also what gives a **three-point** section a hold at all: there is no overflow to
+ * traverse there, so ./sequence builds the pin for this alone.
+ */
+export const TAIL_VH = 20;
+
 /* ── the traverse, when there are more cells than fit ──────────────────────────── */
 
 /**
@@ -279,6 +312,17 @@ if (process.env.NODE_ENV !== "production") {
     console.error(
       `[Approach] a step costs ${perStep.toFixed(1)}vh, which is about one wheel notch — a ` +
       "single gesture will cross two of them. Raise REVEAL_VH, or carry fewer stops.",
+    );
+  }
+  // The hold has to outlast the step it exists for at something above a reading pace, or the
+  // final stretch of line is drawn after the pin has let go — which is the whole defect this
+  // answers, reintroduced quietly at the one scroll rate nobody tests at.
+  const tailCrossover = TAIL_VH / STEP_SECONDS;
+  if (tailCrossover < 30) {
+    console.error(
+      `[Approach] the tail hands over at ${tailCrossover.toFixed(0)}vh/s, which is inside a ` +
+      "reading pace — the last step will finish after the pin releases for most readers. " +
+      "Raise TAIL_VH, or shorten STEP_SECONDS.",
     );
   }
   // The bounce has to be over before the line can plausibly reach the next dot, or dots ring
