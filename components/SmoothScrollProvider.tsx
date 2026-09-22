@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { ScrollSmoother, ScrollTrigger } from "@/lib/gsap";
+import BlobCursor from "./BlobCursor";
 import RouteCover from "./RouteCover";
 import ScrollBar from "./ScrollBar";
 import { hideRouteCover, showRouteCover } from "./routeTransition";
@@ -389,6 +390,13 @@ export default function SmoothScrollProvider({
       {/* Same reasoning as ScrollBar: it portals itself out to document.body, because
           `position: fixed` cannot hold still inside the smoother's transformed subtree. */}
       <RouteCover />
+      {/* The site's cursor, and it is mounted here rather than per-page for two reasons:
+          this provider lives in the root layout, so the blob survives a route change
+          instead of being torn down and re-seeded at the corner mid-navigation — and it
+          portals out of the smoother's transformed subtree exactly as the two above do.
+          It replaces the hero's own white dot; see `RESTORE THE HERO DOT` in
+          components/HeroNarrative.tsx. */}
+      <BlobCursor />
     </>
   );
 }

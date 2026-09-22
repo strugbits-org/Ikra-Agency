@@ -10,7 +10,7 @@ import {
 import RiverBand from "./playground/RiverBand";
 import { riverFor } from "./playground/river";
 import { createPlaygroundSequence } from "./playground/sequence";
-import { SECTION_VH } from "./playground/timeline";
+import { climbFor } from "./playground/timeline";
 
 /**
  * The playground's first section, assembled on the same five-part plan as the three
@@ -92,6 +92,17 @@ export default function PlaygroundNarrative() {
    */
   const narrow = river ? river.narrow : false;
 
+  /**
+   * How far the copy climbs, and every length that follows from it — the section's own height
+   * included. Resolved from `narrow` here and handed to the sequence, so the height the
+   * section renders and the pin length the sequence scales progress against cannot disagree.
+   *
+   * It therefore changes once, on the commit the stage is first measured, exactly as the
+   * copy's layout does. Not a visible reflow: that commit happens before the reader can have
+   * scrolled, and the sequence is rebuilt on the same flag below.
+   */
+  const climb = climbFor(narrow);
+
   // Gated on `mounted` as well as the motion mode, because `reducedMotion` is false for the
   // first commit whatever the reader's setting is — it cannot be read until the effect that
   // reads it has run. Without the gate a reduced-motion visitor gets a full ScrollTrigger
@@ -107,15 +118,19 @@ export default function PlaygroundNarrative() {
       section,
       { stage },
       { copy: copyRef, header: headerRef },
+      narrow,
     );
     return () => ctx.revert();
-  }, [reducedMotion, mounted]);
+    // `narrow` is a dependency because the pin's length is derived from it: the trigger has to
+    // be rebuilt, not just repainted, when the river flips shape (a tablet being rotated, or
+    // the first commit after the stage is measured).
+  }, [reducedMotion, mounted, narrow]);
 
   return (
     <section
       ref={sectionRef}
       className="relative bg-black"
-      style={{ height: reducedMotion ? "100vh" : `${SECTION_VH}vh` }}
+      style={{ height: reducedMotion ? "100vh" : `${climb.sectionVh}vh` }}
     >
       {/* GSAP pins this element directly (see createPlaygroundSequence); CSS `sticky` does
           not work anywhere in this app. */}

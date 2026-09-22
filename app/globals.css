@@ -114,6 +114,28 @@ html.scroll-locked {
   overflow: hidden;
 }
 
+/*
+ * Set by components/BlobCursor.tsx on the reader's first mouse movement, and removed the
+ * moment a finger touches the screen or the component unmounts. Same pattern as
+ * `html.scroll-locked` above, and it is a class rather than a plain `body { cursor: none }`
+ * for the same reason: a reader who never gets a blob — reduced motion, a touch device,
+ * JavaScript that failed to load — has to keep the ordinary pointer, and a static rule
+ * cannot tell the difference.
+ *
+ * The descendant selector and the `!important` are both doing real work, and they cost
+ * something worth knowing. Every `cursor` declaration in the app is more specific than an
+ * inherited value, so without them the reader gets the blob *and* a native hand over every
+ * link. With them, three affordances go dark: `cursor-grab`/`active:cursor-grabbing` on
+ * ScrollBar's thumb, `cursor-pointer` and `disabled:cursor-not-allowed` on the contact
+ * form's submit, and the text I-beam in that form's inputs. Re-stating those as states of
+ * the blob itself — growing over a link, changing shape over a control — is the work this
+ * rule defers, not work it avoids.
+ */
+html.blob-cursor,
+html.blob-cursor * {
+  cursor: none !important;
+}
+
 body {
   background: var(--color-cream);
   color: var(--color-ink);

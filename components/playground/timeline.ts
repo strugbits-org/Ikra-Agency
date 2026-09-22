@@ -4,7 +4,7 @@ import { gsap } from "@/lib/gsap";
  * The playground section's timeline, in vh of actual scrolling through the pin — the same
  * convention as `hero/timeline.ts` and `definition/timeline.ts`. The pin runs
  * `top top → bottom bottom`, so progress 0→1 covers `height − 100vh`, which is why
- * SECTION_VH is PIN_VH + 100 and why multiplying progress by the *section* height would
+ * `sectionVh` is `pinVh` + 100 and why multiplying progress by the *section* height would
  * overstate real scroll.
  *
  * Three beats, and the first of them is read straight off the reference recording rather than
@@ -184,7 +184,7 @@ export const HEADER_EXIT_EASE = gsap.parseEase("sine.inOut");
  * `DefinitionSection`'s own climb is linear for the same reason.
  *
  * At this span the copy crosses at about 0.7× the page's own rate, which is what makes it read
- * as climbing rather than as being carried — see CLIMB_VH.
+ * as climbing rather than as being carried — see climbFor.
  */
 export const CLIMB_EASE = gsap.parseEase("none");
 

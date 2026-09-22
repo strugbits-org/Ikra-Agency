@@ -176,9 +176,9 @@ export function createPlaygroundSequence(
        */
       scrub: true,
       pin: stage,
-      // The section states its own height (SECTION_VH), so ScrollTrigger must not reserve a
-      // second copy of it — same as the hero's and DefinitionSection's pins, and unlike
-      // CaseStudies', whose length is measured rather than designed.
+      // The section states its own height (climbFor's `sectionVh`), so ScrollTrigger must not
+      // reserve a second copy of it — same as the hero's and DefinitionSection's pins, and
+      // unlike CaseStudies', whose length is measured rather than designed.
       pinSpacing: false,
       onUpdate: (self) => render(self.progress),
       onRefresh: (self) => {

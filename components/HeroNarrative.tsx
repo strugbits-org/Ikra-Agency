@@ -4,7 +4,25 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Logo from "./Logo";
 import { bandGeometry } from "./hero/band";
 import BandLayer from "./hero/BandLayer";
-import { attachHeroCursor } from "./hero/cursor";
+/* RESTORE THE HERO DOT — step 1 of 7.
+ *
+ * This section's own white circle cursor is switched off: components/BlobCursor.tsx is
+ * now the site's one cursor, mounted globally in SmoothScrollProvider, and two cursors
+ * cannot both be right on this page. Nothing was deleted — `attachHeroCursor` in
+ * ./hero/cursor and `HeroCursor` in ./hero/HeroLayers are both still there and still
+ * correct, they are simply no longer called.
+ *
+ * To bring the dot back, uncomment these seven and remove the blob:
+ *   1. this import
+ *   2. `HeroCursor` in the ./hero/HeroLayers import below
+ *   3. `cursorRef`, with the other refs
+ *   4. the effect that calls attachHeroCursor
+ *   5. the <HeroCursor> element in the returned markup
+ *   6. `[&_*]:!cursor-none cursor-none` on the <section> — see the note there, it is the
+ *      one step that is not a straight revert
+ *   7. <BlobCursor /> in components/SmoothScrollProvider.tsx, which comes out
+ */
+// import { attachHeroCursor } from "./hero/cursor";
 import { doorsFor } from "./hero/doors";
 import { useBackgroundFootage } from "./hero/footage";
 import GapCopy, { gapCopyFontSize } from "./hero/GapCopy";
@@ -12,7 +30,8 @@ import {
   ClipWindow,
   DoorPanels,
   HeroBackdrop,
-  HeroCursor,
+  // RESTORE THE HERO DOT — step 2 of 7.
+  // HeroCursor,
   HeroLoadingCue,
 } from "./hero/HeroLayers";
 import { playHeroIntro } from "./hero/intro";
@@ -71,7 +90,8 @@ export default function HeroNarrative() {
   const ribbonRef = useRef<HTMLDivElement>(null);
   const leapRef = useRef<HTMLDivElement>(null);
   const grayRef = useRef<HTMLDivElement>(null);
-  const cursorRef = useRef<HTMLDivElement>(null);
+  // RESTORE THE HERO DOT — step 3 of 7.
+  // const cursorRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLSpanElement>(null);
   const headlineRef = useRef<HTMLParagraphElement>(null);
   const bgVideoRef = useRef<HTMLVideoElement>(null);
@@ -209,21 +229,35 @@ export default function HeroNarrative() {
     return () => ctx.revert();
   }, [reducedMotion, mounted]);
 
-  useEffect(() => {
-    if (reducedMotion || !mounted) return;
-    const section = sectionRef.current;
-    const cursor = cursorRef.current;
-    if (!section || !cursor) return;
-    return attachHeroCursor(section, cursor);
-  }, [reducedMotion, mounted]);
+  // RESTORE THE HERO DOT — step 4 of 7.
+  // useEffect(() => {
+  //   if (reducedMotion || !mounted) return;
+  //   const section = sectionRef.current;
+  //   const cursor = cursorRef.current;
+  //   if (!section || !cursor) return;
+  //   return attachHeroCursor(section, cursor);
+  // }, [reducedMotion, mounted]);
 
   return (
+    /*
+     * RESTORE THE HERO DOT — step 6 of 7, and the one that is not a straight revert.
+     *
+     * `[&_*]:!cursor-none cursor-none` came off this className. Hiding the native cursor
+     * is BlobCursor's job now, and it does it from JS (`html.blob-cursor`, see
+     * app/globals.css) precisely so that it only happens when there is a blob to put in
+     * its place. This class could not: it fired under reduced motion too, where
+     * `mounted && !reducedMotion` meant the dot below was never rendered — so a reader
+     * with reduced motion on crossed this section with no cursor at all. That was a
+     * standing bug and taking the class off is what fixes it. Restoring the dot wants
+     * the class back *and* wants that hole closed some other way.
+     */
     <section
       ref={sectionRef}
-      className="relative bg-accent [&_*]:!cursor-none cursor-none"
+      className="relative bg-accent"
       style={{ height: reducedMotion ? "100vh" : `${SECTION_VH}vh` }}
     >
-      {mounted && !reducedMotion && <HeroCursor cursorRef={cursorRef} />}
+      {/* RESTORE THE HERO DOT — step 5 of 7. */}
+      {/* {mounted && !reducedMotion && <HeroCursor cursorRef={cursorRef} />} */}
 
       {/* GSAP pins this element directly (see createHeroSequence); CSS `sticky`
           does not work here. `relative` still gives next/image `fill` something to
