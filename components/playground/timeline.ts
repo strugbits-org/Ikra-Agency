@@ -10,12 +10,13 @@ import { gsap } from "@/lib/gsap";
  * Three beats, and the first of them is read straight off the reference recording rather than
  * designed:
  *
- *   0–105vh    the copy climbs from below the fold to the centre of the screen, and the
- *              header leaves over the last stretch of that. Nothing else moves: the river is
- *              measured stationary in the viewport across the whole reference clip.
- *   105–135vh  the assembled composition holds, still, so that it exists as a state the
+ *   0–85vh     the copy climbs from below the fold toward the centre of the screen, stopping
+ *              CLIMB_TRAVEL_FRAC of the way there, and the header leaves over the last
+ *              stretch of that. Nothing else moves: the river is measured stationary in the
+ *              viewport across the whole reference clip.
+ *   85–115vh   the assembled composition holds, still, so that it exists as a state the
  *              reader arrives at rather than as a single frame in passing — see HOLD_VH.
- *   135vh      the pin releases and the section scrolls away as an ordinary adjacent block,
+ *   115vh      the pin releases and the section scrolls away as an ordinary adjacent block,
  *              uncovering what follows. Verified as plain flow: through the release the
  *              stage's bottom edge and the next section's top edge are the same number on
  *              every frame, so nothing overlaps and nothing is covered.
@@ -29,13 +30,39 @@ import { gsap } from "@/lib/gsap";
  */
 
 /**
- * The climb. The copy's travel is `(viewportHeight + blockHeight) / 2` — from just under
- * the fold to centred — which is ~74vh at the reference's own viewport, so over this span
- * the block crosses at about 0.7× the page's own rate. That is the figure that matters: a
- * block that moves at or above page speed reads as being carried off rather than climbing,
- * which is the floor `DICT_VH` is held against in DefinitionSection for the same reason.
+ * **How far the copy actually climbs, as a share of the whole distance from the fold to
+ * centred.** 1 is the original: the block ends centred, the reference's own composition.
+ *
+ * This is the section's one shape knob, and it exists because the full climb read as too long
+ * a haul — the block now stops short of centre and the section hands off to an ordinary
+ * scroll rather than carrying it the rest of the way.
+ *
+ * **0.81 is measured off a supplied screenshot of where the copy should come to rest**, not
+ * chosen: in an 882px viewport the block is 411px (46.6vh) and its top edge rests 40.5% down,
+ * leaving 12.9vh of room under it — a travel of 59.5vh against a full 73.3vh. A first pass at
+ * 0.25 was tried and rejected on sight, and the reason is the floor this value sits above:
+ * the block is only *wholly* visible from about 0.64 up, and at 0.25 two-thirds of the
+ * paragraph hung below the fold. Anything under ~0.64 cuts the copy off, which is what the
+ * assertion at the foot of this file checks against the real measured block rather than
+ * against that estimate.
+ *
+ * The headroom is worth knowing before retuning: at 0.81 the block stays fully visible up to
+ * a block height of ~68vh, so ordinary reflow is covered and only an extreme short-wide
+ * window would trip the assertion.
  */
-export const CLIMB_VH = 105;
+export const CLIMB_TRAVEL_FRAC = 0.81;
+
+/**
+ * The span a *full* climb is spread over — the transcribed figure, kept whole so the rate
+ * below is stated against the composition it was measured from.
+ *
+ * The copy's full travel is `(viewportHeight + blockHeight) / 2` — from just under the fold
+ * to centred — which is ~74vh at the reference's own viewport, so over this span the block
+ * crosses at about 0.7× the page's own rate. That is the figure that matters: a block that
+ * moves at or above page speed reads as being carried off rather than climbing, which is the
+ * floor `DICT_VH` is held against in DefinitionSection for the same reason.
+ */
+const CLIMB_FULL_VH = 105;
 
 /**
  * How long the assembled composition holds before the pin releases — i.e. how much scroll sits
@@ -65,6 +92,47 @@ export const CLIMB_VH = 105;
  * It remains the one knob for the hand-off to whatever follows: raising it delays that vh for vh.
  */
 export const HOLD_VH = 30;
+
+/**
+ * **The narrow layout climbs the whole way, to centred — the original composition.**
+ *
+ * Not an exception to the shortening above but the same rule reaching a different answer: the
+ * cut exists so the block does not haul further than it needs to, and on a narrow screen the
+ * copy is full width over the river and tall against the viewport, so a short climb leaves its
+ * foot below the fold at exactly the width with least room to spare. At 1 the block is wholly
+ * visible whenever it fits the viewport at all, which is the best any fraction can do — see
+ * the assertion in ./sequence, which is what would otherwise fire here.
+ *
+ * It is keyed to `narrow` — the river's own aspect test — and not to a width of its own,
+ * because that flag already decides that the copy goes full width and takes the scrim, and
+ * `riverIsWide`'s docblock is explicit that a second test standing in for it disagrees on
+ * every tablet held upright.
+ */
+export const NARROW_CLIMB_TRAVEL_FRAC = 1;
+
+/**
+ * Every length that follows from the travel, resolved for one layout.
+ *
+ * The span is **derived** from the fraction rather than stated: a shorter travel over the same
+ * span would not be a shorter climb, it would be the same climb slowed down — at 0.25 the block
+ * drifted at 0.18× the page's rate, which reads as barely moving. Scaling the span with the
+ * travel holds the ~0.7× crossing rate at every fraction, so the copy keeps its speed and what
+ * changes is how soon the section is done with the reader. It follows that the pin shortens
+ * too, and that is the point: the pin ends when the climb does (plus HOLD_VH).
+ *
+ * One function rather than two sets of constants because `sectionVh` is the section's CSS
+ * height and `pinVh` is what the sequence converts progress against — if those two are
+ * resolved from different predicates the climb is scaled against a height the section does not
+ * have. They take the same `narrow` the component already computed, passed down rather than
+ * re-tested. Same reason the copy's layout does.
+ */
+export const climbFor = (narrow: boolean) => {
+  const travelFrac = narrow ? NARROW_CLIMB_TRAVEL_FRAC : CLIMB_TRAVEL_FRAC;
+  const climbVh = CLIMB_FULL_VH * travelFrac;
+  const pinVh = climbVh + HOLD_VH;
+  return { travelFrac, climbVh, pinVh, sectionVh: pinVh + 100 };
+};
+
 
 /**
  * The header leaves with the copy, over this window of the climb. It does not sit still — the
@@ -98,9 +166,6 @@ export const HEADER_EXIT = [0.75, 0.85] as const;
  * — it is still at 0.75 and still again by 0.85 — so it is the case an ease is actually for.
  */
 export const HEADER_EXIT_EASE = gsap.parseEase("sine.inOut");
-
-export const PIN_VH = CLIMB_VH + HOLD_VH;
-export const SECTION_VH = PIN_VH + 100;
 
 /**
  * **Linear, and not eased** — which is the opposite of what it shipped as, and the reason is
@@ -157,12 +222,19 @@ if (process.env.NODE_ENV !== "production") {
   // The climb has to be slower than the page it is scrolling against, or it reads as being
   // swept off rather than rising. Worst case is the tallest block on the shortest viewport,
   // which is a phone: travel is (H + block)/2, and a block can reach roughly 0.8H there.
-  const worstTravelVh = ((1 + 0.8) / 2) * 100;
-  if (worstTravelVh > CLIMB_VH) {
-    console.error(
-      `[Playground] the copy would travel ${worstTravelVh.toFixed(0)}vh over a ` +
-      `${CLIMB_VH}vh span, i.e. faster than the page scrolls, and would read as being ` +
-      "carried off rather than climbing. Raise CLIMB_VH.",
-    );
+  // Both layouts, since each derives its own span: the fraction scales the travel and the
+  // span together, so the ratio checked here is invariant under either of them — the knobs
+  // change how far and how long, never how fast.
+  for (const narrow of [false, true]) {
+    const { travelFrac, climbVh } = climbFor(narrow);
+    const worstTravelVh = ((1 + 0.8) / 2) * 100 * travelFrac;
+    if (worstTravelVh > climbVh) {
+      console.error(
+        `[Playground] the ${narrow ? "narrow" : "wide"} copy would travel ` +
+        `${worstTravelVh.toFixed(0)}vh over a ${climbVh.toFixed(1)}vh span, i.e. faster ` +
+        "than the page scrolls, and would read as being carried off rather than climbing. " +
+        `Raise CLIMB_FULL_VH, or lower ${narrow ? "NARROW_CLIMB_TRAVEL_FRAC" : "CLIMB_TRAVEL_FRAC"}.`,
+      );
+    }
   }
 }

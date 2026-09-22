@@ -2,10 +2,9 @@ import type { RefObject } from "react";
 import { gsap, ScrollTrigger } from "@/lib/gsap";
 import {
   CLIMB_EASE,
-  CLIMB_VH,
   HEADER_EXIT,
   HEADER_EXIT_EASE,
-  PIN_VH,
+  climbFor,
 } from "./timeline";
 
 export type SequenceEls = {
@@ -38,17 +37,33 @@ export function createPlaygroundSequence(
   section: HTMLElement,
   els: SequenceEls,
   refs: SequenceRefs,
+  /**
+   * The river's own aspect test, passed down rather than re-tested here — it decides how far
+   * the copy climbs and therefore the pin's length, and the section's rendered height is
+   * resolved from the same flag in the same commit. See `climbFor`.
+   */
+  narrow: boolean,
 ) {
   const { stage } = els;
 
   return gsap.context(() => {
+    const { travelFrac, climbVh, pinVh } = climbFor(narrow);
+
     /**
      * Where the block rests and how far it has to come, both measured rather than stated.
      *
-     * `restY` is what makes the block centred: it is laid out at the stage's top edge (see
+     * The order is: solve where *centred* would be, since that is the composition every
+     * figure here was measured against — the block is laid out at the stage's top edge (see
      * PlaygroundCopy for why it cannot centre itself), so half the leftover height is the
-     * offset that centres it. `travel` follows from it — the block starts with its top edge
-     * on the fold, i.e. a full stage height down.
+     * offset that centres it, and the full travel follows from the block starting with its
+     * top edge on the fold, a whole stage height down. Then take CLIMB_TRAVEL_FRAC of that
+     * travel and let `restY` fall out of it, rather than the other way round: the fraction is
+     * a share of a measured distance, so stating a resting position instead would need the
+     * same measurement done twice and could drift from it.
+     *
+     * At a fraction of 1 this is exactly the centred original — `restY` collapses back to
+     * `centredY`. Below it the block rests lower, and below the fraction the assertion works
+     * out it hangs past the fold; see CLIMB_TRAVEL_FRAC.
      *
      * Read once per refresh rather than per frame: this paints on every scroll event and
      * ticker tick, and on a phone the address bar collapsing changes `stage.offsetHeight`
@@ -60,22 +75,43 @@ export function createPlaygroundSequence(
       const copy = refs.copy.current;
       const stageH = stage.offsetHeight;
       const blockH = copy?.offsetHeight ?? 0;
-      m.restY = (stageH - blockH) / 2;
-      m.travel = stageH - m.restY;
+      const centredY = (stageH - blockH) / 2;
+      m.travel = (stageH - centredY) * travelFrac;
+      m.restY = stageH - m.travel;
       // Far enough that the lockup's last pixel clears the top edge, not just its first.
       // `offsetHeight` already includes the header's own top padding, so this is the whole
       // distance from the viewport's top edge to the bottom of the descriptor.
       m.headerTravel = refs.header.current?.offsetHeight ?? 0;
 
       if (process.env.NODE_ENV !== "production") {
-        // A block taller than the stage cannot be centred — it would be clipped at both ends
-        // with no reading. It is a real possibility on a short wide window, where the column
-        // is narrow and the type is still sized off the width.
+        // A block taller than the stage can never be wholly on screen, wherever it rests —
+        // at a full climb it is clipped at both ends at once. A real possibility on a short
+        // wide window, where the column is narrow and the type is still sized off the width.
+        //
+        // Deliberately still the *stage* it is checked against and not the resting position:
+        // below CLIMB_TRAVEL_FRAC ~0.65 the block is meant to hang past the fold, so a check
+        // on how much of it shows would fire on the intended composition.
         if (blockH > stageH) {
           console.error(
             `[Playground] the copy is ${Math.round(blockH)}px tall against a ` +
-            `${Math.round(stageH)}px stage, so centring it clips both ends. Shorten the ` +
-            "copy, or cap its size against the height the way CARD_MAX_VH does.",
+            `${Math.round(stageH)}px stage, so it cannot be wholly on screen at any ` +
+            "resting position. Shorten the copy, or cap its size against the height the " +
+            "way CARD_MAX_VH does.",
+          );
+        } else if (m.travel < blockH) {
+          // The complaint this section was retuned for, stated against the boxes rather than
+          // the constant: the climb has to cover at least the block's own height or its foot
+          // is still below the fold when the composition is supposed to be assembled — and
+          // HOLD_VH then holds the reader on a cut-off paragraph. The fraction that clears it
+          // is 2·blockH / (stageH + blockH), which moves with reflow, so it is worked out here
+          // rather than written down next to CLIMB_TRAVEL_FRAC.
+          const needed = (2 * blockH) / (stageH + blockH);
+          console.error(
+            `[Playground] the copy rests with ${Math.round(blockH - m.travel)}px of itself ` +
+            `below the fold: a ${travelFrac} climb covers ${Math.round(m.travel)}px against ` +
+            `a ${Math.round(blockH)}px block. Raise ` +
+            `${narrow ? "NARROW_CLIMB_TRAVEL_FRAC" : "CLIMB_TRAVEL_FRAC"} to at least ` +
+            `${needed.toFixed(2)} at this viewport, or shorten the copy.`,
           );
         }
       }
@@ -86,8 +122,8 @@ export function createPlaygroundSequence(
     const render = (progress: number) => {
       // Progress as real scroll distance through the pin, in vh — the pin runs
       // `top top → bottom bottom`, so progress 0→1 covers `height − 100vh`.
-      const vh = progress * PIN_VH;
-      const climbRaw = gsap.utils.clamp(0, 1, vh / CLIMB_VH);
+      const vh = progress * pinVh;
+      const climbRaw = gsap.utils.clamp(0, 1, vh / climbVh);
       const climbP = CLIMB_EASE(climbRaw);
       gsap.set(refs.copy.current, {
         y: m.restY + (1 - climbP) * m.travel,
