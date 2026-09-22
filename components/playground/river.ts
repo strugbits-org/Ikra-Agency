@@ -3,10 +3,15 @@ import { gsap } from "@/lib/gsap";
 /**
  * The river — the orange ribbon that winds down the playground section.
  *
- * The wide drawing is a transcription and nothing in it is chosen. The narrow one is built
- * out of a measured piece of the same drawing but has to place it, so the handful of figures
- * that are preferences rather than measurements all sit with it: the thickness band, the
- * bleed and NARROW_CENTRE_FRAC. Each says so where it stands.
+ * **The wide drawing is the reference's own, to the digit.** WIDE_ANCHORS is the transcription
+ * and no anchor in it has been moved. What this build chooses is where that drawing *sits* on
+ * the stage and how far its bottom hook reaches — three numbers, applied in `placeWide`,
+ * because the reference's tail ran a hundred pixels below the fold and surfaced again in the
+ * corner, which on screen is a severed blob and was reported as one. See "Why the drawing is
+ * lifted, and what that buys" over those constants.
+ * The narrow drawing is built out of a measured piece of the same drawing but has to place it,
+ * so the handful of figures that are preferences rather than measurements all sit with it: the
+ * thickness band, the bleed and NARROW_CENTRE_FRAC. Each says so where it stands.
  *
  * ## Where the shape comes from
  *
@@ -84,6 +89,20 @@ const REF_THICKNESS = 80;
 const FONT_OF_THICKNESS = 0.575;
 
 /**
+ * The ribbon's share of the stage's *height*. It is a bound, not a target — below it the
+ * width's own share governs — and it binds only where the window is short for how wide it is
+ * (h < 0.42w, so 1920×806 and shorter). It is a no-op at every viewport this drawing was
+ * measured or checked at, the reference's 1904×913 included, where 0.10h is 91.3 against the
+ * width's 80.
+ *
+ * It exists because the bottom hook has to clear the stage's bottom edge by half a ribbon,
+ * and those two figures scale off different axes: without this the ribbon is still 92px wide
+ * in a 600px-tall window, which leaves the hook 0.6px of daylight — a rounding away from the
+ * flat slice the hook was placed to avoid. With it the worst case anywhere is 17px.
+ */
+const THICKNESS_OF_H = 0.10;
+
+/**
  * The thickness a viewport gets, in px. The reference's own 80 at 1904 is 4.20% of the
  * width, and that share is what carries across — the clamp only binds below ~950px and
  * above ~2190px.
@@ -91,7 +110,8 @@ const FONT_OF_THICKNESS = 0.575;
  * The floor is not cosmetic: the ribbon's copy is the point of it, and below ~40px the
  * 23px type it carries stops being readable at arm's length.
  */
-const thicknessFor = (w: number) => gsap.utils.clamp(40, 92, w * 0.042);
+const thicknessFor = (w: number, h: number) =>
+  gsap.utils.clamp(40, 92, Math.min(w * 0.042, h * THICKNESS_OF_H));
 
 /**
  * The narrow river's thickness band, and the only thing here that is chosen rather than
@@ -148,7 +168,7 @@ export function riverIsWide(w: number, h: number) {
   const b = h / REF_H;
   return (
     (WIDE_APEX_R * a * a) / b >=
-    WIDE_APEX_MIN_R_OVER_T * thicknessFor(w)
+    WIDE_APEX_MIN_R_OVER_T * thicknessFor(w, h)
   );
 }
 
@@ -172,16 +192,20 @@ export function riverIsWide(w: number, h: number) {
  * radius swung 31px (under half the ribbon's own width) straight into a reversal, which is
  * visible as a pinch even though the anchors either side of it are right.
  *
- * **The head and tail** continue the path out of frame. The head follows the row scan's
- * measured dx/dy. The tail is the bend below the fold plus the hump that shows in the
- * bottom-left corner: the hump is clipped by the viewport's own bottom edge, so its centreline
- * cannot be read off directly, but its *top* edge is not clipped and offsetting that along
- * the local normal recovers it to the pixel (873 at the apex, against 872 read straight off
- * the one unclipped column). The bend linking the two is authored as a cubic honouring the
- * tangent at each end — 62° leaving the leg, 221° arriving at the hump — so its heading turns
- * monotonically rather than wobbling, and it is placed against the one thing the recording
- * fixes about it: there is no ribbon between x≈285 and x≈420 on the last visible row, which
- * is what puts it below the fold.
+ * **The head** continues the path out of frame, on the row scan's measured dx/dy.
+ *
+ * ## The tail is transcribed too, and this build only places it
+ *
+ * The recording's tail is a hook: the leg drops a full 100px below the fold, troughs, climbs
+ * back to a crest just inside the bottom-left corner and dives away again. It is measured
+ * like everything else here — but at the reference's own placement two of its three crossings
+ * of the bottom edge fall in the middle of it, so **230px of that edge carried no ink at all**
+ * (x≈250…480 at 1920×915) and the crest reads as a separate orange blob stranded in the
+ * corner. That was reported as "cut off and disconnected", and it is not a transcription
+ * error — it is what the reference itself draws.
+ *
+ * So no anchor below is moved. What moves is the drawing: see RIVER_LIFT_V and the constants
+ * under it for how the hook is brought wholly onto the stage, and what that costs.
  */
 const WIDE_ANCHORS: readonly (readonly [number, number])[] = [
   // — head: off the top edge, on the row scan's measured dx/dy —
@@ -215,11 +239,12 @@ const WIDE_ANCHORS: readonly (readonly [number, number])[] = [
   [0.4194, 0.7023],
   [0.3553, 0.7246],
   [0.3072, 0.7689],
+  // — TAIL_JOIN: the anchor the hook is scaled about, and the leg's own heading into it —
   [0.2892, 0.8317],
+  // — the hook's bowl: down, round the trough, and back up —
   [0.2951, 0.8967],
   [0.3219, 0.9595],
   [0.3447, 0.9989],
-  // — tail: the linking bend below the fold (authored) …
   [0.3600, 1.0406],
   [0.3534, 1.0731],
   [0.3293, 1.0956],
@@ -227,17 +252,146 @@ const WIDE_ANCHORS: readonly (readonly [number, number])[] = [
   [0.2479, 1.1093],
   [0.1998, 1.0995],
   [0.1529, 1.0778],
-  // … and the hump, off its own unclipped top edge —
   [0.1119, 1.0442],
   [0.0753, 1.0031],
   [0.0388, 0.9673],
+  // — TAIL_CREST: the last turn before the river leaves the frame —
   [0.0023, 0.9562],
+  // — the dive, away through the bottom-left corner —
   [-0.0342, 0.9646],
   [-0.0708, 0.9896],
   [-0.1073, 1.0302],
   [-0.1484, 1.0789],
   [-0.1941, 1.1336],
 ];
+
+/**
+ * ## Why the drawing is lifted, and what that buys
+ *
+ * The hook above needs 27.8% of the stage's height below its join, plus half a ribbon of
+ * daylight under its trough, and at the reference's own placement it has 16.8% — so it hung a
+ * hundred pixels past the fold and only its crest came back up, which is the severed blob in
+ * the corner. The room has to come from somewhere, and there are only three places it can come
+ * from. Two were tried and are wrong:
+ *
+ *  - **Shrinking the hook alone** needs it at 33% of its drawn size to fit under an unmoved
+ *    join. At that size its crest rises 38px against an 80px ribbon — the wave is shallower
+ *    than the line drawing it, so trough and crest merge into one blunt lobe.
+ *  - **Compressing the run** to lift the join distorts every meander above it, and in the
+ *    worst direction: a vertical squash scales a *vertical* apex's radius by b², so the arm's
+ *    hairpin — already the tightest bend in the drawing, at 0.39× the ribbon's width —
+ *    tightens to 0.28× at the compression needed.
+ *
+ * So the drawing is **translated**, which distorts nothing at all, and the top edge is what
+ * pays. That is affordable for a reason specific to this drawing: `v` increases monotonically
+ * from the head all the way down to the right-hand apex, so there is no turning point up there
+ * for an edge to slice flat. The top edge can only ever cut the ribbon square across, which is
+ * what "runs off frame" already looks like — and is what the river does at the top anyway. The
+ * bottom edge is the only one that can cut a *bend*, which is the defect being removed.
+ *
+ * RIVER_LIFT_V is as far as that goes before the right-hand apex itself starts leaving the
+ * frame; TAIL_SCALE covers the rest. At 0.90 the hook is a tenth smaller than drawn, its crest
+ * still rises 1.57× the ribbon's width (the reference's own is 1.74×), and no bend anywhere in
+ * the drawing is tighter than 0.90× of what the reference had at the same viewport — swept
+ * over 1629 of them, 768×600 to 3840×1600, with the hook fully on screen and the ribbon
+ * crossing the bottom edge exactly once at every one.
+ */
+const RIVER_LIFT_V = 0.16;
+
+/** Index of the anchor the hook is scaled about — the last of the transcribed run. */
+const TAIL_JOIN = 29;
+
+/** Index of the crest — the last turn the reader sees before the river leaves the frame. */
+const TAIL_CREST = 43;
+
+/** The hook's size against its drawn one. See "Why the drawing is lifted" above. */
+const TAIL_SCALE = 0.9;
+
+/**
+ * How much of the dive's horizontal travel is kept, and from which anchor past the crest it
+ * starts being taken.
+ *
+ * Lifting the hook puts its crest 126px above the bottom edge rather than the reference's 40,
+ * so the dive has three times as far to run before it leaves — and at the reference's own 50°
+ * it spends that distance going *left*, reaching x≈0 and crossing the corner rather than the
+ * bottom edge. A river that appears to start from the left-hand side has been reported once
+ * already and is the one thing this must not do. Steepening the dive fixes it, and
+ * TAIL_DIVE_FREE is what makes that free: the crest is a *horizontal* apex, so its radius is
+ * the one in this drawing that collapses fastest under a horizontal squeeze (by a²/b — to
+ * 0.22× the ribbon's width at 1024×768). Holding the squeeze off until the third anchor past
+ * the crest leaves the crest set by its drawn neighbours alone, and the worst bend in the
+ * drawing then stops moving with this figure at all. Swept: the exit lands at 4.1% of the
+ * width at worst, against the reference's own 5.2%, and never through the left edge.
+ */
+const TAIL_DIVE_FREE = 3;
+const TAIL_DIVE_SQUEEZE = 0.45;
+
+/**
+ * How far past the fold the dive is carried, in fractions of the height. The last transcribed
+ * anchor sits *above* the bottom edge once the hook is lifted, so without this the river would
+ * stop inside the frame on a round cap; the extension continues it on its own final heading
+ * until it is clear.
+ */
+const TAIL_EXIT_V = 1.16;
+
+/**
+ * How much deeper the curve dips than its deepest anchor, in fractions of the height —
+ * measured off the sampled spline, since the trough's true extreme falls between two anchors
+ * rather than on one. It only exists so the clearance assertion below is held against the
+ * curve rather than against the table.
+ */
+const TAIL_TROUGH_OVERSHOOT_V = 0.001;
+
+/**
+ * WIDE_ANCHORS as this build places them: the transcription lifted clear of the bottom edge,
+ * its hook scaled about the join and its dive steepened past the crest. Still normalised, in
+ * the same `[u, v]` the table is written in, so nothing downstream knows this happened.
+ */
+function placeWide(): readonly (readonly [number, number])[] {
+  const join = WIDE_ANCHORS[TAIL_JOIN];
+  const lift = (u: number, v: number) => [u, v - RIVER_LIFT_V] as const;
+  const out: (readonly [number, number])[] = [];
+
+  // The run, carried through exactly as measured.
+  for (let i = 0; i <= TAIL_JOIN; i++) out.push(lift(...WIDE_ANCHORS[i]));
+
+  // The bowl, scaled about the join — the one anchor it shares with the run, so the leg into
+  // it keeps the heading it was drawn with and the join stays a join rather than a corner.
+  for (let i = TAIL_JOIN + 1; i <= TAIL_CREST; i++) {
+    out.push(
+      lift(
+        join[0] + TAIL_SCALE * (WIDE_ANCHORS[i][0] - join[0]),
+        join[1] + TAIL_SCALE * (WIDE_ANCHORS[i][1] - join[1]),
+      ),
+    );
+  }
+
+  // The dive, walked step by step so the squeeze can start partway down it rather than at the
+  // crest — see TAIL_DIVE_FREE.
+  for (let i = TAIL_CREST + 1; i < WIDE_ANCHORS.length; i++) {
+    const squeeze = i - TAIL_CREST < TAIL_DIVE_FREE ? 1 : TAIL_DIVE_SQUEEZE;
+    const prev = out[out.length - 1];
+    out.push([
+      prev[0] + TAIL_SCALE * squeeze * (WIDE_ANCHORS[i][0] - WIDE_ANCHORS[i - 1][0]),
+      prev[1] + TAIL_SCALE * (WIDE_ANCHORS[i][1] - WIDE_ANCHORS[i - 1][1]),
+    ]);
+  }
+
+  // And on past the fold on its own final heading, so the ribbon leaves the frame rather than
+  // stopping inside it on a round cap.
+  const tail = out[out.length - 1];
+  const step = [
+    tail[0] - out[out.length - 2][0],
+    tail[1] - out[out.length - 2][1],
+  ] as const;
+  while (out[out.length - 1][1] < TAIL_EXIT_V) {
+    const tip = out[out.length - 1];
+    out.push([tip[0] + step[0], tip[1] + step[1]]);
+  }
+  return out;
+}
+
+const WIDE_PLACED = placeWide();
 
 /**
  * One period of the reference's own lower meander, in reference px relative to its start —
@@ -355,9 +509,9 @@ function smoothPath(points: readonly (readonly [number, number])[]) {
   return parts.join(" ");
 }
 
-/** WIDE_ANCHORS laid onto a viewport: a share of the width across, the full height down. */
+/** The placed drawing laid onto a viewport: a share of the width across, the full height down. */
 function widePoints(w: number, h: number) {
-  return WIDE_ANCHORS.map(
+  return WIDE_PLACED.map(
     ([u, v]) => [(RIVER_X0 + u * RIVER_XW) * w, v * h] as const,
   );
 }
@@ -396,7 +550,7 @@ function narrowPoints(w: number, h: number, thickness: number) {
  */
 export function riverFor(w: number, h: number): RiverGeometry {
   const narrow = !riverIsWide(w, h);
-  const thickness = narrow ? narrowThicknessFor(w) : thicknessFor(w);
+  const thickness = narrow ? narrowThicknessFor(w) : thicknessFor(w, h);
 
   const downstream = narrow
     ? narrowPoints(w, h, thickness)
@@ -414,24 +568,91 @@ export function riverFor(w: number, h: number): RiverGeometry {
 }
 
 if (process.env.NODE_ENV !== "production") {
-  // The transcription's guarantee: at the reference's own viewport the drawing must come
-  // back exactly as it was measured. Both extremes of the measured run are asserted, since
-  // between them the anchors are simply carried through.
+  // The transcription's guarantee, and note it is asserted against WIDE_ANCHORS rather than
+  // against the placed drawing: the table is the measurement, and the placement is allowed to
+  // move it. Both extremes of the measured run are checked, since between them the anchors are
+  // simply carried through.
+  const apex = WIDE_ANCHORS.reduce((a, b) => (b[0] > a[0] ? b : a));
+  const apexPx = [
+    (RIVER_X0 + apex[0] * RIVER_XW) * REF_W,
+    apex[1] * REF_H,
+  ];
   const ref = riverFor(REF_W, REF_H);
-  const measured = widePoints(REF_W, REF_H);
-  // The run's widest point — the right-hand apex, measured at (1048.5, 170.1).
-  const apex = measured.reduce((a, b) => (b[0] > a[0] ? b : a));
   if (
-    Math.abs(apex[0] - 1048.5) > 1 ||
-    Math.abs(apex[1] - 170.1) > 1 ||
+    Math.abs(apexPx[0] - 1048.5) > 1 ||
+    Math.abs(apexPx[1] - 170.1) > 1 ||
     Math.abs(ref.thickness - REF_THICKNESS) > 0.5
   ) {
     console.error(
       "[Playground] the river no longer reproduces the reference at 1904×913 — " +
       "RIVER_X0/RIVER_XW or WIDE_ANCHORS have drifted from the measurement.",
-      { apex, thickness: ref.thickness },
+      { apex: apexPx, thickness: ref.thickness },
     );
   }
+
+  // The hook's guarantee: the whole of it stays on screen. The ribbon reaches `thickness / 2`
+  // either side of its centreline, so the trough has that much to clear the stage's bottom
+  // edge by. Swept rather than spot-checked because the two figures scale off different axes —
+  // the ribbon off the width, the trough off the height — so the worst case is a short *wide*
+  // window. A negative margin here is the hook being sliced flat along the bottom edge, which
+  // is the defect the placement exists to remove.
+  const troughV =
+    Math.max(
+      ...WIDE_PLACED.slice(TAIL_JOIN, TAIL_CREST + 1).map(([, v]) => v),
+    ) + TAIL_TROUGH_OVERSHOOT_V;
+  let worstMargin = Infinity;
+  let worstAt = "";
+  for (let w = RIVER_NARROW_MAX_W; w <= 3840; w += 32) {
+    // From 400 rather than 600: the ribbon has a 40px floor that the height bound cannot get
+    // under, so a window short enough stops buying clearance by getting shorter and the margin
+    // starts closing again. 400 is well past any window a reader will have, and it still holds.
+    for (let h = 400; h <= 1600; h += 20) {
+      if (!riverIsWide(w, h)) continue;
+      const margin = (1 - troughV) * h - thicknessFor(w, h) / 2;
+      if (margin < worstMargin) {
+        worstMargin = margin;
+        worstAt = `${w}x${h}`;
+      }
+    }
+  }
+  if (worstMargin < 0) {
+    console.error(
+      `[Playground] the river's hook hangs ${(-worstMargin).toFixed(1)}px past the stage's ` +
+      `bottom edge at ${worstAt}, so it is sliced flat there rather than turning — which is ` +
+      "the defect the placement was chosen to remove. Lift the drawing further (raise " +
+      "RIVER_LIFT_V), shrink the hook (lower TAIL_SCALE), or narrow the ribbon.",
+    );
+  }
+
+  // The exit's guarantee, and it is two claims rather than one. The ribbon has to cross the
+  // bottom edge **once** — the reference crosses three times, and it is the middle two that
+  // strand its crest in the corner as a separate shape — and it has to cross it *inside* the
+  // frame, because a dive that reaches x = 0 first leaves through the left edge instead, which
+  // reads as the river starting at the side of the screen and has been reported as such.
+  //
+  // Both are read off the placed anchors rather than off the curve. The chord is a good enough
+  // stand-in here (the dive is all but straight where it crosses) and, unlike the curve, it
+  // does not depend on the viewport at all: u and v are normalised, so the crossing's share of
+  // the width is one number for every screen.
+  let crossings = 0;
+  let exitFrac = NaN;
+  for (let i = 1; i < WIDE_PLACED.length; i++) {
+    const [ua, va] = WIDE_PLACED[i - 1];
+    const [ub, vb] = WIDE_PLACED[i];
+    if ((va - 1) * (vb - 1) >= 0) continue;
+    crossings++;
+    const u = ua + ((1 - va) / (vb - va)) * (ub - ua);
+    exitFrac = RIVER_X0 + u * RIVER_XW;
+  }
+  if (crossings !== 1 || !(exitFrac >= 0.02)) {
+    console.error(
+      `[Playground] the river crosses the stage's bottom edge ${crossings} time(s), at ` +
+      `${(100 * exitFrac).toFixed(1)}% of the width. It has to cross exactly once, and far ` +
+      "enough in that it leaves through the bottom rather than through the left edge — " +
+      "TAIL_DIVE_SQUEEZE is the knob for the second (lower it to steepen the dive).",
+    );
+  }
+
   // The tiling's guarantee. The curve itself cannot kink — Catmull-Rom shares one tangent
   // between the two segments meeting at every anchor, the seam included — so what can go
   // wrong is subtler: the seam's tangent is the chord across it, and if the period were cut
