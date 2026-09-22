@@ -11,7 +11,7 @@
  *
  * TAIL_VH is deliberately short (see its own docblock) so a reader who stops to
  * watch isn't punished with a long grind of finished footer before CaseStudies —
- * but that means an ordinary scroll speed empties the allowance before the ~3.6s
+ * but that means an ordinary scroll speed empties the allowance before the ~3.3s
  * gesture (wordmark dissolve, camera pan, footer resolving, dots falling) is
  * done, and the pin releases mid-flight: the stage scrolls away and CaseStudies
  * arrives underneath while the video/footer/dots are still only partway resolved.

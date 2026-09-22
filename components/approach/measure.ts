@@ -100,15 +100,33 @@ export function measureApproach(refs: ApproachRefs): ApproachMeasure {
   const dotR = (dots.find((el) => el)?.offsetWidth ?? 0) / 2;
 
   /**
-   * The lead is the last on-screen dot's position, so it is read off the measured dot rather
-   * than recomputed from the cell width — one source for "where a dot sits", and it stays
-   * right if the gutter or the dot's inset ever changes. Falls back to the arithmetic only
-   * when there are fewer dots than fit, where the traverse is zero anyway.
+   * The lead is the last on-screen dot's **coverage** point, and the dot radius on the end of it
+   * is what makes every rest land on a whole number of cells.
+   *
+   * The algebra is worth having, because a radius looks like a rounding allowance and is not
+   * one. A stop is a dot's coverage point (`stopsFor`), so at stop `i` the fill has reached
+   * `dotX[i] + dotR`; `trackXFor` translates by `reach - lead`; and the dots are one cell apart.
+   * With the lead at the dot's *centre* that leaves `(i - LEAD_CELLS) x cellW + dotR` — a whole
+   * number of cells **plus one radius**, on every stop, at every width. On screen that radius is
+   * the leftmost dot sliced down its left-hand side and the right-hand column cut through its
+   * copy, which is what was reported. Measured against the coverage point instead, the radius
+   * cancels and the row rests on whole cells: the dot at the left edge is whole, the cell at
+   * the right edge ends on the stage's own edge, and the track parks exactly on `overflow` as
+   * the last dot fills rather than a radius short of it.
+   *
+   * It is also the more faithful reading of what this figure means. The docblock on LEAD_CELLS
+   * has the fill's leading edge parking where a dot "arrives unfilled, slides to this mark,
+   * fills, and then continues left fully lit" — at the centre it is only half lit there.
+   *
+   * Read off the measured dot rather than recomputed from the cell width — one source for
+   * "where a dot sits", and it stays right if the gutter or the dot's inset ever changes. Falls
+   * back to the arithmetic only when there are fewer dots than fit, where the traverse is zero
+   * anyway.
    */
   const lead =
     dotX.length > LEAD_CELLS
-      ? dotX[LEAD_CELLS]
-      : leadIn + (visible / CELL_COUNT) * LEAD_CELLS;
+      ? dotX[LEAD_CELLS] + dotR
+      : leadIn + (visible / CELL_COUNT) * LEAD_CELLS + dotR;
 
   const section = stage?.closest("section") ?? null;
 
@@ -238,6 +256,30 @@ export function assertApproachGeometry(m: ApproachMeasure) {
       "the row comes to rest, so the footer is already climbing over it before the rail has " +
       "finished drawing. Raise APPROACH_STAGE_FLOOR, or PAD_BOTTOM.",
     );
+  }
+
+  /**
+   * And the row has to come to rest on whole cells. `lead`'s docblock has the algebra; this is
+   * the check on the result, stated the way it is actually seen — for each stop, where does the
+   * track park, and is that a whole number of cells? A stray dot radius here is the leftmost
+   * circle sliced down its side and the right-hand column cut through its copy, which is what
+   * was reported, and it is the kind of thing that comes back the moment `lead` or `stopsFor`
+   * is touched.
+   */
+  const cellW = m.dotX.length > 0 ? m.trackW / m.dotX.length : 0;
+  if (cellW > 0) {
+    for (const stop of stopsFor(m)) {
+      const x = Math.abs(trackXFor(m, stop * reachTotal(m)));
+      const off = Math.min(x % cellW, cellW - (x % cellW));
+      if (off > 1) {
+        console.error(
+          `[Approach] the row rests ${off.toFixed(1)}px off a whole cell, so a dot is sliced at ` +
+          "the stage's left edge and the far column is cut through its copy. `lead` has to be " +
+          "the last on-screen dot's coverage point, not its centre.",
+        );
+        break;
+      }
+    }
   }
 
   if (m.overflow <= 0) return;

@@ -311,7 +311,7 @@ export function createDefinitionSequence(
       );
       gsap.set(refs.mark.current, { opacity: 1 - markFadeP });
 
-      // --- the camera pans onto the footer (0.8 – 1.7s) ---
+      // --- the camera pans onto the footer (0.8 – 1.4s) ---
       // Behind the dissolve rather than across it (PAN_AT) — moving early would slide the
       // wordmark's letterforms out from under their own dots. `panRaw` stays uneased for
       // the photographs below.

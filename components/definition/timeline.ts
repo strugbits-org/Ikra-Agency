@@ -26,8 +26,8 @@ import { CLOSE_VH, HERO_GRAY_TAIL_VH } from "../hero/timeline";
  *   measured  the tail is cued once the definition stands LOGO_FADE_ABOVE_FRAC of its own
  *             height above the top edge (LOGO_FADE_AT is the constant backstop).
  *      0–0.8s the wordmark dissolves in place, leaving its three dots hanging.
- *    0.8–1.7s the camera pans onto the footer (after the dissolve, not across it).
- *   ~1.6–3.6s the footer's contents resolve, and the dots fall — both over the same span.
+ *    0.8–1.4s the camera pans onto the footer (after the dissolve, not across it).
+ *   ~0.8–3.3s the footer's contents resolve, and the dots fall — both over the same span.
  *  131–155vh  the last of the scroll, TAIL_VH — room for the gesture, not a driver of it.
  */
 
@@ -220,8 +220,31 @@ export const TAIL_VH = 24;
  * measured distance onto the track's second screen, coming to rest with the footer's
  * bottom edge on the viewport's. Must finish before the earliest dot touches down, or a
  * dot lands on a still-moving floor.
+ *
+ * It is also the only knob on **how long the dots hang alone**, which is what it was cut
+ * from 0.9 for, twice, on report. The release is solved backwards from the camera's stop
+ * (see `releaseAt` in ./measure), so the stretch between the last letterform going and the
+ * first dot moving is `PAN_SECONDS + DROP_MARGIN_SECONDS - lead` — three orange dots on
+ * flat gray with a footer that has not begun resolving yet, reported as dead time. Nothing
+ * else shortens it: the dissolve in front is the right length and moving the release on its
+ * own is exactly the moving-floor case above. 0.9 → 0.7 → 0.6 took that gap from ~0.33s to
+ * ~0.13s to ~0.03s on a desktop viewport, and carried every beat behind it — release,
+ * footer reveal, fall — 0.3s earlier with it.
+ *
+ * **0.6 is the end of this knob, not a resting place mid-range.** ~0.57 is the floor:
+ * below it the desktop release crosses back over LOGO_FADE_SECONDS and the dots let go
+ * while the letterforms are still on screen, which is the one ordering this timeline is
+ * built to keep. Asserted in ./measure against the measured lead rather than that estimate,
+ * so the assertion is what to believe on a viewport whose dots fall differently. Wanting
+ * the gray to fill sooner from here means the footer's own reveal (FOOTER_REVEAL_EASE),
+ * which currently waits for the release — not this.
+ *
+ * What it costs is camera speed, and that was checked rather than assumed: the move is
+ * about one screen, so 0.6s is ~167vh/s against the ~840vh/s the smoother will pass through
+ * on a hard flick. Comfortably inside a rate the reader's own wheel produces, so it reads
+ * as a camera rather than a cut.
  */
-export const PAN_SECONDS = 0.9;
+export const PAN_SECONDS = 0.6;
 
 /**
  * When the camera starts, on the tail's clock — after the dissolve, not over it: the
@@ -276,7 +299,7 @@ export const TAIL_BACK_SECONDS = 1.4;
  * the case it exists for is a back or forward into the middle of the page (see
  * SmoothScrollProvider's `scrollMemory`), which puts the reader below this section with
  * `scrollTo(…, false)`: one frame, no easing. On that frame the pin is already exhausted, so
- * the tail was starting its whole ~3.6s gesture from zero with no scroll left to cover it,
+ * the tail was starting its whole ~3.3s gesture from zero with no scroll left to cover it,
  * and `lockTailScroll` then held the reader for the remainder of a fall that had already
  * scrolled off the top of the screen — measured at **2.5s of a completely dead wheel** after
  * pressing Back from a case study, which is the bug this removes. A reload deep in the page

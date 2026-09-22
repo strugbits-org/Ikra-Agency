@@ -10,6 +10,7 @@ import {
   IMAGE_SEAM_BLEED_PX,
   LOGO_FADE_ABOVE_FRAC,
   LOGO_FADE_CAP_FRAC,
+  LOGO_FADE_SECONDS,
   PAN_END,
   STATEMENT_LIFT_VH,
 } from "./timeline";
@@ -356,6 +357,23 @@ export function createMeasure(els: MeasureEls, refs: MeasureRefs) {
       DROP_MARGIN_SECONDS -
       (Number.isFinite(lead) ? lead : DROP_LEAD_MIN * DROP_SECONDS),
     );
+
+    // The other side of the same solve: the release may be pulled forward (PAN_SECONDS is
+    // the knob, and shortening the stretch where the dots hang alone is what it's for) but
+    // not past the dissolve, or the dots let go while the letterforms are still on screen
+    // and the wordmark is left melting around a gap where its own dots used to be.
+    if (
+      process.env.NODE_ENV !== "production" &&
+      m.releaseAt < LOGO_FADE_SECONDS
+    ) {
+      console.error(
+        "[DefinitionSection] the dots would let go before the wordmark has " +
+        `finished dissolving: release at ${m.releaseAt.toFixed(2)}s against a ` +
+        `${LOGO_FADE_SECONDS}s dissolve. Lengthen PAN_SECONDS — it is what the ` +
+        "release is solved backwards from.",
+        { lead, releaseAt: m.releaseAt },
+      );
+    }
 
     if (
       process.env.NODE_ENV !== "production" &&
