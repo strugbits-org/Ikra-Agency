@@ -11,7 +11,7 @@ import Footer from "@/components/Footer";
  *
  * A literal, and it has to be: Next reads route segment config statically, so
  * `WIX_REVALIDATE_SECONDS` — the same minute, and what `wixQuery` asks for on its own
- * fetch — cannot be imported into this position. Change this, `/playground` and `lib/wix`
+ * fetch — cannot be imported into this position. Change this, `/about` and `lib/wix`
  * together or none of them; `lib/wix` is where the minute's reasoning lives.
  *
  * **This is the ceiling, not the period**: the shortest revalidate among a segment's fetches

@@ -7,7 +7,7 @@ import { approachFromWix } from "@/components/approach/content";
 import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "ikra — playground",
+  title: "ikra — about",
   description: "Work upstream.",
 };
 
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
  */
 export const revalidate = 60;
 
-export default async function PlaygroundPage() {
+export default async function AboutPage() {
   // In parallel: two independent collections behind one token, so serialising them would
   // spend a second Wix round trip for nothing on a cold render.
   const [founders, approach] = await Promise.all([

@@ -11,7 +11,7 @@ import { CASE_PROJECTS, type CaseProject } from "./projects";
 /**
  * The case-study cards, as the client's Wix CMS holds them — the same arrangement as the
  * founders and the approach points, and the first one on `app/page.tsx` rather than
- * `/playground`.
+ * `/about`.
  *
  * **This module is the boundary.** A CMS row is not typed, not validated and not guaranteed
  * to be there, so every field is defended here and nowhere else; `./projects` keeps the type

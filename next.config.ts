@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
      * listed here, and the pattern is narrowed to `/media/**` rather than the bare host so the
      * optimiser can only ever be pointed at files, not at any other path Wix serves from it.
      *
-     * The founders' photographs on `/playground` come from the same account and deliberately
+     * The founders' photographs on `/about` come from the same account and deliberately
      * do *not* need this: they are sized at the CDN and drawn with a plain `<img>`. It is the
      * case-study cards that go through `next/image`, because they already did when their
      * images sat in `/public` and the move to the CMS was not the moment to change how they
