@@ -30,7 +30,7 @@ import { fieldFor } from "./field";
  * The case studies, as the client's Wix CMS holds them.
  *
  * **This module is the boundary**, in the same sense as `components/cases/content.ts` and the
- * two on `/playground`: a CMS row is untyped, partly filled and may not be there at all, so
+ * two on `/about`: a CMS row is untyped, partly filled and may not be there at all, so
  * every field is defended here and nothing downstream knows Wix exists. `./content` keeps the
  * type, `./CaseStudyPage` renders it, and neither imports anything from `lib/wix`.
  *

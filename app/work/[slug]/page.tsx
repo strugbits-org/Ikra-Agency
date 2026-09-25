@@ -14,7 +14,7 @@ import { STUDY_SLUGS } from "@/components/study/content";
  *
  * **`revalidate` has to stay a literal.** Next reads route segment config statically, so
  * `WIX_REVALIDATE_SECONDS` cannot be imported into this position however much it wants to be.
- * There are three of these now — here, `app/page.tsx` and `app/playground/page.tsx` — and they
+ * There are three of these now — here, `app/page.tsx` and `app/about/page.tsx` — and they
  * are meant to agree, so change all three or none. `npm run build` printing `○` against this
  * route with a 1m revalidate is the check that it is still prerendered; a single uncached
  * fetch turns it `ƒ`.

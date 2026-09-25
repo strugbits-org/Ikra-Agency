@@ -41,7 +41,7 @@ export const APPROACH_COLLECTION = "Approach";
 /**
  * The collection behind the home page's case-study cards. Same again — `read: ANYONE`,
  * everything else `ADMIN` — and the first one that feeds `app/page.tsx` rather than
- * `/playground`, which is why that route now carries a `revalidate` of its own.
+ * `/about`, which is why that route now carries a `revalidate` of its own.
  *
  * Its rows are the cards' *content*; the row of cells, the pin and the traverse are all
  * derived from how many there are (see `components/cases/content.ts`).
@@ -113,7 +113,7 @@ let cached: { token: string; expiresAt: number } | null = null;
  *
  * It cannot be `cache: "no-store"`, which is the obvious thing to write for a credential and
  * is wrong here: a single uncached fetch opts the whole route segment out of static rendering,
- * and `/playground` went dynamic for exactly this reason before this constant existed.
+ * and `/about` went dynamic for exactly this reason before this constant existed.
  *
  * **What this number does not bound is how old a served response can be, and assuming it did
  * was a real bug** — see `tokenExpiry` below.
